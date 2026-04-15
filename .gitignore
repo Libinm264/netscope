@@ -1,0 +1,45 @@
+# ── Rust ──────────────────────────────────────────────────────────────────────
+target/
+**/*.rs.bk
+Cargo.lock           # top-level; keep crate-level locks
+
+# ── Node / npm ────────────────────────────────────────────────────────────────
+node_modules/
+dist/
+.cache/
+
+# ── Tauri ─────────────────────────────────────────────────────────────────────
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+desktop/src-tauri/WixTools/
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+*.dmg
+
+# ── Windows ───────────────────────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.iml
+
+# ── Secrets / local config ────────────────────────────────────────────────────
+.env
+.env.local
+*.pem
+*.key
+
+# ── NetScope session files ────────────────────────────────────────────────────
+*.nscope
+
+# ── Build artefacts ───────────────────────────────────────────────────────────
+*.deb
+*.rpm
+*.AppImage
+*.msi
+*.exe

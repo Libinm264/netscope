@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package netscope;
+
+// A complete network flow event, emitted by the agent.
+message Flow {
+  string id = 1;
+  int64 timestamp_ms = 2;   // Unix epoch milliseconds
+  string src_ip = 3;
+  string dst_ip = 4;
+  uint32 src_port = 5;
+  uint32 dst_port = 6;
+  Protocol protocol = 7;
+  uint64 bytes_in = 8;
+  uint64 bytes_out = 9;
+
+  oneof payload {
+    HttpFlow http = 10;
+    DnsFlow dns = 11;
+  }
+}
+
+enum Protocol {
+  PROTOCOL_UNKNOWN = 0;
+  PROTOCOL_HTTP = 1;
+  PROTOCOL_HTTPS = 2;
+  PROTOCOL_DNS = 3;
+  PROTOCOL_TCP = 4;
+  PROTOCOL_UDP = 5;
+}
+
+message HttpFlow {
+  HttpRequest request = 1;
+  HttpResponse response = 2;
+  uint64 latency_ms = 3;
+}
+
+message HttpRequest {
+  string method = 1;
+  string path = 2;
+  string version = 3;
+  repeated Header headers = 4;
+  string body_preview = 5;
+  int64 timestamp_ms = 6;
+}
+
+message HttpResponse {
+  uint32 status_code = 1;
+  string status_text = 2;
+  string version = 3;
+  repeated Header headers = 4;
+  string body_preview = 5;
+  int64 timestamp_ms = 6;
+}
+
+message Header {
+  string name = 1;
+  string value = 2;
+}
+
+message DnsFlow {
+  uint32 transaction_id = 1;
+  string query_name = 2;
+  string query_type = 3;
+  bool is_response = 4;
+  repeated DnsAnswer answers = 5;
+  string rcode = 6;
+}
+
+message DnsAnswer {
+  string name = 1;
+  string record_type = 2;
+  uint32 ttl = 3;
+  string data = 4;
+}
+
+// Raw packet event — used for streaming before protocol decoding.
+message PacketEvent {
+  int64 timestamp_ms = 1;
+  string src_ip = 2;
+  string dst_ip = 3;
+  uint32 src_port = 4;
+  uint32 dst_port = 5;
+  Protocol protocol = 6;
+  uint32 length = 7;
+}

@@ -1,0 +1,17 @@
+[package]
+name = "parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+proto = { path = "../proto" }
+capture = { path = "../capture" }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+httparse = "1"
+etherparse = "0.15"
+
+[dev-dependencies]
+pcap = "2"

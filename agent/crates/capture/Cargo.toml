@@ -1,0 +1,15 @@
+[package]
+name = "capture"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+proto = { path = "../proto" }
+config = { path = "../config" }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+pcap = "2"
+etherparse = "0.15"
+tokio = { workspace = true }
