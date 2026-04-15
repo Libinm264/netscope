@@ -13,10 +13,12 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
+	"github.com/netscope/hub-api/alerting"
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/config"
 	"github.com/netscope/hub-api/handlers"
 	"github.com/netscope/hub-api/kafka"
+	nsmetrics "github.com/netscope/hub-api/metrics"
 	"github.com/netscope/hub-api/middleware"
 	"github.com/netscope/hub-api/models"
 )
@@ -100,6 +102,15 @@ func main() {
 		}()
 	}
 
+	// ── Alert evaluator ───────────────────────────────────────────────────────
+	var evaluator *alerting.Evaluator
+	if chClient != nil {
+		evaluator = alerting.NewEvaluator(chClient, 60*time.Second)
+		evaluator.Start()
+		defer evaluator.Stop()
+		slog.Info("alert evaluator started")
+	}
+
 	// ── Fiber ─────────────────────────────────────────────────────────────────
 	app := fiber.New(fiber.Config{
 		ReadTimeout:  15 * time.Second,
@@ -118,12 +129,17 @@ func main() {
 		Format: "${time} ${method} ${path} ${status} ${latency}\n",
 	}))
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
+		AllowOrigins: cfg.AllowedOrigins,
 		AllowHeaders: "Origin, Content-Type, Accept, X-Api-Key",
-		AllowMethods: "GET,POST,OPTIONS",
+		AllowMethods: "GET,POST,PATCH,DELETE,OPTIONS",
 	}))
+	// Count every request
+	app.Use(func(c *fiber.Ctx) error {
+		nsmetrics.APIRequestsTotal.Add(1)
+		return c.Next()
+	})
 
-	// Public health endpoint
+	// Public endpoints
 	app.Get("/health", func(c *fiber.Ctx) error {
 		status := "ok"
 		if chClient == nil {
@@ -131,24 +147,39 @@ func main() {
 		}
 		return c.JSON(fiber.Map{"status": status, "version": "0.1.0"})
 	})
+	app.Get("/metrics", func(c *fiber.Ctx) error {
+		c.Set("Content-Type", "text/plain; version=0.0.4")
+		return c.SendString(nsmetrics.Text())
+	})
 
 	// Protected API routes
-	v1 := app.Group("/api/v1", middleware.APIKeyAuth(cfg.APIKey))
+	auth := middleware.APIKeyAuth(cfg.APIKey)
+	// Ingest gets a generous limit (agents post many flows); general API is tighter.
+	ingestLimit := middleware.RateLimit(50_000, time.Minute)
+	apiLimit    := middleware.RateLimit(2_000, time.Minute)
+
+	v1 := app.Group("/api/v1", auth)
 
 	flowH := &handlers.FlowHandler{
 		CH:       chClient,
 		Writer:   chWriter,
 		Producer: producer,
 	}
-	agentH := &handlers.AgentHandler{CH: chClient}
-	statsH := &handlers.StatsHandler{CH: chClient}
+	agentH  := &handlers.AgentHandler{CH: chClient}
+	statsH  := &handlers.StatsHandler{CH: chClient}
+	alertH  := &handlers.AlertHandler{CH: chClient}
 
-	v1.Post("/ingest", flowH.Ingest)
-	v1.Get("/flows", flowH.Query)
-	v1.Get("/flows/stream", flowH.Stream)
-	v1.Get("/stats", statsH.Stats)
-	v1.Get("/agents", agentH.List)
-	v1.Post("/agents/register", agentH.Register)
+	v1.Post("/ingest",          ingestLimit, flowH.Ingest)
+	v1.Get("/flows",            apiLimit,    flowH.Query)
+	v1.Get("/flows/stream",                  flowH.Stream)
+	v1.Get("/stats",            apiLimit,    statsH.Stats)
+	v1.Get("/agents",           apiLimit,    agentH.List)
+	v1.Post("/agents/register", apiLimit,    agentH.Register)
+	v1.Get("/alerts",           apiLimit,    alertH.ListRules)
+	v1.Post("/alerts",          apiLimit,    alertH.CreateRule)
+	v1.Patch("/alerts/:id",     apiLimit,    alertH.UpdateRule)
+	v1.Delete("/alerts/:id",    apiLimit,    alertH.DeleteRule)
+	v1.Get("/alerts/events",    apiLimit,    alertH.ListEvents)
 
 	// ── Graceful shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
@@ -176,6 +207,34 @@ func runMigrations(ch *clickhouse.Client) error {
 	defer cancel()
 
 	ddl := []string{
+		`CREATE TABLE IF NOT EXISTS alert_rules (
+			id               UUID    DEFAULT generateUUIDv4(),
+			name             String,
+			metric           LowCardinality(String),
+			condition        LowCardinality(String),
+			threshold        Float64,
+			window_minutes   UInt32  DEFAULT 5,
+			webhook_url      String  DEFAULT '',
+			enabled          UInt8   DEFAULT 1,
+			cooldown_minutes UInt32  DEFAULT 15,
+			created_at       DateTime64(3, 'UTC') DEFAULT now64()
+		) ENGINE = MergeTree()
+		ORDER BY (created_at, id)`,
+
+		`CREATE TABLE IF NOT EXISTS alert_events (
+			id        UUID DEFAULT generateUUIDv4(),
+			rule_id   String,
+			rule_name String,
+			metric    String,
+			value     Float64,
+			threshold Float64,
+			fired_at  DateTime64(3, 'UTC'),
+			delivered UInt8 DEFAULT 0
+		) ENGINE = MergeTree()
+		PARTITION BY toYYYYMM(fired_at)
+		ORDER BY fired_at
+		TTL fired_at + INTERVAL 30 DAY`,
+
 		`CREATE TABLE IF NOT EXISTS flows (
 			id          UUID              DEFAULT generateUUIDv4(),
 			agent_id    String,

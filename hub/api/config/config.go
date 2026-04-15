@@ -10,11 +10,14 @@ import (
 
 // Config holds all runtime configuration loaded from environment variables.
 type Config struct {
-	APIKey          string
-	ClickHouseDSN   string
-	KafkaBrokers    []string
-	KafkaTopic      string
-	Port            string
+	APIKey         string
+	ClickHouseDSN  string
+	KafkaBrokers   []string
+	KafkaTopic     string
+	Port           string
+	// AllowedOrigins is the CORS allowed-origins list (comma-separated).
+	// Defaults to "*" for local dev; set to your domain(s) in production.
+	AllowedOrigins string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -26,10 +29,11 @@ func Load() *Config {
 	}
 
 	cfg := &Config{
-		APIKey:        getEnv("API_KEY", ""),
-		ClickHouseDSN: getEnv("CLICKHOUSE_DSN", "clickhouse://netscope:netscope_pass@clickhouse:9000/netscope"),
-		KafkaTopic:    getEnv("KAFKA_TOPIC", "netscope.flows"),
-		Port:          getEnv("PORT", "8080"),
+		APIKey:         getEnv("API_KEY", ""),
+		ClickHouseDSN:  getEnv("CLICKHOUSE_DSN", "clickhouse://netscope:netscope_pass@clickhouse:9000/netscope"),
+		KafkaTopic:     getEnv("KAFKA_TOPIC", "netscope.flows"),
+		Port:           getEnv("PORT", "8080"),
+		AllowedOrigins: getEnv("ALLOWED_ORIGINS", "*"),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")

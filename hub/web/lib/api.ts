@@ -87,6 +87,8 @@ export async function fetchFlows(params?: {
   src_ip?: string;
   dst_ip?: string;
   hostname?: string;
+  from?: string;       // ISO datetime or datetime-local string
+  to?: string;         // ISO datetime or datetime-local string
   limit?: number;
   offset?: number;
 }): Promise<{ flows: Flow[]; total: number }> {
@@ -99,6 +101,94 @@ export async function fetchStats(): Promise<StatsResponse> {
 
 export async function fetchAgents(): Promise<{ agents: Agent[] }> {
   return get("/api/v1/agents");
+}
+
+// ── Alert types ───────────────────────────────────────────────────────────────
+
+export type AlertMetric =
+  | "flows_per_minute"
+  | "http_error_rate"
+  | "dns_nxdomain_rate";
+
+export type AlertCondition = "gt" | "lt";
+
+export interface AlertRule {
+  id: string;
+  name: string;
+  metric: AlertMetric;
+  condition: AlertCondition;
+  threshold: number;
+  window_minutes: number;
+  webhook_url: string;
+  enabled: number;        // 0 | 1 (ClickHouse UInt8)
+  cooldown_minutes: number;
+  created_at: string;
+}
+
+export interface AlertEvent {
+  id: string;
+  rule_id: string;
+  rule_name: string;
+  metric: string;
+  value: number;
+  threshold: number;
+  webhook_delivered: number;
+  fired_at: string;
+}
+
+export interface CreateAlertRuleRequest {
+  name: string;
+  metric: AlertMetric;
+  condition: AlertCondition;
+  threshold: number;
+  window_minutes?: number;
+  webhook_url?: string;
+  cooldown_minutes?: number;
+}
+
+// ── Alert API helpers ─────────────────────────────────────────────────────────
+
+async function api<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: headers(),
+    cache: "no-store",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`API ${method} ${path} → ${res.status}: ${text}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export async function fetchAlertRules(): Promise<{ rules: AlertRule[] }> {
+  return get("/api/v1/alerts");
+}
+
+export async function createAlertRule(
+  req: CreateAlertRuleRequest,
+): Promise<AlertRule> {
+  return api<AlertRule>("POST", "/api/v1/alerts", req);
+}
+
+export async function updateAlertRule(
+  id: string,
+  patch: Partial<Pick<AlertRule, "enabled" | "webhook_url">>,
+): Promise<AlertRule> {
+  return api<AlertRule>("PATCH", `/api/v1/alerts/${id}`, patch);
+}
+
+export async function deleteAlertRule(id: string): Promise<void> {
+  await api<unknown>("DELETE", `/api/v1/alerts/${id}`);
+}
+
+export async function fetchAlertEvents(): Promise<{ events: AlertEvent[] }> {
+  return get("/api/v1/alerts/events");
 }
 
 /**

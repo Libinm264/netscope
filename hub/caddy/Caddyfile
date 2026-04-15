@@ -1,0 +1,61 @@
+# ── NetScope Hub — Caddyfile ──────────────────────────────────────────────────
+# Dev:  CADDY_HOSTNAME is unset  → HTTP only on :80
+# Prod: CADDY_HOSTNAME=hub.example.com → automatic HTTPS via Let's Encrypt
+#
+# Required env vars (prod only):
+#   CADDY_HOSTNAME  your public domain
+#   CADDY_EMAIL     ACME registration email (for cert renewal notifications)
+
+{
+    admin off
+    # Uncomment in production to set the ACME contact email:
+    # email {$CADDY_EMAIL}
+}
+
+# Site block — defaults to :80 (plain HTTP) when CADDY_HOSTNAME is not set.
+{$CADDY_HOSTNAME::80} {
+
+    # ── Compression ────────────────────────────────────────────────────────────
+    encode zstd gzip
+
+    # ── Security headers ───────────────────────────────────────────────────────
+    header {
+        # Prevent MIME-type sniffing
+        X-Content-Type-Options nosniff
+        # Deny embedding in iframes
+        X-Frame-Options DENY
+        # XSS protection (legacy browsers)
+        X-XSS-Protection "1; mode=block"
+        # Restrict referrer information
+        Referrer-Policy strict-origin-when-cross-origin
+        # Disable browser features not needed
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        # Remove server fingerprint
+        -Server
+        # HSTS — only uncomment when HTTPS is configured
+        # Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    }
+
+    # ── API & health ───────────────────────────────────────────────────────────
+    handle /api/* {
+        reverse_proxy api:8080
+    }
+    handle /health {
+        reverse_proxy api:8080
+    }
+    handle /metrics {
+        # Restrict metrics to internal networks only
+        @internal {
+            remote_ip 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 127.0.0.1
+        }
+        handle @internal {
+            reverse_proxy api:8080
+        }
+        respond "Forbidden" 403
+    }
+
+    # ── Next.js web dashboard ──────────────────────────────────────────────────
+    handle {
+        reverse_proxy web:3000
+    }
+}

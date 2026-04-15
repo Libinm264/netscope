@@ -137,15 +137,20 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 	srcIP    := c.Query("src_ip")
 	dstIP    := c.Query("dst_ip")
 	hostname := c.Query("hostname")
+	fromStr  := c.Query("from")
+	toStr    := c.Query("to")
 	limit    := c.QueryInt("limit", 100)
 	offset   := c.QueryInt("offset", 0)
 	if limit > 1000 {
 		limit = 1000
 	}
 
+	// Time formats accepted from the browser: RFC3339 or "datetime-local" (no Z)
+	const localFmt = "2006-01-02T15:04"
+
 	// Build dynamic WHERE clause
 	where := "1=1"
-	filterArgs := make([]interface{}, 0, 4)
+	filterArgs := make([]interface{}, 0, 6)
 	if protocol != "" {
 		where += " AND protocol = ?"
 		filterArgs = append(filterArgs, protocol)
@@ -161,6 +166,28 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 	if hostname != "" {
 		where += " AND hostname = ?"
 		filterArgs = append(filterArgs, hostname)
+	}
+	if fromStr != "" {
+		var t time.Time
+		var err error
+		if t, err = time.Parse(time.RFC3339, fromStr); err != nil {
+			t, err = time.Parse(localFmt, fromStr)
+		}
+		if err == nil {
+			where += " AND ts >= ?"
+			filterArgs = append(filterArgs, t.UTC())
+		}
+	}
+	if toStr != "" {
+		var t time.Time
+		var err error
+		if t, err = time.Parse(time.RFC3339, toStr); err != nil {
+			t, err = time.Parse(localFmt, toStr)
+		}
+		if err == nil {
+			where += " AND ts <= ?"
+			filterArgs = append(filterArgs, t.UTC())
+		}
 	}
 
 	ctx := c.Context()

@@ -5,12 +5,10 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /src
 
-# Download dependencies before copying source (better layer caching)
-COPY go.mod ./
-RUN go mod download
-
+# Copy source first, then tidy — handles missing go.sum on fresh builds
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /hub-api .
+RUN go mod tidy && \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /hub-api .
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 FROM alpine:3.19

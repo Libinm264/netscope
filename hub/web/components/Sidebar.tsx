@@ -2,16 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Network, LayoutDashboard, List, Server } from "lucide-react";
+import { Network, LayoutDashboard, List, Server, Bell } from "lucide-react";
 import { clsx } from "clsx";
+import { UserMenu } from "@/components/UserMenu";
 
 const NAV = [
   { href: "/",        label: "Dashboard", icon: LayoutDashboard },
   { href: "/flows",   label: "Flows",     icon: List },
   { href: "/agents",  label: "Agents",    icon: Server },
+  { href: "/alerts",  label: "Alerts",    icon: Bell },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    picture?: string | null;
+  } | null;
+}
+
+export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -52,8 +62,16 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-5 py-4 border-t border-white/[0.06]">
-        <p className="text-[11px] text-slate-600">NetScope v0.1.0</p>
+      <div className="px-3 py-3 border-t border-white/[0.06]">
+        {user ? (
+          <UserMenu
+            name={user.name}
+            email={user.email}
+            picture={user.picture}
+          />
+        ) : (
+          <p className="text-[11px] text-slate-600 px-2">NetScope v0.1.0</p>
+        )}
       </div>
     </aside>
   );
