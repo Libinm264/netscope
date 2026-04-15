@@ -1,12 +1,15 @@
+mod hub_client;
+
 use anyhow::Result;
 use capture::{list_interfaces, start_capture, CaptureError};
 use clap::{Parser, Subcommand};
 use config::{AgentConfig, OutputMode};
+use hub_client::HubClient;
 use parser::session::SessionManager;
 use proto::FlowPayload;
 use std::sync::mpsc;
 use std::thread;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
@@ -144,6 +147,36 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
         }
     });
 
+    // Build hub client if hub output is requested
+    let hub_output = matches!(cfg.output, OutputMode::Hub);
+    let mut hub: Option<HubClient> = if hub_output {
+        match (cfg.hub_url.as_ref(), cfg.api_key.as_ref()) {
+            (Some(url), Some(key)) => {
+                match HubClient::new(url, key) {
+                    Ok(c) => {
+                        info!(
+                            agent_id = c.agent_id(),
+                            hostname = c.hostname(),
+                            hub_url = %url,
+                            "Hub client initialised"
+                        );
+                        Some(c)
+                    }
+                    Err(e) => {
+                        warn!("Failed to create hub client: {:#} — falling back to stdout", e);
+                        None
+                    }
+                }
+            }
+            _ => {
+                warn!("--hub-url and --api-key are required for hub output — falling back to stdout");
+                None
+            }
+        }
+    } else {
+        None
+    };
+
     let mut session_mgr = SessionManager::new();
     let mut flow_count = 0u64;
 
@@ -153,7 +186,23 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
 
         for flow in flows {
             flow_count += 1;
-            print_flow(&flow, flow_count);
+
+            if let Some(ref mut client) = hub {
+                if let Err(e) = client.send_flow(&flow) {
+                    warn!("Hub send error: {:#}", e);
+                    // Fall back to printing so we don't lose the flow
+                    print_flow(&flow, flow_count);
+                }
+            } else {
+                print_flow(&flow, flow_count);
+            }
+        }
+    }
+
+    // Flush any remaining buffered flows before exiting
+    if let Some(ref mut client) = hub {
+        if let Err(e) = client.flush() {
+            warn!("Hub flush on exit failed: {:#}", e);
         }
     }
 
