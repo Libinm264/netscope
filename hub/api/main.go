@@ -160,26 +160,29 @@ func main() {
 
 	v1 := app.Group("/api/v1", auth)
 
-	flowH := &handlers.FlowHandler{
-		CH:       chClient,
-		Writer:   chWriter,
-		Producer: producer,
-	}
-	agentH  := &handlers.AgentHandler{CH: chClient}
-	statsH  := &handlers.StatsHandler{CH: chClient}
-	alertH  := &handlers.AlertHandler{CH: chClient}
+	flowH     := &handlers.FlowHandler{CH: chClient, Writer: chWriter, Producer: producer}
+	agentH    := &handlers.AgentHandler{CH: chClient}
+	statsH    := &handlers.StatsHandler{CH: chClient}
+	alertH    := &handlers.AlertHandler{CH: chClient}
+	servicesH := &handlers.ServicesHandler{CH: chClient}
+	analyticsH := &handlers.AnalyticsHandler{CH: chClient}
+	otelH     := &handlers.OtelHandler{CH: chClient}
 
-	v1.Post("/ingest",          ingestLimit, flowH.Ingest)
-	v1.Get("/flows",            apiLimit,    flowH.Query)
-	v1.Get("/flows/stream",                  flowH.Stream)
-	v1.Get("/stats",            apiLimit,    statsH.Stats)
-	v1.Get("/agents",           apiLimit,    agentH.List)
-	v1.Post("/agents/register", apiLimit,    agentH.Register)
-	v1.Get("/alerts",           apiLimit,    alertH.ListRules)
-	v1.Post("/alerts",          apiLimit,    alertH.CreateRule)
-	v1.Patch("/alerts/:id",     apiLimit,    alertH.UpdateRule)
-	v1.Delete("/alerts/:id",    apiLimit,    alertH.DeleteRule)
-	v1.Get("/alerts/events",    apiLimit,    alertH.ListEvents)
+	v1.Post("/ingest",                   ingestLimit, flowH.Ingest)
+	v1.Get("/flows",                     apiLimit,    flowH.Query)
+	v1.Get("/flows/stream",                           flowH.Stream)
+	v1.Get("/stats",                     apiLimit,    statsH.Stats)
+	v1.Get("/agents",                    apiLimit,    agentH.List)
+	v1.Post("/agents/register",          apiLimit,    agentH.Register)
+	v1.Get("/alerts",                    apiLimit,    alertH.ListRules)
+	v1.Post("/alerts",                   apiLimit,    alertH.CreateRule)
+	v1.Patch("/alerts/:id",              apiLimit,    alertH.UpdateRule)
+	v1.Delete("/alerts/:id",             apiLimit,    alertH.DeleteRule)
+	v1.Get("/alerts/events",             apiLimit,    alertH.ListEvents)
+	// Phase 5
+	v1.Get("/services/graph",            apiLimit,    servicesH.Graph)
+	v1.Get("/analytics/endpoints",       apiLimit,    analyticsH.Endpoints)
+	v1.Get("/otel/traces",               apiLimit,    otelH.ExportTraces)
 
 	// ── Graceful shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)

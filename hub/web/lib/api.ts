@@ -234,6 +234,60 @@ export async function fetchAlertEvents(): Promise<{ events: AlertEvent[] }> {
   return get("/api/v1/alerts/events");
 }
 
+// ── Service dependency graph ───────────────────────────────────────────────────
+
+export interface ServiceNode {
+  id: string;
+  ip: string;
+  flow_count: number;
+  is_known: boolean;
+  hostname: string;
+}
+
+export interface ServiceEdge {
+  source: string;
+  target: string;
+  protocol: string;
+  count: number;
+  avg_latency_ms: number;
+  bytes_total: number;
+}
+
+export interface ServiceGraph {
+  nodes: ServiceNode[];
+  edges: ServiceEdge[];
+  window: string;
+}
+
+export async function fetchServiceGraph(window = "1h"): Promise<ServiceGraph> {
+  return get("/api/v1/services/graph", { window });
+}
+
+// ── HTTP endpoint analytics ────────────────────────────────────────────────────
+
+export interface EndpointStat {
+  method: string;
+  path: string;
+  count: number;
+  success_count: number;
+  error_count: number;
+  error_rate: number;    // percent 0-100
+  avg_latency_ms: number;
+  p50_ms: number;
+  p95_ms: number;
+  p99_ms: number;
+}
+
+export interface EndpointStatsResponse {
+  endpoints: EndpointStat[];
+  window: string;
+  total: number;
+}
+
+export async function fetchEndpointStats(window = "1h"): Promise<EndpointStatsResponse> {
+  return get("/api/v1/analytics/endpoints", { window });
+}
+
 /**
  * Open a Server-Sent Events connection to the live flow stream.
  * Returns a cleanup function — call it to close the connection.

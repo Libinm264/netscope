@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Network, LayoutDashboard, List, Server, Bell } from "lucide-react";
+import { Network, LayoutDashboard, List, Server, Bell, GitFork, BarChart3 } from "lucide-react";
 import { clsx } from "clsx";
 import { UserMenu } from "@/components/UserMenu";
 
 const NAV = [
-  { href: "/",        label: "Dashboard", icon: LayoutDashboard },
-  { href: "/flows",   label: "Flows",     icon: List },
-  { href: "/agents",  label: "Agents",    icon: Server },
-  { href: "/alerts",  label: "Alerts",    icon: Bell },
+  { href: "/",          label: "Dashboard",  icon: LayoutDashboard },
+  { href: "/flows",     label: "Flows",      icon: List },
+  { href: "/services",  label: "Services",   icon: GitFork },
+  { href: "/analytics", label: "Analytics",  icon: BarChart3 },
+  { href: "/agents",    label: "Agents",     icon: Server },
+  { href: "/alerts",    label: "Alerts",     icon: Bell },
 ];
 
 interface SidebarProps {

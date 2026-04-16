@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "netscope-desktop",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 1420,
+      "cwd": "/Users/libinmathew/ClaudeProject/netscope/desktop"
+    },
+    {
+      "name": "netscope-hub-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "cwd": "/Users/libinmathew/ClaudeProject/netscope/hub/web"
+    }
+  ]
+}
