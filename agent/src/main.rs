@@ -277,18 +277,58 @@ fn print_flow(flow: &proto::Flow, n: u64) {
             }
         }
 
+        Some(FlowPayload::Tls(tls)) => {
+            let detail = match tls.record_type.as_str() {
+                "ClientHello" => format!(
+                    "{}{}",
+                    tls.sni.as_deref().unwrap_or("?"),
+                    if tls.has_weak_cipher { " [weak cipher]" } else { "" }
+                ),
+                "ServerHello" => tls.chosen_cipher.clone().unwrap_or_default(),
+                "Certificate" => format!(
+                    "{}{}",
+                    tls.cert_cn.as_deref().unwrap_or("?"),
+                    if tls.cert_expired { " [EXPIRED]" } else { "" }
+                ),
+                "Alert" => format!(
+                    "{} {}",
+                    tls.alert_level.as_deref().unwrap_or(""),
+                    tls.alert_description.as_deref().unwrap_or("")
+                ),
+                other => other.to_string(),
+            };
+            println!(
+                "[{}] \x1b[36mTLS\x1b[0m #{} {} {} {}:{} → {}:{}",
+                ts, n, tls.record_type, detail,
+                flow.src_ip, flow.src_port, flow.dst_ip, flow.dst_port
+            );
+        }
+
+        Some(FlowPayload::Icmp(icmp)) => {
+            let rtt = icmp
+                .rtt_ms
+                .map(|r| format!(" ({:.1}ms)", r))
+                .unwrap_or_default();
+            println!(
+                "[{}] \x1b[36mICMP\x1b[0m #{} {}{} {} → {}",
+                ts, n, icmp.type_str, rtt, flow.src_ip, flow.dst_ip
+            );
+        }
+
+        Some(FlowPayload::Arp(arp)) => {
+            println!(
+                "[{}] \x1b[33mARP\x1b[0m  #{} {} {} → {} ({})",
+                ts, n, arp.operation, arp.sender_ip, arp.target_ip, arp.sender_mac
+            );
+        }
+
         None => {
             // Raw TCP/UDP flow with no decoded payload — only shown in verbose mode
             if std::env::var("NETSCOPE_VERBOSE").is_ok() {
                 println!(
                     "[{}] {} #{} {}:{} → {}:{}",
-                    ts,
-                    flow.protocol,
-                    n,
-                    flow.src_ip,
-                    flow.src_port,
-                    flow.dst_ip,
-                    flow.dst_port
+                    ts, flow.protocol, n,
+                    flow.src_ip, flow.src_port, flow.dst_ip, flow.dst_port
                 );
             }
         }

@@ -6,7 +6,7 @@
 use anyhow::{Context, Result};
 use chrono::SecondsFormat;
 use gethostname::gethostname;
-use proto::{Flow, FlowPayload};
+use proto::{Flow, FlowPayload, TcpStats};
 use reqwest::blocking::Client;
 use serde::Serialize;
 use std::time::Duration;
@@ -35,6 +35,60 @@ struct HubDnsFlow {
 }
 
 #[derive(Serialize)]
+struct HubTlsFlow {
+    record_type:        String,
+    version:            String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sni:                Option<String>,
+    cipher_suites:      Vec<String>,
+    has_weak_cipher:    bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    chosen_cipher:      Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    negotiated_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cert_cn:            Option<String>,
+    cert_sans:          Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cert_expiry:        Option<String>,
+    cert_expired:       bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cert_issuer:        Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alert_level:        Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    alert_description:  Option<String>,
+}
+
+#[derive(Serialize)]
+struct HubIcmpFlow {
+    icmp_type: u8,
+    icmp_code: u8,
+    type_str:  String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    echo_id:   Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    echo_seq:  Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rtt_ms:    Option<f64>,
+}
+
+#[derive(Serialize)]
+struct HubArpFlow {
+    operation:  String,
+    sender_ip:  String,
+    sender_mac: String,
+    target_ip:  String,
+    target_mac: String,
+}
+
+#[derive(Serialize)]
+struct HubTcpStats {
+    retransmissions: u32,
+    out_of_order:    u32,
+}
+
+#[derive(Serialize)]
 struct HubFlow {
     id:          String,
     agent_id:    String,
@@ -53,6 +107,14 @@ struct HubFlow {
     http:        Option<HubHttpFlow>,
     #[serde(skip_serializing_if = "Option::is_none")]
     dns:         Option<HubDnsFlow>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tls:         Option<HubTlsFlow>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    icmp:        Option<HubIcmpFlow>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    arp:         Option<HubArpFlow>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tcp_stats:   Option<HubTcpStats>,
 }
 
 #[derive(Serialize)]
@@ -152,61 +214,122 @@ impl HubClient {
 fn flow_to_wire(flow: &Flow, agent_id: &str, hostname: &str) -> HubFlow {
     let protocol = flow.protocol.to_string();
 
-    let (http, dns, info) = match &flow.payload {
-        Some(FlowPayload::Http(h)) => {
-            let method = h
-                .request
-                .as_ref()
-                .map(|r| r.method.clone())
-                .unwrap_or_default();
-            let path = h
-                .request
-                .as_ref()
-                .map(|r| r.path.clone())
-                .unwrap_or_default();
-            let status = h
-                .response
-                .as_ref()
-                .map(|r| r.status_code as u32)
-                .unwrap_or(0);
-            let latency = h.latency_ms.unwrap_or(0);
-            let info = format!("{} {}", method, path);
+    let mut http:     Option<HubHttpFlow> = None;
+    let mut dns:      Option<HubDnsFlow>  = None;
+    let mut tls:      Option<HubTlsFlow>  = None;
+    let mut icmp_w:   Option<HubIcmpFlow> = None;
+    let mut arp_w:    Option<HubArpFlow>  = None;
+    let mut duration_ms: u32 = 0;
 
-            (
-                Some(HubHttpFlow { method, path, status, latency_ms: latency }),
-                None,
-                info,
-            )
+    let info = match &flow.payload {
+        Some(FlowPayload::Http(h)) => {
+            let method  = h.request.as_ref().map(|r| r.method.clone()).unwrap_or_default();
+            let path    = h.request.as_ref().map(|r| r.path.clone()).unwrap_or_default();
+            let status  = h.response.as_ref().map(|r| r.status_code as u32).unwrap_or(0);
+            let latency = h.latency_ms.unwrap_or(0);
+            duration_ms = latency as u32;
+            let info = format!("{} {}", method, path);
+            http = Some(HubHttpFlow { method, path, status, latency_ms: latency });
+            info
         }
 
         Some(FlowPayload::Dns(d)) => {
             let answers = d.answers.iter().map(|a| a.data.clone()).collect();
-            let rcode = rcode_to_int(d.rcode.as_deref());
-            let info = format!("{} {}", d.query_name, d.query_type);
-
-            (
-                None,
-                Some(HubDnsFlow {
-                    query_name:  d.query_name.clone(),
-                    query_type:  d.query_type.clone(),
-                    is_response: d.is_response,
-                    answers,
-                    rcode,
-                }),
-                info,
-            )
+            let rcode   = rcode_to_int(d.rcode.as_deref());
+            let info    = format!("{} {}", d.query_name, d.query_type);
+            dns = Some(HubDnsFlow {
+                query_name: d.query_name.clone(),
+                query_type: d.query_type.clone(),
+                is_response: d.is_response,
+                answers,
+                rcode,
+            });
+            info
         }
 
-        None => (None, None, String::new()),
+        Some(FlowPayload::Tls(t)) => {
+            let info = match t.record_type.as_str() {
+                "ClientHello" => format!(
+                    "ClientHello{}",
+                    t.sni.as_deref().map(|s| format!(" → {}", s)).unwrap_or_default()
+                ),
+                "ServerHello" => format!(
+                    "ServerHello {}",
+                    t.chosen_cipher.as_deref().unwrap_or("?")
+                ),
+                "Certificate" => format!(
+                    "Certificate {}{}",
+                    t.cert_cn.as_deref().unwrap_or("?"),
+                    if t.cert_expired { " [EXPIRED]" } else { "" }
+                ),
+                "Alert" => format!(
+                    "Alert {} {}",
+                    t.alert_level.as_deref().unwrap_or(""),
+                    t.alert_description.as_deref().unwrap_or("")
+                ),
+                other => other.to_string(),
+            };
+            tls = Some(HubTlsFlow {
+                record_type:        t.record_type.clone(),
+                version:            t.version.clone(),
+                sni:                t.sni.clone(),
+                cipher_suites:      t.cipher_suites.clone(),
+                has_weak_cipher:    t.has_weak_cipher,
+                chosen_cipher:      t.chosen_cipher.clone(),
+                negotiated_version: t.negotiated_version.clone(),
+                cert_cn:            t.cert_cn.clone(),
+                cert_sans:          t.cert_sans.clone(),
+                cert_expiry:        t.cert_expiry.clone(),
+                cert_expired:       t.cert_expired,
+                cert_issuer:        t.cert_issuer.clone(),
+                alert_level:        t.alert_level.clone(),
+                alert_description:  t.alert_description.clone(),
+            });
+            info
+        }
+
+        Some(FlowPayload::Icmp(i)) => {
+            let info = if let Some(rtt) = i.rtt_ms {
+                format!("{} ({:.1}ms)", i.type_str, rtt)
+            } else {
+                i.type_str.clone()
+            };
+            icmp_w = Some(HubIcmpFlow {
+                icmp_type: i.icmp_type,
+                icmp_code: i.icmp_code,
+                type_str:  i.type_str.clone(),
+                echo_id:   i.echo_id,
+                echo_seq:  i.echo_seq,
+                rtt_ms:    i.rtt_ms,
+            });
+            info
+        }
+
+        Some(FlowPayload::Arp(a)) => {
+            let info = format!("{} {} → {}", a.operation, a.sender_ip, a.target_ip);
+            arp_w = Some(HubArpFlow {
+                operation:  a.operation.clone(),
+                sender_ip:  a.sender_ip.clone(),
+                sender_mac: a.sender_mac.clone(),
+                target_ip:  a.target_ip.clone(),
+                target_mac: a.target_mac.clone(),
+            });
+            info
+        }
+
+        None => String::new(),
     };
 
+    let tcp_stats = flow.tcp_stats.as_ref().map(|s| HubTcpStats {
+        retransmissions: s.retransmissions,
+        out_of_order:    s.out_of_order,
+    });
+
     HubFlow {
-        id:          Uuid::new_v4().to_string(),
+        id:          flow.id.clone(),
         agent_id:    agent_id.to_string(),
         hostname:    hostname.to_string(),
-        timestamp:   flow
-            .timestamp
-            .to_rfc3339_opts(SecondsFormat::Millis, true),
+        timestamp:   flow.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
         protocol,
         src_ip:      flow.src_ip.clone(),
         src_port:    flow.src_port,
@@ -214,10 +337,14 @@ fn flow_to_wire(flow: &Flow, agent_id: &str, hostname: &str) -> HubFlow {
         dst_port:    flow.dst_port,
         bytes_in:    flow.bytes_in,
         bytes_out:   flow.bytes_out,
-        duration_ms: 0, // computed if latency available
+        duration_ms,
         info,
         http,
         dns,
+        tls,
+        icmp: icmp_w,
+        arp:  arp_w,
+        tcp_stats,
     }
 }
 

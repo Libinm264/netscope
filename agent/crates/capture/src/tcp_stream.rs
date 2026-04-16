@@ -36,6 +36,10 @@ pub struct TcpData {
     pub direction: Direction,
     pub data: Vec<u8>,
     pub fin: bool,
+    /// Cumulative retransmission count across both directions of this connection.
+    pub retransmits: u32,
+    /// Cumulative out-of-order segment count across both directions.
+    pub out_of_order: u32,
 }
 
 #[derive(Debug)]
@@ -44,6 +48,10 @@ struct TcpStream {
     pending: HashMap<u32, Vec<u8>>,
     buffer: Vec<u8>,
     finished: bool,
+    /// Number of retransmitted (duplicate) segments seen on this half-stream.
+    retransmits: u32,
+    /// Number of out-of-order segments received (held in pending buffer).
+    out_of_order: u32,
 }
 
 impl TcpStream {
@@ -53,6 +61,8 @@ impl TcpStream {
             pending: HashMap::new(),
             buffer: Vec::new(),
             finished: false,
+            retransmits: 0,
+            out_of_order: 0,
         }
     }
 
@@ -82,10 +92,14 @@ impl TcpStream {
             }
             true
         } else if seq_delta > 0 {
+            // Out-of-order segment; hold it until the gap is filled.
+            self.out_of_order += 1;
             self.pending.insert(seq, payload.to_vec());
             false
         } else {
-            debug!("Dropping retransmitted segment seq={} next_seq={}", seq, self.next_seq);
+            // Negative delta → retransmission or spurious duplicate.
+            self.retransmits += 1;
+            debug!("Retransmission seq={} next_seq={}", seq, self.next_seq);
             false
         }
     }
@@ -203,7 +217,16 @@ impl TcpReassembler {
                 Direction::ServerToClient => conn.server.drain(),
             };
             if !data.is_empty() {
-                results.push(TcpData { key: canon_key.clone(), direction, data, fin });
+                let retransmits = conn.client.retransmits + conn.server.retransmits;
+                let out_of_order = conn.client.out_of_order + conn.server.out_of_order;
+                results.push(TcpData {
+                    key: canon_key.clone(),
+                    direction,
+                    data,
+                    fin,
+                    retransmits,
+                    out_of_order,
+                });
             }
         }
 

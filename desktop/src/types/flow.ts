@@ -27,6 +27,49 @@ export interface DnsFlowDto {
   answers: DnsAnswerDto[];
 }
 
+export interface TlsFlowDto {
+  recordType: string;        // "ClientHello" | "ServerHello" | "Certificate" | "Alert" | "Finished"
+  version: string;           // "TLS 1.2" | "TLS 1.3" etc.
+  // ClientHello
+  sni?: string;
+  cipherSuites: string[];
+  hasWeakCipher: boolean;
+  // ServerHello
+  chosenCipher?: string;
+  negotiatedVersion?: string;
+  // Certificate
+  certCn?: string;
+  certSans: string[];
+  certExpiry?: string;       // "YYYY-MM-DD"
+  certExpired: boolean;
+  certIssuer?: string;
+  // Alert
+  alertLevel?: string;       // "warning" | "fatal"
+  alertDescription?: string;
+}
+
+export interface IcmpFlowDto {
+  icmpType: number;
+  icmpCode: number;
+  typeStr: string;           // "Echo Request", "Echo Reply", "Destination Unreachable", …
+  echoId?: number;
+  echoSeq?: number;
+  rttMs?: number;            // milliseconds, set on Echo Reply when matching request found
+}
+
+export interface ArpFlowDto {
+  operation: string;         // "who-has" | "is-at"
+  senderIp: string;
+  senderMac: string;
+  targetIp: string;
+  targetMac: string;
+}
+
+export interface TcpStatsDto {
+  retransmissions: number;
+  outOfOrder: number;
+}
+
 export interface FlowDto {
   id: string;
   timestamp: string;
@@ -40,6 +83,10 @@ export interface FlowDto {
   info: string;
   http?: HttpFlowDto;
   dns?: DnsFlowDto;
+  tls?: TlsFlowDto;
+  icmp?: IcmpFlowDto;
+  arp?: ArpFlowDto;
+  tcpStats?: TcpStatsDto;
   rawHex: string;
 }
 

@@ -1,6 +1,7 @@
 pub mod dns;
 pub mod http;
 pub mod session;
+pub mod tls;
 
 use proto::FlowPayload;
 

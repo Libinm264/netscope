@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
+import type { NextFetchEvent, NextRequest } from "next/server";
 
 // Auth is only enforced when all four Auth0 env vars are present.
 // In local dev (or Docker without Auth0 configured) the middleware is a no-op.
@@ -9,7 +9,7 @@ const AUTH_ENABLED =
   !!process.env.AUTH0_CLIENT_ID &&
   !!process.env.AUTH0_CLIENT_SECRET;
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
   if (!AUTH_ENABLED) {
     return NextResponse.next();
   }
@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
   const { withMiddlewareAuthRequired } = await import(
     "@auth0/nextjs-auth0/edge"
   );
-  return withMiddlewareAuthRequired()(request);
+  return withMiddlewareAuthRequired()(request, event);
 }
 
 export const config = {

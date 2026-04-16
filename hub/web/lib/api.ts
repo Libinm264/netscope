@@ -15,6 +15,45 @@ export interface DnsFlow {
   rcode: number;
 }
 
+export interface TlsFlow {
+  record_type: string;          // "ClientHello" | "ServerHello" | "Certificate" | "Alert"
+  version: string;
+  sni?: string;
+  cipher_suites?: string[];
+  has_weak_cipher: boolean;
+  chosen_cipher?: string;
+  negotiated_version?: string;
+  cert_cn?: string;
+  cert_sans?: string[];
+  cert_expiry?: string;         // "YYYY-MM-DD"
+  cert_expired: boolean;
+  cert_issuer?: string;
+  alert_level?: string;
+  alert_description?: string;
+}
+
+export interface IcmpFlow {
+  icmp_type: number;
+  icmp_code: number;
+  type_str: string;
+  echo_id?: number;
+  echo_seq?: number;
+  rtt_ms?: number;
+}
+
+export interface ArpFlow {
+  operation: string;
+  sender_ip: string;
+  sender_mac: string;
+  target_ip: string;
+  target_mac: string;
+}
+
+export interface TcpStats {
+  retransmissions: number;
+  out_of_order: number;
+}
+
 export interface Flow {
   id: string;
   agent_id: string;
@@ -31,6 +70,10 @@ export interface Flow {
   info: string;
   http?: HttpFlow;
   dns?: DnsFlow;
+  tls?: TlsFlow;
+  icmp?: IcmpFlow;
+  arp?: ArpFlow;
+  tcp_stats?: TcpStats;
 }
 
 export interface StatsResponse {

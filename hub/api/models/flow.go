@@ -19,6 +19,49 @@ type DnsFlow struct {
 	Rcode      int      `json:"rcode"`
 }
 
+// TlsFlow contains TLS handshake / alert metadata for a flow.
+type TlsFlow struct {
+	RecordType        string   `json:"record_type"`
+	Version           string   `json:"version"`
+	SNI               string   `json:"sni,omitempty"`
+	CipherSuites      []string `json:"cipher_suites,omitempty"`
+	HasWeakCipher     bool     `json:"has_weak_cipher"`
+	ChosenCipher      string   `json:"chosen_cipher,omitempty"`
+	NegotiatedVersion string   `json:"negotiated_version,omitempty"`
+	CertCN            string   `json:"cert_cn,omitempty"`
+	CertSANs          []string `json:"cert_sans,omitempty"`
+	CertExpiry        string   `json:"cert_expiry,omitempty"`
+	CertExpired       bool     `json:"cert_expired"`
+	CertIssuer        string   `json:"cert_issuer,omitempty"`
+	AlertLevel        string   `json:"alert_level,omitempty"`
+	AlertDescription  string   `json:"alert_description,omitempty"`
+}
+
+// IcmpFlow contains ICMP-specific metadata for a flow.
+type IcmpFlow struct {
+	IcmpType uint8    `json:"icmp_type"`
+	IcmpCode uint8    `json:"icmp_code"`
+	TypeStr  string   `json:"type_str"`
+	EchoID   *uint16  `json:"echo_id,omitempty"`
+	EchoSeq  *uint16  `json:"echo_seq,omitempty"`
+	RttMs    *float64 `json:"rtt_ms,omitempty"`
+}
+
+// ArpFlow contains ARP-specific metadata for a flow.
+type ArpFlow struct {
+	Operation  string `json:"operation"`   // "who-has" | "is-at"
+	SenderIP   string `json:"sender_ip"`
+	SenderMAC  string `json:"sender_mac"`
+	TargetIP   string `json:"target_ip"`
+	TargetMAC  string `json:"target_mac"`
+}
+
+// TcpStats contains TCP health counters for a flow.
+type TcpStats struct {
+	Retransmissions uint32 `json:"retransmissions"`
+	OutOfOrder      uint32 `json:"out_of_order"`
+}
+
 // Flow represents a single network flow record as emitted by an agent.
 type Flow struct {
 	ID         string    `json:"id"`
@@ -36,6 +79,10 @@ type Flow struct {
 	Info       string    `json:"info"`
 	HTTP       *HttpFlow `json:"http,omitempty"`
 	DNS        *DnsFlow  `json:"dns,omitempty"`
+	TLS        *TlsFlow  `json:"tls,omitempty"`
+	ICMP       *IcmpFlow `json:"icmp,omitempty"`
+	ARP        *ArpFlow  `json:"arp,omitempty"`
+	TCPStats   *TcpStats `json:"tcp_stats,omitempty"`
 }
 
 // IngestRequest is the payload sent by an agent to POST /api/v1/ingest.

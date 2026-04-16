@@ -105,13 +105,18 @@ pub fn start_capture(
     Ok(())
 }
 
-/// Parse raw packet bytes into a PacketEvent. Returns None for non-IP packets.
+/// Parse raw packet bytes into a PacketEvent. Returns None for unrecognised frames.
 fn parse_packet(data: &[u8], timestamp: chrono::DateTime<Utc>) -> Option<PacketEvent> {
+    // ── ARP (EtherType 0x0806) — before IP parsing ────────────────────────────
+    if let Some(event) = try_parse_arp(data, timestamp) {
+        return Some(event);
+    }
+
+    // ── IP-based protocols ────────────────────────────────────────────────────
     let sliced = SlicedPacket::from_ethernet(data)
         .or_else(|_| SlicedPacket::from_ip(data))
         .ok()?;
 
-    // etherparse 0.15: InternetSlice variants hold a single Slice type
     let (src_ip, dst_ip): (String, String) = match &sliced.net {
         Some(InternetSlice::Ipv4(ipv4)) => (
             ipv4.header().source_addr().to_string(),
@@ -135,6 +140,8 @@ fn parse_packet(data: &[u8], timestamp: chrono::DateTime<Utc>) -> Option<PacketE
             Some(udp.destination_port()),
             Protocol::Udp,
         ),
+        Some(TransportSlice::Icmpv4(_)) => (None, None, Protocol::Icmp),
+        Some(TransportSlice::Icmpv6(_)) => (None, None, Protocol::Icmp),
         _ => (None, None, Protocol::Unknown),
     };
 
@@ -145,6 +152,43 @@ fn parse_packet(data: &[u8], timestamp: chrono::DateTime<Utc>) -> Option<PacketE
         src_port,
         dst_port,
         protocol,
+        length: data.len() as u32,
+        raw: data.to_vec(),
+    })
+}
+
+/// Detect and parse an ARP packet from a raw Ethernet frame.
+/// Returns None if the frame is not ARP.
+fn try_parse_arp(data: &[u8], timestamp: chrono::DateTime<Utc>) -> Option<PacketEvent> {
+    // Ethernet header: 6 (dst MAC) + 6 (src MAC) + 2 (EtherType) = 14 bytes
+    if data.len() < 14 { return None; }
+
+    // EtherType must be 0x0806 (ARP)
+    let ether_type = u16::from_be_bytes([data[12], data[13]]);
+    if ether_type != 0x0806 { return None; }
+
+    // ARP payload starts at offset 14; minimum 28 bytes for IPv4-over-Ethernet ARP
+    let arp = &data[14..];
+    if arp.len() < 28 { return None; }
+
+    // Validate HW=Ethernet(1), Proto=IPv4(0x0800), HWLen=6, ProtoLen=4
+    if arp[0] != 0 || arp[1] != 1
+        || arp[2] != 0x08 || arp[3] != 0x00
+        || arp[4] != 6 || arp[5] != 4
+    {
+        return None;
+    }
+
+    let src_ip = format!("{}.{}.{}.{}", arp[14], arp[15], arp[16], arp[17]);
+    let dst_ip = format!("{}.{}.{}.{}", arp[24], arp[25], arp[26], arp[27]);
+
+    Some(PacketEvent {
+        timestamp,
+        src_ip,
+        dst_ip,
+        src_port: None,
+        dst_port: None,
+        protocol: Protocol::Arp,
         length: data.len() as u32,
         raw: data.to_vec(),
     })
