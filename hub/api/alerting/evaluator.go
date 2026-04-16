@@ -182,6 +182,89 @@ func (e *Evaluator) computeMetric(ctx context.Context, metric string, windowMinu
 		}
 		return v, nil
 
+	// ── Anomaly metrics ──────────────────────────────────────────────────────
+	// For anomaly metrics, threshold = sigma multiplier (e.g. 2.0).
+	// computeMetric returns the deviation in sigmas; alert fires when > threshold.
+
+	case "anomaly_flow_rate":
+		// Compute 7-day per-hour baseline (same hour-of-day, all days)
+		baseRows, err := e.ch.Query(ctx, `
+			SELECT avg(cnt) AS baseline_avg, stddevPop(cnt) AS baseline_std
+			FROM (
+				SELECT toStartOfHour(ts) AS h, count() AS cnt
+				FROM flows
+				WHERE ts >= now() - INTERVAL 7 DAY
+				  AND ts  < now() - INTERVAL 1 HOUR
+				GROUP BY h
+			)`)
+		if err != nil {
+			return 0, err
+		}
+		var bAvg, bStd float64
+		if baseRows.Next() {
+			baseRows.Scan(&bAvg, &bStd)
+		}
+		baseRows.Close()
+
+		if bStd < 1 {
+			return 0, nil // not enough data to establish baseline
+		}
+
+		// Current rate: extrapolate last-5-min count to per-hour
+		currRows, err := e.ch.Query(ctx,
+			`SELECT count() * 12.0 FROM flows WHERE ts >= now() - INTERVAL 5 MINUTE`)
+		if err != nil {
+			return 0, err
+		}
+		var curr float64
+		if currRows.Next() {
+			currRows.Scan(&curr)
+		}
+		currRows.Close()
+
+		return (curr - bAvg) / bStd, nil // return sigma deviation
+
+	case "anomaly_http_latency":
+		baseRows, err := e.ch.Query(ctx, `
+			SELECT avg(avg_lat) AS baseline_avg, stddevPop(avg_lat) AS baseline_std
+			FROM (
+				SELECT toStartOfHour(ts) AS h, avg(duration_ms) AS avg_lat
+				FROM flows
+				WHERE ts >= now() - INTERVAL 7 DAY
+				  AND ts  < now() - INTERVAL 1 HOUR
+				  AND protocol IN ('HTTP', 'HTTPS')
+				  AND http_method != ''
+				GROUP BY h
+			)`)
+		if err != nil {
+			return 0, err
+		}
+		var bAvg, bStd float64
+		if baseRows.Next() {
+			baseRows.Scan(&bAvg, &bStd)
+		}
+		baseRows.Close()
+
+		if bStd < 1 {
+			return 0, nil
+		}
+
+		currRows, err := e.ch.Query(ctx,
+			`SELECT avg(duration_ms) FROM flows
+			 WHERE ts >= now() - INTERVAL 5 MINUTE
+			   AND protocol IN ('HTTP', 'HTTPS')
+			   AND http_method != ''`)
+		if err != nil {
+			return 0, err
+		}
+		var curr float64
+		if currRows.Next() {
+			currRows.Scan(&curr)
+		}
+		currRows.Close()
+
+		return (curr - bAvg) / bStd, nil
+
 	default:
 		return 0, fmt.Errorf("unknown metric: %s", metric)
 	}

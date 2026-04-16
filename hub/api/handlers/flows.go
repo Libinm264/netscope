@@ -71,6 +71,7 @@ type FlowHandler struct {
 	CH       *clickhouse.Client
 	Writer   *clickhouse.Writer
 	Producer *kafka.Producer
+	CertsCH  *clickhouse.Client // may be same as CH; used for cert extraction
 }
 
 // Ingest handles POST /api/v1/ingest.
@@ -116,6 +117,11 @@ func (h *FlowHandler) Ingest(c *fiber.Ctx) error {
 
 		// SSE fan-out (always, regardless of persistence status)
 		BroadcastFlow(*f)
+
+		// Extract TLS certs asynchronously — fire-and-forget
+		if f.TLS != nil && f.TLS.RecordType == "Certificate" {
+			go ExtractAndStoreCert(h.CertsCH, *f)
+		}
 	}
 
 	return c.JSON(models.IngestResponse{

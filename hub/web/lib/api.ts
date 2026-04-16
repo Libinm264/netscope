@@ -234,6 +234,83 @@ export async function fetchAlertEvents(): Promise<{ events: AlertEvent[] }> {
   return get("/api/v1/alerts/events");
 }
 
+// ── Enrollment tokens ─────────────────────────────────────────────────────────
+
+export interface EnrollmentToken {
+  id: string;
+  name: string;
+  token: string;
+  created_at: string;
+  expires_at: string;
+  used_count: number;
+  revoked: boolean;
+}
+
+export async function fetchEnrollmentTokens(): Promise<{ tokens: EnrollmentToken[] }> {
+  return get("/api/v1/enrollment-tokens");
+}
+
+export async function createEnrollmentToken(name: string, expires_in = "7d"): Promise<EnrollmentToken> {
+  return api<EnrollmentToken>("POST", "/api/v1/enrollment-tokens", { name, expires_in });
+}
+
+export async function revokeEnrollmentToken(id: string): Promise<void> {
+  await api<unknown>("DELETE", `/api/v1/enrollment-tokens/${id}`);
+}
+
+// ── TLS certificate fleet ──────────────────────────────────────────────────────
+
+export interface TlsCert {
+  fingerprint: string;
+  cn: string;
+  issuer: string;
+  expiry: string;
+  expired: boolean;
+  days_left: number;
+  sans: string[];
+  agent_id: string;
+  hostname: string;
+  src_ip: string;
+  dst_ip: string;
+  first_seen: string;
+  last_seen: string;
+}
+
+export interface CertSummary {
+  expired: number;
+  critical: number;
+  warning: number;
+  ok: number;
+}
+
+export async function fetchCerts(): Promise<{ certs: TlsCert[]; total: number; summary: CertSummary }> {
+  return get("/api/v1/certs");
+}
+
+// ── API tokens (RBAC) ─────────────────────────────────────────────────────────
+
+export interface APIToken {
+  id: string;
+  name: string;
+  role: "admin" | "viewer";
+  token: string;
+  created_at: string;
+  last_used: string;
+  revoked: boolean;
+}
+
+export async function fetchAPITokens(): Promise<{ tokens: APIToken[] }> {
+  return get("/api/v1/tokens");
+}
+
+export async function createAPIToken(name: string, role: "admin" | "viewer"): Promise<APIToken> {
+  return api<APIToken>("POST", "/api/v1/tokens", { name, role });
+}
+
+export async function revokeAPIToken(id: string): Promise<void> {
+  await api<unknown>("DELETE", `/api/v1/tokens/${id}`);
+}
+
 // ── Service dependency graph ───────────────────────────────────────────────────
 
 export interface ServiceNode {

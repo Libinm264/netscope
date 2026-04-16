@@ -152,37 +152,52 @@ func main() {
 		return c.SendString(nsmetrics.Text())
 	})
 
-	// Protected API routes
-	auth := middleware.APIKeyAuth(cfg.APIKey)
+	// Protected API routes — TokenAuth checks bootstrap key OR api_tokens table
+	auth := middleware.TokenAuth(cfg.APIKey, chClient)
 	// Ingest gets a generous limit (agents post many flows); general API is tighter.
 	ingestLimit := middleware.RateLimit(50_000, time.Minute)
 	apiLimit    := middleware.RateLimit(2_000, time.Minute)
 
 	v1 := app.Group("/api/v1", auth)
 
-	flowH     := &handlers.FlowHandler{CH: chClient, Writer: chWriter, Producer: producer}
-	agentH    := &handlers.AgentHandler{CH: chClient}
-	statsH    := &handlers.StatsHandler{CH: chClient}
-	alertH    := &handlers.AlertHandler{CH: chClient}
-	servicesH := &handlers.ServicesHandler{CH: chClient}
+	flowH      := &handlers.FlowHandler{CH: chClient, Writer: chWriter, Producer: producer, CertsCH: chClient}
+	agentH     := &handlers.AgentHandler{CH: chClient}
+	statsH     := &handlers.StatsHandler{CH: chClient}
+	alertH     := &handlers.AlertHandler{CH: chClient}
+	servicesH  := &handlers.ServicesHandler{CH: chClient}
 	analyticsH := &handlers.AnalyticsHandler{CH: chClient}
-	otelH     := &handlers.OtelHandler{CH: chClient}
+	otelH      := &handlers.OtelHandler{CH: chClient}
+	enrollH    := &handlers.EnrollmentHandler{CH: chClient, Cfg: cfg}
+	certH      := &handlers.CertHandler{CH: chClient}
+	tokenH     := &handlers.TokenHandler{CH: chClient}
 
-	v1.Post("/ingest",                   ingestLimit, flowH.Ingest)
-	v1.Get("/flows",                     apiLimit,    flowH.Query)
-	v1.Get("/flows/stream",                           flowH.Stream)
-	v1.Get("/stats",                     apiLimit,    statsH.Stats)
-	v1.Get("/agents",                    apiLimit,    agentH.List)
-	v1.Post("/agents/register",          apiLimit,    agentH.Register)
-	v1.Get("/alerts",                    apiLimit,    alertH.ListRules)
-	v1.Post("/alerts",                   apiLimit,    alertH.CreateRule)
-	v1.Patch("/alerts/:id",              apiLimit,    alertH.UpdateRule)
-	v1.Delete("/alerts/:id",             apiLimit,    alertH.DeleteRule)
-	v1.Get("/alerts/events",             apiLimit,    alertH.ListEvents)
+	// ── Public (no auth) ──────────────────────────────────────────────────────
+	app.Post("/api/v1/agents/enroll", apiLimit, enrollH.Enroll)
+	app.Get("/install", enrollH.InstallScript)
+
+	v1.Post("/ingest",                    ingestLimit,                         flowH.Ingest)
+	v1.Get("/flows",                      apiLimit,                            flowH.Query)
+	v1.Get("/flows/stream",                                                    flowH.Stream)
+	v1.Get("/stats",                      apiLimit,                            statsH.Stats)
+	v1.Get("/agents",                     apiLimit,                            agentH.List)
+	v1.Post("/agents/register",           apiLimit, middleware.RequireAdmin(), agentH.Register)
+	v1.Get("/alerts",                     apiLimit,                            alertH.ListRules)
+	v1.Post("/alerts",                    apiLimit, middleware.RequireAdmin(), alertH.CreateRule)
+	v1.Patch("/alerts/:id",               apiLimit, middleware.RequireAdmin(), alertH.UpdateRule)
+	v1.Delete("/alerts/:id",              apiLimit, middleware.RequireAdmin(), alertH.DeleteRule)
+	v1.Get("/alerts/events",              apiLimit,                            alertH.ListEvents)
 	// Phase 5
-	v1.Get("/services/graph",            apiLimit,    servicesH.Graph)
-	v1.Get("/analytics/endpoints",       apiLimit,    analyticsH.Endpoints)
-	v1.Get("/otel/traces",               apiLimit,    otelH.ExportTraces)
+	v1.Get("/services/graph",             apiLimit,                            servicesH.Graph)
+	v1.Get("/analytics/endpoints",        apiLimit,                            analyticsH.Endpoints)
+	v1.Get("/otel/traces",                apiLimit,                            otelH.ExportTraces)
+	// Phase 6
+	v1.Get("/enrollment-tokens",          apiLimit, middleware.RequireAdmin(), enrollH.ListTokens)
+	v1.Post("/enrollment-tokens",         apiLimit, middleware.RequireAdmin(), enrollH.CreateToken)
+	v1.Delete("/enrollment-tokens/:id",   apiLimit, middleware.RequireAdmin(), enrollH.RevokeToken)
+	v1.Get("/certs",                      apiLimit,                            certH.List)
+	v1.Get("/tokens",                     apiLimit, middleware.RequireAdmin(), tokenH.List)
+	v1.Post("/tokens",                    apiLimit, middleware.RequireAdmin(), tokenH.Create)
+	v1.Delete("/tokens/:id",              apiLimit, middleware.RequireAdmin(), tokenH.Revoke)
 
 	// ── Graceful shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
@@ -272,6 +287,47 @@ func runMigrations(ch *clickhouse.Client) error {
 			registered_at DateTime64(3, 'UTC') DEFAULT now64()
 		) ENGINE = ReplacingMergeTree(last_seen)
 		ORDER BY agent_id`,
+
+		// Phase 6: enrollment tokens
+		`CREATE TABLE IF NOT EXISTS enrollment_tokens (
+			id         String,
+			name       String,
+			token      String,
+			created_at DateTime64(3, 'UTC') DEFAULT now64(),
+			expires_at DateTime64(3, 'UTC'),
+			used_count UInt32  DEFAULT 0,
+			revoked    UInt8   DEFAULT 0
+		) ENGINE = ReplacingMergeTree(created_at)
+		ORDER BY id`,
+
+		// Phase 6: TLS certificate fleet
+		`CREATE TABLE IF NOT EXISTS tls_certs (
+			fingerprint String,
+			cn          String,
+			issuer      String  DEFAULT '',
+			expiry      String  DEFAULT '',
+			expired     UInt8   DEFAULT 0,
+			sans        String  DEFAULT '',
+			agent_id    String  DEFAULT '',
+			hostname    LowCardinality(String) DEFAULT '',
+			src_ip      String  DEFAULT '',
+			dst_ip      String  DEFAULT '',
+			first_seen  DateTime64(3, 'UTC') DEFAULT now64(),
+			last_seen   DateTime64(3, 'UTC') DEFAULT now64()
+		) ENGINE = ReplacingMergeTree(last_seen)
+		ORDER BY fingerprint`,
+
+		// Phase 6: API tokens (RBAC)
+		`CREATE TABLE IF NOT EXISTS api_tokens (
+			id         String,
+			name       String,
+			role       LowCardinality(String) DEFAULT 'viewer',
+			token      String,
+			created_at DateTime64(3, 'UTC') DEFAULT now64(),
+			last_used  DateTime64(3, 'UTC') DEFAULT now64(),
+			revoked    UInt8 DEFAULT 0
+		) ENGINE = ReplacingMergeTree(last_used)
+		ORDER BY id`,
 	}
 
 	for _, q := range ddl {
