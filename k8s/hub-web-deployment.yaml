@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netscope-hub-web
+  namespace: netscope
+  labels:
+    app: netscope-hub-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: netscope-hub-web
+  template:
+    metadata:
+      labels:
+        app: netscope-hub-web
+    spec:
+      containers:
+        - name: hub-web
+          image: ghcr.io/netscope/hub-web:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "http://netscope-hub"
+            - name: NEXT_PUBLIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: netscope-hub-secret
+                  key: API_KEY
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netscope-hub-web
+  namespace: netscope
+  labels:
+    app: netscope-hub-web
+spec:
+  type: ClusterIP
+  selector:
+    app: netscope-hub-web
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000

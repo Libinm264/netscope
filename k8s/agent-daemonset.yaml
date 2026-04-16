@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: netscope-agent
+  namespace: netscope
+  labels:
+    app: netscope-agent
+spec:
+  selector:
+    matchLabels:
+      app: netscope-agent
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: netscope-agent
+    spec:
+      hostNetwork: true        # Required: agent must see node-level traffic
+      hostPID: true            # Required: process-level flow attribution
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+        - operator: Exists     # Run on all nodes including control-plane
+      serviceAccountName: netscope-agent
+      containers:
+        - name: agent
+          image: ghcr.io/netscope/agent:latest
+          imagePullPolicy: Always
+          securityContext:
+            capabilities:
+              add:
+                - NET_RAW        # Packet capture (libpcap)
+                - NET_ADMIN      # Interface manipulation
+                - SYS_PTRACE     # eBPF uprobes (future)
+            privileged: false
+          env:
+            - name: HUB_URL
+              value: "http://netscope-hub.netscope.svc.cluster.local"
+            - name: HUB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: netscope-hub-secret
+                  key: API_KEY
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          args:
+            - "--hub-url=$(HUB_URL)"
+            - "--api-key=$(HUB_API_KEY)"
+            - "--hostname=$(NODE_NAME)"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          volumeMounts:
+            - name: host-proc
+              mountPath: /host/proc
+              readOnly: true
+      volumes:
+        - name: host-proc
+          hostPath:
+            path: /proc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: netscope-agent
+  namespace: netscope
+---
+# Minimal RBAC — agent only needs to read node info
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: netscope-agent
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: netscope-agent
+subjects:
+  - kind: ServiceAccount
+    name: netscope-agent
+    namespace: netscope
+roleRef:
+  kind: ClusterRole
+  name: netscope-agent
+  apiGroup: rbac.authorization.k8s.io

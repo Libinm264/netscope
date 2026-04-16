@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "netscope.name" . }}-hub
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netscope.labels" . | nindent 4 }}
+    {{- include "netscope.hub.selectorLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.hub.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "netscope.hub.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        {{- include "netscope.hub.selectorLabels" . | nindent 8 }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: {{ .Values.hub.config.port | quote }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: hub-api
+          image: "{{ .Values.hub.image.repository }}:{{ .Values.hub.image.tag }}"
+          imagePullPolicy: {{ .Values.hub.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.hub.config.port | int }}
+          env:
+            - name: PORT
+              value: {{ .Values.hub.config.port | quote }}
+            - name: KAFKA_BROKERS
+              value: {{ .Values.hub.config.kafkaBrokers | quote }}
+            - name: KAFKA_TOPIC
+              value: {{ .Values.hub.config.kafkaTopic | quote }}
+            - name: ALLOWED_ORIGINS
+              value: {{ .Values.hub.config.allowedOrigins | quote }}
+            - name: CLICKHOUSE_DSN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "netscope.name" . }}-secret
+                  key: CLICKHOUSE_DSN
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "netscope.name" . }}-secret
+                  key: API_KEY
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.hub.config.port | int }}
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.hub.config.port | int }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.hub.resources | nindent 12 }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "netscope.name" . }}-hub
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netscope.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.hub.service.type }}
+  selector:
+    {{- include "netscope.hub.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.hub.service.port }}
+      targetPort: {{ .Values.hub.service.targetPort }}

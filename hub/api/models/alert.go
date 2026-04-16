@@ -3,21 +3,22 @@ package models
 import "time"
 
 // AlertRule defines a threshold-based monitoring rule.
-// When the measured metric satisfies the condition against the threshold,
-// the rule fires a webhook and records an AlertEvent.
 type AlertRule struct {
 	ID              string    `json:"id"`
 	Name            string    `json:"name"`
-	// Metric is one of: flows_per_minute, http_error_rate, dns_nxdomain_rate
+	// Metric: flows_per_minute | http_error_rate | dns_nxdomain_rate |
+	//         anomaly_flow_rate | anomaly_http_latency
 	Metric          string    `json:"metric"`
-	// Condition is "gt" (greater-than) or "lt" (less-than)
+	// Condition: "gt" or "lt"
 	Condition       string    `json:"condition"`
 	Threshold       float64   `json:"threshold"`
-	// WindowMinutes is the look-back window used to compute the metric
 	WindowMinutes   uint32    `json:"window_minutes"`
+	// IntegrationType: "webhook" | "slack" | "pagerduty" | "opsgenie" | "teams"
+	IntegrationType string    `json:"integration_type"`
+	// WebhookURL holds the delivery target — a URL for webhook/slack/teams,
+	// or an API/routing key for pagerduty/opsgenie.
 	WebhookURL      string    `json:"webhook_url"`
 	Enabled         bool      `json:"enabled"`
-	// CooldownMinutes prevents repeated firings within this period
 	CooldownMinutes uint32    `json:"cooldown_minutes"`
 	CreatedAt       time.Time `json:"created_at"`
 }
@@ -41,6 +42,7 @@ type CreateAlertRuleRequest struct {
 	Condition       string  `json:"condition"`
 	Threshold       float64 `json:"threshold"`
 	WindowMinutes   uint32  `json:"window_minutes"`
+	IntegrationType string  `json:"integration_type"`
 	WebhookURL      string  `json:"webhook_url"`
 	CooldownMinutes uint32  `json:"cooldown_minutes"`
 }

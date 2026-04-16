@@ -12,6 +12,7 @@ import {
   type CreateAlertRuleRequest,
   type AlertMetric,
   type AlertCondition,
+  type AlertIntegrationType,
 } from "@/lib/api";
 import {
   Bell,
@@ -29,9 +30,27 @@ import { clsx } from "clsx";
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 const METRIC_LABELS: Record<AlertMetric, string> = {
-  flows_per_minute: "Flows / minute",
-  http_error_rate:  "HTTP error rate (%)",
-  dns_nxdomain_rate: "DNS NXDOMAIN rate (%)",
+  flows_per_minute:    "Flows / minute",
+  http_error_rate:     "HTTP error rate (%)",
+  dns_nxdomain_rate:   "DNS NXDOMAIN rate (%)",
+  anomaly_flow_rate:   "Anomaly — flow rate (σ)",
+  anomaly_http_latency:"Anomaly — HTTP latency (σ)",
+};
+
+const INTEGRATION_LABELS: Record<AlertIntegrationType, string> = {
+  webhook:   "Generic webhook",
+  slack:     "Slack",
+  pagerduty: "PagerDuty",
+  opsgenie:  "OpsGenie",
+  teams:     "Microsoft Teams",
+};
+
+const INTEGRATION_PLACEHOLDER: Record<AlertIntegrationType, string> = {
+  webhook:   "https://example.com/hooks/…",
+  slack:     "https://hooks.slack.com/services/T…/B…/…",
+  pagerduty: "Routing key (e.g. abc123…)",
+  opsgenie:  "API key (e.g. xxxxxxxx-…)",
+  teams:     "https://outlook.office.com/webhook/…",
 };
 
 const CONDITION_LABELS: Record<AlertCondition, string> = {
@@ -62,6 +81,7 @@ function CreateRuleModal({ onClose, onCreated }: ModalProps) {
     threshold:        100,
     window_minutes:   5,
     cooldown_minutes: 15,
+    integration_type: "webhook",
     webhook_url:      "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -181,11 +201,28 @@ function CreateRuleModal({ onClose, onCreated }: ModalProps) {
             </Field>
           </div>
 
-          {/* Webhook URL */}
-          <Field label="Webhook URL (optional)">
+          {/* Integration type */}
+          <Field label="Integration">
+            <select
+              value={form.integration_type ?? "webhook"}
+              onChange={(e) => set("integration_type", e.target.value as AlertIntegrationType)}
+              className={inputCls}
+            >
+              {(Object.keys(INTEGRATION_LABELS) as AlertIntegrationType[]).map((t) => (
+                <option key={t} value={t}>{INTEGRATION_LABELS[t]}</option>
+              ))}
+            </select>
+          </Field>
+
+          {/* Destination — label/placeholder adapts to integration type */}
+          <Field label={
+            form.integration_type === "pagerduty" ? "Routing key" :
+            form.integration_type === "opsgenie"  ? "API key" :
+            "Webhook URL"
+          }>
             <input
-              type="url"
-              placeholder="https://hooks.slack.com/services/…"
+              type={form.integration_type === "pagerduty" || form.integration_type === "opsgenie" ? "text" : "url"}
+              placeholder={INTEGRATION_PLACEHOLDER[form.integration_type ?? "webhook"]}
               value={form.webhook_url}
               onChange={(e) => set("webhook_url", e.target.value)}
               className={inputCls}
@@ -284,11 +321,18 @@ function RuleRow({
     <tr className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors">
       <td className="px-4 py-3">
         <p className="text-sm text-white font-medium">{rule.name}</p>
-        {rule.webhook_url && (
-          <p className="text-xs text-slate-600 truncate max-w-[200px] mt-0.5">
-            {rule.webhook_url}
-          </p>
-        )}
+        <div className="flex items-center gap-1.5 mt-0.5">
+          {rule.integration_type && rule.integration_type !== "webhook" && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              {INTEGRATION_LABELS[rule.integration_type as AlertIntegrationType] ?? rule.integration_type}
+            </span>
+          )}
+          {rule.webhook_url && (
+            <p className="text-xs text-slate-600 truncate max-w-[160px]">
+              {rule.webhook_url}
+            </p>
+          )}
+        </div>
       </td>
       <td className="px-4 py-3 text-sm text-slate-400">
         {METRIC_LABELS[rule.metric as AlertMetric] ?? rule.metric}

@@ -1,0 +1,57 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: netscope
+  namespace: netscope
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"    # SSE streams
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-buffering: "off"         # SSE — disable buffering
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"         # TLS via cert-manager
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - netscope.example.com
+      secretName: netscope-tls
+  rules:
+    - host: netscope.example.com
+      http:
+        paths:
+          # API traffic — route to Go backend
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: netscope-hub
+                port:
+                  name: http
+          - path: /health
+            pathType: Exact
+            backend:
+              service:
+                name: netscope-hub
+                port:
+                  name: http
+          - path: /metrics
+            pathType: Exact
+            backend:
+              service:
+                name: netscope-hub
+                port:
+                  name: http
+          - path: /install
+            pathType: Exact
+            backend:
+              service:
+                name: netscope-hub
+                port:
+                  name: http
+          # Everything else — Next.js dashboard
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: netscope-hub-web
+                port:
+                  name: http

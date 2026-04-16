@@ -170,6 +170,7 @@ func main() {
 	enrollH    := &handlers.EnrollmentHandler{CH: chClient, Cfg: cfg}
 	certH      := &handlers.CertHandler{CH: chClient}
 	tokenH     := &handlers.TokenHandler{CH: chClient}
+	complianceH := &handlers.ComplianceHandler{CH: chClient}
 
 	// ── Public (no auth) ──────────────────────────────────────────────────────
 	app.Post("/api/v1/agents/enroll", apiLimit, enrollH.Enroll)
@@ -198,6 +199,12 @@ func main() {
 	v1.Get("/tokens",                     apiLimit, middleware.RequireAdmin(), tokenH.List)
 	v1.Post("/tokens",                    apiLimit, middleware.RequireAdmin(), tokenH.Create)
 	v1.Delete("/tokens/:id",              apiLimit, middleware.RequireAdmin(), tokenH.Revoke)
+	// Phase 7 — compliance
+	v1.Get("/compliance/summary",         apiLimit, complianceH.Summary)
+	v1.Get("/compliance/connections",     apiLimit, complianceH.Connections)
+	v1.Get("/compliance/tls",             apiLimit, complianceH.TLSAudit)
+	v1.Get("/compliance/top-talkers",     apiLimit, complianceH.TopTalkers)
+	v1.Get("/compliance/external",        apiLimit, complianceH.ExternalConnections)
 
 	// ── Graceful shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
@@ -316,6 +323,10 @@ func runMigrations(ch *clickhouse.Client) error {
 			last_seen   DateTime64(3, 'UTC') DEFAULT now64()
 		) ENGINE = ReplacingMergeTree(last_seen)
 		ORDER BY fingerprint`,
+
+		// Phase 7: add integration_type column to alert_rules (idempotent)
+		`ALTER TABLE alert_rules ADD COLUMN IF NOT EXISTS
+		 integration_type LowCardinality(String) DEFAULT 'webhook'`,
 
 		// Phase 6: API tokens (RBAC)
 		`CREATE TABLE IF NOT EXISTS api_tokens (

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: netscope-hub-config
+  namespace: netscope
+data:
+  # Override these via hub-secret for sensitive values.
+  PORT: "8080"
+  KAFKA_BROKERS: "redpanda:9092"
+  KAFKA_TOPIC: "netscope-flows"
+  ALLOWED_ORIGINS: "*"
+  # CLICKHOUSE_DSN and API_KEY come from hub-secret

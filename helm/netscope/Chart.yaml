@@ -1,0 +1,19 @@
+apiVersion: v2
+name: netscope
+description: NetScope — real-time network observability platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - networking
+  - observability
+  - security
+  - pcap
+  - ebpf
+home: https://github.com/netscope/netscope
+sources:
+  - https://github.com/netscope/netscope
+maintainers:
+  - name: NetScope
+icon: https://raw.githubusercontent.com/netscope/netscope/main/docs/logo.png
+dependencies: []

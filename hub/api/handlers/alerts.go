@@ -24,7 +24,7 @@ func (h *AlertHandler) ListRules(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(c.Context(),
 		`SELECT id, name, metric, condition, threshold, window_minutes,
-		        webhook_url, enabled, cooldown_minutes, created_at
+		        integration_type, webhook_url, enabled, cooldown_minutes, created_at
 		 FROM alert_rules ORDER BY created_at DESC`)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
@@ -38,7 +38,7 @@ func (h *AlertHandler) ListRules(c *fiber.Ctx) error {
 		if err := rows.Scan(
 			&r.ID, &r.Name, &r.Metric, &r.Condition,
 			&r.Threshold, &r.WindowMinutes,
-			&r.WebhookURL, &enabledInt, &r.CooldownMinutes, &r.CreatedAt,
+			&r.IntegrationType, &r.WebhookURL, &enabledInt, &r.CooldownMinutes, &r.CreatedAt,
 		); err != nil {
 			slog.Warn("alerts: scan rule", "err", err)
 			continue
@@ -58,14 +58,32 @@ func (h *AlertHandler) CreateRule(c *fiber.Ctx) error {
 
 	// Validation
 	validMetrics := map[string]bool{
-		"flows_per_minute": true,
-		"http_error_rate":  true,
-		"dns_nxdomain_rate": true,
+		"flows_per_minute":      true,
+		"http_error_rate":       true,
+		"dns_nxdomain_rate":     true,
+		"anomaly_flow_rate":     true,
+		"anomaly_http_latency":  true,
 	}
 	if !validMetrics[req.Metric] {
 		return c.Status(400).JSON(fiber.Map{
-			"error": "metric must be one of: flows_per_minute, http_error_rate, dns_nxdomain_rate",
+			"error": "unknown metric: " + req.Metric,
 		})
+	}
+	validIntegrations := map[string]bool{
+		"":           true, // default → webhook
+		"webhook":    true,
+		"slack":      true,
+		"pagerduty":  true,
+		"opsgenie":   true,
+		"teams":      true,
+	}
+	if !validIntegrations[req.IntegrationType] {
+		return c.Status(400).JSON(fiber.Map{
+			"error": "integration_type must be one of: webhook, slack, pagerduty, opsgenie, teams",
+		})
+	}
+	if req.IntegrationType == "" {
+		req.IntegrationType = "webhook"
 	}
 	if req.Condition != "gt" && req.Condition != "lt" {
 		return c.Status(400).JSON(fiber.Map{"error": "condition must be 'gt' or 'lt'"})
@@ -89,10 +107,10 @@ func (h *AlertHandler) CreateRule(c *fiber.Ctx) error {
 	if err := h.CH.Exec(c.Context(),
 		`INSERT INTO alert_rules
 		 (id, name, metric, condition, threshold, window_minutes,
-		  webhook_url, enabled, cooldown_minutes, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+		  integration_type, webhook_url, enabled, cooldown_minutes, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
 		id, req.Name, req.Metric, req.Condition, req.Threshold,
-		req.WindowMinutes, req.WebhookURL, req.CooldownMinutes, now,
+		req.WindowMinutes, req.IntegrationType, req.WebhookURL, req.CooldownMinutes, now,
 	); err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}

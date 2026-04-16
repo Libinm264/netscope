@@ -1,0 +1,101 @@
+{{- if .Values.agent.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "netscope.name" . }}-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netscope.labels" . | nindent 4 }}
+    {{- include "netscope.agent.selectorLabels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "netscope.agent.selectorLabels" . | nindent 6 }}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        {{- include "netscope.agent.selectorLabels" . | nindent 8 }}
+    spec:
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+        - operator: Exists
+      {{- with .Values.agent.tolerations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "netscope.name" . }}-agent
+      containers:
+        - name: agent
+          image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag }}"
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          securityContext:
+            capabilities:
+              add:
+                - NET_RAW
+                - NET_ADMIN
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: HUB_URL
+              value: "http://{{ include "netscope.name" . }}-hub.{{ .Release.Namespace }}.svc.cluster.local"
+            - name: HUB_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "netscope.name" . }}-secret
+                  key: API_KEY
+          args:
+            - "--hub-url=$(HUB_URL)"
+            - "--api-key=$(HUB_API_KEY)"
+            - "--hostname=$(NODE_NAME)"
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+          volumeMounts:
+            - name: host-proc
+              mountPath: /host/proc
+              readOnly: true
+      volumes:
+        - name: host-proc
+          hostPath:
+            path: /proc
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "netscope.name" . }}-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "netscope.labels" . | nindent 4 }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "netscope.name" . }}-agent
+  labels:
+    {{- include "netscope.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "netscope.name" . }}-agent
+  labels:
+    {{- include "netscope.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "netscope.name" . }}-agent
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "netscope.name" . }}-agent
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

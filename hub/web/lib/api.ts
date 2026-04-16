@@ -151,7 +151,16 @@ export async function fetchAgents(): Promise<{ agents: Agent[] }> {
 export type AlertMetric =
   | "flows_per_minute"
   | "http_error_rate"
-  | "dns_nxdomain_rate";
+  | "dns_nxdomain_rate"
+  | "anomaly_flow_rate"
+  | "anomaly_http_latency";
+
+export type AlertIntegrationType =
+  | "webhook"
+  | "slack"
+  | "pagerduty"
+  | "opsgenie"
+  | "teams";
 
 export type AlertCondition = "gt" | "lt";
 
@@ -162,6 +171,7 @@ export interface AlertRule {
   condition: AlertCondition;
   threshold: number;
   window_minutes: number;
+  integration_type: AlertIntegrationType;
   webhook_url: string;
   enabled: number;        // 0 | 1 (ClickHouse UInt8)
   cooldown_minutes: number;
@@ -185,6 +195,7 @@ export interface CreateAlertRuleRequest {
   condition: AlertCondition;
   threshold: number;
   window_minutes?: number;
+  integration_type?: AlertIntegrationType;
   webhook_url?: string;
   cooldown_minutes?: number;
 }
@@ -363,6 +374,91 @@ export interface EndpointStatsResponse {
 
 export async function fetchEndpointStats(window = "1h"): Promise<EndpointStatsResponse> {
   return get("/api/v1/analytics/endpoints", { window });
+}
+
+// ── Compliance reporting ───────────────────────────────────────────────────────
+
+export interface ComplianceSummary {
+  total_connections: number;
+  external_connections: number;
+  tls_issues: number;
+  window: string;
+}
+
+export interface ConnectionRecord {
+  id: string;
+  agent_id: string;
+  hostname: string;
+  timestamp: string;
+  protocol: string;
+  src_ip: string;
+  src_port: number;
+  dst_ip: string;
+  dst_port: number;
+  bytes_in: number;
+  bytes_out: number;
+  duration_ms: number;
+  info: string;
+  is_external: boolean;
+}
+
+export interface TLSAuditRecord {
+  fingerprint: string;
+  cn: string;
+  issuer: string;
+  expiry: string;
+  expired: boolean;
+  days_left: number;
+  hostname: string;
+  dst_ip: string;
+  last_seen: string;
+  issue: "expired" | "expiring_critical" | "expiring_soon" | "self_signed" | "ok";
+}
+
+export interface TopTalker {
+  ip: string;
+  hostname: string;
+  bytes_out: number;
+  bytes_in: number;
+  flow_count: number;
+  unique_destinations: number;
+}
+
+export interface ExternalDest {
+  dst_ip: string;
+  dst_port: number;
+  protocol: string;
+  flow_count: number;
+  bytes_out: number;
+  last_seen: string;
+  src_ips: string[];
+}
+
+export async function fetchComplianceSummary(window = "24h"): Promise<ComplianceSummary> {
+  return get("/api/v1/compliance/summary", { window });
+}
+
+export async function fetchComplianceConnections(params?: {
+  window?: string;
+  src_ip?: string;
+  dst_ip?: string;
+  protocol?: string;
+  external_only?: string;
+  limit?: number;
+}): Promise<{ connections: ConnectionRecord[]; window: string; total: number }> {
+  return get("/api/v1/compliance/connections", params as Record<string, string | number>);
+}
+
+export async function fetchTLSAudit(): Promise<{ certs: TLSAuditRecord[]; total: number }> {
+  return get("/api/v1/compliance/tls");
+}
+
+export async function fetchTopTalkers(window = "24h"): Promise<{ talkers: TopTalker[]; window: string }> {
+  return get("/api/v1/compliance/top-talkers", { window });
+}
+
+export async function fetchExternalConnections(window = "24h"): Promise<{ destinations: ExternalDest[]; window: string }> {
+  return get("/api/v1/compliance/external", { window });
 }
 
 /**

@@ -116,10 +116,7 @@ func (e *Evaluator) evaluate(ctx context.Context, rule models.AlertRule) {
 		Message:   BuildMessage(rule, value),
 	}
 
-	delivered := false
-	if rule.WebhookURL != "" {
-		delivered = FireWebhook(ctx, rule.WebhookURL, payload)
-	}
+	delivered := FireAlert(ctx, rule, payload)
 
 	if delivered {
 		nsmetrics.AlertsFiredTotal.Add(1)
