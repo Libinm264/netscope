@@ -12,6 +12,9 @@ use std::thread;
 use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
+#[cfg(all(target_os = "linux", feature = "ebpf"))]
+use ebpf_loader::{start as ebpf_start, EbpfConfig, EbpfEvent};
+
 #[derive(Parser)]
 #[command(
     name = "netscope-agent",
@@ -50,6 +53,26 @@ enum Command {
 
     /// List available network interfaces on this machine
     ListInterfaces,
+
+    /// Run the eBPF-based capture engine (Linux ≥ 5.8, requires CAP_BPF).
+    ///
+    /// Unlike pcap-mode, eBPF capture intercepts plaintext at the SSL layer
+    /// before encryption and provides per-process attribution for every flow.
+    ///
+    /// Build first: `cargo xtask build-ebpf --release`
+    /// Run with:    `sudo netscope-agent ebpf --hub-url … --api-key …`
+    #[cfg(target_os = "linux")]
+    Ebpf {
+        /// Hub API base URL (e.g. https://hub.example.com)
+        #[arg(long)]
+        hub_url: Option<String>,
+        /// Agent API key
+        #[arg(long)]
+        api_key: Option<String>,
+        /// Override libssl path (auto-detected if not set)
+        #[arg(long)]
+        libssl_path: Option<String>,
+    },
 }
 
 fn main() {
@@ -80,6 +103,11 @@ fn run(cli: Cli) -> Result<()> {
                     println!("  {}", iface);
                 }
             }
+        }
+
+        #[cfg(target_os = "linux")]
+        Command::Ebpf { hub_url, api_key, libssl_path } => {
+            run_ebpf(hub_url, api_key, libssl_path)?;
         }
 
         Command::Capture {
@@ -208,6 +236,95 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
 
     capture_thread.join().ok();
     Ok(())
+}
+
+// ── eBPF entry point ──────────────────────────────────────────────────────────
+
+#[cfg(target_os = "linux")]
+fn run_ebpf(
+    hub_url: Option<String>,
+    api_key: Option<String>,
+    libssl_path: Option<String>,
+) -> Result<()> {
+    #[cfg(not(feature = "ebpf"))]
+    {
+        anyhow::bail!(
+            "eBPF support is not compiled in.\n\
+             Rebuild with: cargo build --features ebpf\n\
+             Then compile BPF programs: cargo xtask build-ebpf --release"
+        );
+    }
+
+    #[cfg(feature = "ebpf")]
+    {
+        let rt = tokio::runtime::Runtime::new()?;
+        rt.block_on(async move {
+            let cfg = EbpfConfig {
+                libssl_path,
+                channel_capacity: 8192,
+            };
+
+            info!("Starting eBPF capture engine");
+
+            let hub: Option<HubClient> = match (hub_url.as_ref(), api_key.as_ref()) {
+                (Some(url), Some(key)) => match HubClient::new(url, key) {
+                    Ok(c) => {
+                        info!(agent_id = c.agent_id(), "Hub client ready");
+                        Some(c)
+                    }
+                    Err(e) => {
+                        warn!("Hub client failed: {:#} — printing to stdout", e);
+                        None
+                    }
+                },
+                _ => {
+                    warn!("--hub-url / --api-key not set — printing events to stdout");
+                    None
+                }
+            };
+
+            let mut rx = ebpf_start(cfg).await?;
+            let mut count = 0u64;
+
+            while let Some(event) = rx.recv().await {
+                count += 1;
+                match &event {
+                    EbpfEvent::Ssl(e) => {
+                        let dir = match e.direction {
+                            ebpf_loader::SslDirection::Write => "→",
+                            ebpf_loader::SslDirection::Read  => "←",
+                        };
+                        let preview: String = e.data.chars().take(80).collect();
+                        info!(
+                            pid = e.pid,
+                            comm = %e.comm,
+                            src = %e.src_ip,
+                            dst = %e.dst_ip,
+                            port = e.dst_port,
+                            "{} SSL[{}] {:?}",
+                            dir, count, preview
+                        );
+                    }
+                    EbpfEvent::TcpConnect(e) => {
+                        info!(
+                            pid = e.pid,
+                            comm = %e.comm,
+                            dst = %e.dst_ip,
+                            port = e.dst_port,
+                            success = e.success,
+                            "[{}] TCP connect",
+                            count
+                        );
+                    }
+                }
+                // TODO: serialize events into FlowPayload and push to hub
+                let _ = &hub;
+            }
+
+            Ok::<_, anyhow::Error>(())
+        })?;
+        Ok(())
+    }
 }
 
 fn print_flow(flow: &proto::Flow, n: u64) {

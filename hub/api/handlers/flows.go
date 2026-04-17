@@ -11,8 +11,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/netscope/hub-api/clickhouse"
+	"github.com/netscope/hub-api/geoip"
 	"github.com/netscope/hub-api/kafka"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/threat"
 )
 
 // ── SSE broadcast hub ────────────────────────────────────────────────────────
@@ -72,6 +74,8 @@ type FlowHandler struct {
 	Writer   *clickhouse.Writer
 	Producer *kafka.Producer
 	CertsCH  *clickhouse.Client // may be same as CH; used for cert extraction
+	GeoIP    *geoip.Reader      // nil = geo enrichment disabled
+	Threat   *threat.Scorer     // nil = threat scoring disabled
 }
 
 // Ingest handles POST /api/v1/ingest.
@@ -101,6 +105,11 @@ func (h *FlowHandler) Ingest(c *fiber.Ctx) error {
 			f.Timestamp = time.Now().UTC()
 		}
 
+		// Geo + threat enrichment on destination IP (external only)
+		if h.GeoIP != nil || h.Threat != nil {
+			h.enrich(f)
+		}
+
 		// Persist —————————————————————————————————————————————————————————
 		if h.Producer != nil {
 			// Kafka path: produce → consumer goroutine writes to ClickHouse
@@ -128,6 +137,24 @@ func (h *FlowHandler) Ingest(c *fiber.Ctx) error {
 		Received: len(req.Flows),
 		Errors:   errs,
 	})
+}
+
+// enrich populates geo and threat fields on the flow using the destination IP.
+// It's a no-op for private/loopback destinations and when the enrichers are nil.
+func (h *FlowHandler) enrich(f *models.Flow) {
+	if h.GeoIP != nil {
+		info := h.GeoIP.Lookup(f.DstIP)
+		if info.CountryCode != "" {
+			f.CountryCode = info.CountryCode
+			f.CountryName = info.CountryName
+			f.ASOrg = info.ASOrg
+		}
+	}
+	if h.Threat != nil {
+		score := h.Threat.ScoreConnection(f.DstIP, f.DstPort)
+		f.ThreatScore = score.Value
+		f.ThreatLevel = score.Level
+	}
 }
 
 // Query handles GET /api/v1/flows.

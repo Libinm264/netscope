@@ -7,5 +7,8 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.4
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
+	github.com/oschwald/geoip2-golang v1.11.0
 	github.com/twmb/franz-go v1.17.0
 )
+
+require github.com/oschwald/maxminddb-golang v1.13.1 // indirect

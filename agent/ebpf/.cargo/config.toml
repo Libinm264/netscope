@@ -1,0 +1,8 @@
+# Force all packages in this sub-workspace to compile for the BPF target.
+# This directory is NOT a member of the parent workspace — it is built
+# separately by `cargo xtask build-ebpf`.
+[build]
+target = "bpfel-unknown-none"
+
+[unstable]
+build-std = ["core"]

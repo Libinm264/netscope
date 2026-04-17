@@ -7,11 +7,13 @@ import {
   fetchExternalConnections,
   fetchTLSAudit,
   fetchComplianceConnections,
+  fetchGeoSummary,
   type ComplianceSummary,
   type TopTalker,
   type ExternalDest,
   type TLSAuditRecord,
   type ConnectionRecord,
+  type GeoCountry,
 } from "@/lib/api";
 import {
   ClipboardList,
@@ -51,7 +53,7 @@ function fmtDate(iso: string): string {
 const WINDOWS = ["1h", "6h", "24h", "7d", "30d"] as const;
 type Window = (typeof WINDOWS)[number];
 
-type Tab = "talkers" | "external" | "tls" | "connections";
+type Tab = "talkers" | "external" | "tls" | "connections" | "geo";
 
 const ISSUE_CONFIG: Record<
   TLSAuditRecord["issue"],
@@ -63,6 +65,105 @@ const ISSUE_CONFIG: Record<
   self_signed:       { label: "Self-signed",       color: "text-purple-400 bg-purple-500/10 border-purple-500/20", icon: <ShieldAlert size={12} /> },
   ok:                { label: "Valid",             color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", icon: <CheckCircle2 size={12} /> },
 };
+
+// ── Threat badge ───────────────────────────────────────────────────────────────
+
+function ThreatBadge({ score }: { score: number }) {
+  if (score === 0) return null;
+  const cfg =
+    score >= 75 ? { label: "HIGH",   cls: "bg-red-500/10 text-red-400 border-red-500/20" } :
+    score >= 50 ? { label: "MED",    cls: "bg-orange-500/10 text-orange-400 border-orange-500/20" } :
+                  { label: "LOW",    cls: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" };
+  return (
+    <span className={clsx(
+      "inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border font-medium",
+      cfg.cls,
+    )}>
+      <AlertTriangle size={9} />
+      {cfg.label}
+    </span>
+  );
+}
+
+// ── Country flag helper ────────────────────────────────────────────────────────
+
+function CountryFlag({ code }: { code: string }) {
+  // Convert ISO 3166-1 alpha-2 to regional indicator symbols (emoji flag)
+  if (!code || code.length !== 2) return null;
+  const flag = code
+    .toUpperCase()
+    .split("")
+    .map((c) => String.fromCodePoint(0x1f1e6 + c.charCodeAt(0) - 65))
+    .join("");
+  return <span className="text-base leading-none">{flag}</span>;
+}
+
+// ── Geo panel ──────────────────────────────────────────────────────────────────
+
+function GeoPanel({ countries, window: win }: { countries: GeoCountry[]; window: string }) {
+  const maxConns = Math.max(...countries.map((c) => c.connections), 1);
+
+  if (countries.length === 0) {
+    return (
+      <div className="py-16 text-center space-y-2">
+        <Globe size={24} className="mx-auto text-slate-700" />
+        <p className="text-sm text-slate-600">
+          No geo data yet — set <code className="text-slate-500">GEOIP_CITY_DB</code> and <code className="text-slate-500">GEOIP_ASN_DB</code> to enable enrichment
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left">
+        <thead>
+          <tr className="border-b border-white/[0.06]">
+            {["Country", "Connections", "Bytes Out", "Unique Sources", "Threat", "Share"].map((h) => (
+              <th key={h} className="px-4 py-2.5 text-xs font-medium text-slate-500 uppercase tracking-wider">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {countries.map((c) => (
+            <tr key={c.code} className="border-b border-white/[0.04] hover:bg-white/[0.02]">
+              <td className="px-4 py-3">
+                <div className="flex items-center gap-2">
+                  <CountryFlag code={c.code} />
+                  <div>
+                    <p className="text-sm text-white">{c.name || c.code}</p>
+                    <p className="text-xs text-slate-600 font-mono">{c.code}</p>
+                  </div>
+                </div>
+              </td>
+              <td className="px-4 py-3 text-sm text-slate-300">{fmtNum(c.connections)}</td>
+              <td className="px-4 py-3 text-sm text-slate-400 font-mono">{fmtBytes(c.bytes_out)}</td>
+              <td className="px-4 py-3 text-sm text-slate-500">{c.unique_sources}</td>
+              <td className="px-4 py-3">
+                <ThreatBadge score={c.max_threat_score} />
+              </td>
+              <td className="px-4 py-3 w-40">
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-indigo-500"
+                      style={{ width: `${(c.connections / maxConns) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-xs text-slate-600 w-8 text-right">
+                    {((c.connections / maxConns) * 100).toFixed(0)}%
+                  </span>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 // ── Summary card ───────────────────────────────────────────────────────────────
 
@@ -107,6 +208,7 @@ function TabBar({
     { id: "external",    label: "External Destinations" },
     { id: "tls",         label: "TLS Audit" },
     { id: "connections", label: "Connection Log" },
+    { id: "geo",         label: "Geo Map" },
   ];
 
   return (
@@ -204,7 +306,7 @@ function ExternalPanel({ destinations }: { destinations: ExternalDest[] }) {
       <table className="w-full text-left">
         <thead>
           <tr className="border-b border-white/[0.06]">
-            {["Destination IP", "Port", "Protocol", "Flows", "Bytes Out", "Sources", "Last Seen"].map((h) => (
+            {["Destination IP", "Port", "Protocol", "Flows", "Bytes Out", "Sources", "Threat", "Last Seen"].map((h) => (
               <th key={h} className="px-4 py-2.5 text-xs font-medium text-slate-500 uppercase tracking-wider">
                 {h}
               </th>
@@ -233,6 +335,9 @@ function ExternalPanel({ destinations }: { destinations: ExternalDest[] }) {
                 {(d.src_ips ?? []).length > 3 && (
                   <span className="text-slate-600"> +{d.src_ips.length - 3}</span>
                 )}
+              </td>
+              <td className="px-4 py-3">
+                <ThreatBadge score={(d as ExternalDest & { threat_score?: number }).threat_score ?? 0} />
               </td>
               <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                 {fmtDate(d.last_seen)}
@@ -495,21 +600,24 @@ export default function CompliancePage() {
   const [talkers, setTalkers] = useState<TopTalker[]>([]);
   const [external, setExternal] = useState<ExternalDest[]>([]);
   const [certs, setCerts] = useState<TLSAuditRecord[]>([]);
+  const [countries, setCountries] = useState<GeoCountry[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [sumRes, talkRes, extRes, tlsRes] = await Promise.all([
+      const [sumRes, talkRes, extRes, tlsRes, geoRes] = await Promise.all([
         fetchComplianceSummary(window),
         fetchTopTalkers(window),
         fetchExternalConnections(window),
         fetchTLSAudit(),
+        fetchGeoSummary(window),
       ]);
       setSummary(sumRes);
       setTalkers(talkRes.talkers ?? []);
       setExternal(extRes.destinations ?? []);
       setCerts(tlsRes.certs ?? []);
+      setCountries(geoRes.countries ?? []);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -524,6 +632,7 @@ export default function CompliancePage() {
     external:    external.length,
     tls:         certs.filter((c) => c.issue !== "ok").length,
     connections: 0,
+    geo:         countries.length,
   };
 
   const tlsIssues = certs.filter((c) => c.issue !== "ok").length;
@@ -623,6 +732,7 @@ export default function CompliancePage() {
           {tab === "external"    && <ExternalPanel destinations={external} />}
           {tab === "tls"         && <TLSPanel certs={certs} />}
           {tab === "connections" && <ConnectionLogPanel window={window} />}
+          {tab === "geo"         && <GeoPanel countries={countries} window={window} />}
         </div>
       </div>
     </div>

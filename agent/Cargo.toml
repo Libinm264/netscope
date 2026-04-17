@@ -1,5 +1,14 @@
 [workspace]
-members = [".", "crates/capture", "crates/parser", "crates/proto", "crates/config"]
+members = [
+    ".",
+    "crates/capture",
+    "crates/parser",
+    "crates/proto",
+    "crates/config",
+    "crates/ebpf-common",
+    "crates/ebpf-loader",
+]
+# xtask and ebpf/ are intentionally excluded — they use a different build target.
 resolver = "2"
 
 [workspace.dependencies]
@@ -37,3 +46,10 @@ serde_json = "1"
 reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
 uuid = { version = "1", features = ["v4"] }
 gethostname = "0.4"
+
+# eBPF mode — Linux-only, opt-in via `--features ebpf`
+[target.'cfg(target_os = "linux")'.dependencies]
+ebpf-loader = { path = "crates/ebpf-loader", optional = true }
+
+[features]
+ebpf = ["dep:ebpf-loader"]

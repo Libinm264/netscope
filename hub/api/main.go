@@ -16,11 +16,13 @@ import (
 	"github.com/netscope/hub-api/alerting"
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/config"
+	"github.com/netscope/hub-api/geoip"
 	"github.com/netscope/hub-api/handlers"
 	"github.com/netscope/hub-api/kafka"
 	nsmetrics "github.com/netscope/hub-api/metrics"
 	"github.com/netscope/hub-api/middleware"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/threat"
 )
 
 func main() {
@@ -102,6 +104,20 @@ func main() {
 		}()
 	}
 
+	// ── Geo-IP + Threat scoring ───────────────────────────────────────────────
+	geoReader := geoip.New(cfg.GeoIPCityDB, cfg.GeoIPAsnDB)
+	defer geoReader.Close()
+
+	threatScorer := threat.New()
+	if cfg.AbuseIPDBKey != "" {
+		threatScorer.SetAbuseIPDBKey(cfg.AbuseIPDBKey)
+	}
+	if cfg.ThreatBlocklist != "" {
+		if err := threatScorer.LoadBlocklist(cfg.ThreatBlocklist); err != nil {
+			slog.Warn("threat blocklist load failed", "path", cfg.ThreatBlocklist, "err", err)
+		}
+	}
+
 	// ── Alert evaluator ───────────────────────────────────────────────────────
 	var evaluator *alerting.Evaluator
 	if chClient != nil {
@@ -160,7 +176,7 @@ func main() {
 
 	v1 := app.Group("/api/v1", auth)
 
-	flowH      := &handlers.FlowHandler{CH: chClient, Writer: chWriter, Producer: producer, CertsCH: chClient}
+	flowH      := &handlers.FlowHandler{CH: chClient, Writer: chWriter, Producer: producer, CertsCH: chClient, GeoIP: geoReader, Threat: threatScorer}
 	agentH     := &handlers.AgentHandler{CH: chClient}
 	statsH     := &handlers.StatsHandler{CH: chClient}
 	alertH     := &handlers.AlertHandler{CH: chClient}
@@ -205,6 +221,8 @@ func main() {
 	v1.Get("/compliance/tls",             apiLimit, complianceH.TLSAudit)
 	v1.Get("/compliance/top-talkers",     apiLimit, complianceH.TopTalkers)
 	v1.Get("/compliance/external",        apiLimit, complianceH.ExternalConnections)
+	// Phase 8 — geo enrichment
+	v1.Get("/compliance/geo",             apiLimit, complianceH.GeoSummary)
 
 	// ── Graceful shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
@@ -327,6 +345,13 @@ func runMigrations(ch *clickhouse.Client) error {
 		// Phase 7: add integration_type column to alert_rules (idempotent)
 		`ALTER TABLE alert_rules ADD COLUMN IF NOT EXISTS
 		 integration_type LowCardinality(String) DEFAULT 'webhook'`,
+
+		// Phase 8: geo + threat enrichment columns on flows (idempotent)
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS country_code LowCardinality(String) DEFAULT ''`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS country_name LowCardinality(String) DEFAULT ''`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS as_org       LowCardinality(String) DEFAULT ''`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS threat_score UInt8 DEFAULT 0`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS threat_level LowCardinality(String) DEFAULT ''`,
 
 		// Phase 6: API tokens (RBAC)
 		`CREATE TABLE IF NOT EXISTS api_tokens (

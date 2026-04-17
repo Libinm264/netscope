@@ -18,6 +18,17 @@ type Config struct {
 	// AllowedOrigins is the CORS allowed-origins list (comma-separated).
 	// Defaults to "*" for local dev; set to your domain(s) in production.
 	AllowedOrigins string
+
+	// Geo-IP database paths (MaxMind GeoLite2 .mmdb files).
+	// Leave empty to disable geo enrichment.
+	GeoIPCityDB string
+	GeoIPAsnDB  string
+
+	// AbuseIPDB API key for real-time threat lookups (optional).
+	AbuseIPDBKey string
+
+	// Path to a CIDR blocklist file for the threat scorer (optional).
+	ThreatBlocklist string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -29,11 +40,15 @@ func Load() *Config {
 	}
 
 	cfg := &Config{
-		APIKey:         getEnv("API_KEY", ""),
-		ClickHouseDSN:  getEnv("CLICKHOUSE_DSN", "clickhouse://netscope:netscope_pass@clickhouse:9000/netscope"),
-		KafkaTopic:     getEnv("KAFKA_TOPIC", "netscope.flows"),
-		Port:           getEnv("PORT", "8080"),
-		AllowedOrigins: getEnv("ALLOWED_ORIGINS", "*"),
+		APIKey:          getEnv("API_KEY", ""),
+		ClickHouseDSN:   getEnv("CLICKHOUSE_DSN", "clickhouse://netscope:netscope_pass@clickhouse:9000/netscope"),
+		KafkaTopic:      getEnv("KAFKA_TOPIC", "netscope.flows"),
+		Port:            getEnv("PORT", "8080"),
+		AllowedOrigins:  getEnv("ALLOWED_ORIGINS", "*"),
+		GeoIPCityDB:     getEnv("GEOIP_CITY_DB", ""),
+		GeoIPAsnDB:      getEnv("GEOIP_ASN_DB", ""),
+		AbuseIPDBKey:    getEnv("ABUSEIPDB_KEY", ""),
+		ThreatBlocklist: getEnv("THREAT_BLOCKLIST", ""),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")

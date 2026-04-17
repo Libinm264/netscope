@@ -461,6 +461,21 @@ export async function fetchExternalConnections(window = "24h"): Promise<{ destin
   return get("/api/v1/compliance/external", { window });
 }
 
+// ── Geo enrichment ─────────────────────────────────────────────────────────────
+
+export interface GeoCountry {
+  code: string;
+  name: string;
+  connections: number;
+  bytes_out: number;
+  unique_sources: number;
+  max_threat_score: number;
+}
+
+export async function fetchGeoSummary(window = "24h"): Promise<{ countries: GeoCountry[]; window: string; total: number }> {
+  return get("/api/v1/compliance/geo", { window });
+}
+
 /**
  * Open a Server-Sent Events connection to the live flow stream.
  * Returns a cleanup function — call it to close the connection.

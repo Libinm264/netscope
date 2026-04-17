@@ -1,0 +1,18 @@
+[package]
+name = "ebpf-common"
+version = "0.1.0"
+edition = "2021"
+
+# This crate is shared between the BPF kernel programs (no_std) and the
+# userspace loader, so it must remain no_std + no alloc.
+[lib]
+name = "ebpf_common"
+
+[features]
+default = ["userspace"]
+# Enable when compiling for the BPF target (no_std, no alloc)
+bpf = []
+# Enable when compiling for userspace (std available)
+userspace = []
+
+[dependencies]

@@ -83,6 +83,13 @@ type Flow struct {
 	ICMP       *IcmpFlow `json:"icmp,omitempty"`
 	ARP        *ArpFlow  `json:"arp,omitempty"`
 	TCPStats   *TcpStats `json:"tcp_stats,omitempty"`
+
+	// Geo enrichment — populated by the hub at ingest time, not sent by agents.
+	CountryCode string `json:"country_code,omitempty"`
+	CountryName string `json:"country_name,omitempty"`
+	ASOrg       string `json:"as_org,omitempty"`
+	ThreatScore uint8  `json:"threat_score,omitempty"`
+	ThreatLevel string `json:"threat_level,omitempty"`
 }
 
 // IngestRequest is the payload sent by an agent to POST /api/v1/ingest.

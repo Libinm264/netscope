@@ -308,6 +308,60 @@ func (h *ComplianceHandler) ExternalConnections(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"destinations": destinations, "window": window})
 }
 
+// GeoSummary handles GET /api/v1/compliance/geo.
+// Returns outbound connections broken down by destination country.
+func (h *ComplianceHandler) GeoSummary(c *fiber.Ctx) error {
+	if h.CH == nil {
+		return c.Status(503).JSON(fiber.Map{"error": "ClickHouse unavailable"})
+	}
+
+	window := c.Query("window", "24h")
+	interval := windowToInterval(window)
+
+	rows, err := h.CH.Query(c.Context(), fmt.Sprintf(`
+		SELECT
+			country_code,
+			any(country_name)        AS country_name,
+			count()                  AS connections,
+			sum(bytes_out)           AS bytes_out,
+			uniqExact(src_ip)        AS unique_sources,
+			max(threat_score)        AS max_threat_score
+		FROM flows
+		WHERE ts >= now() - INTERVAL %s
+		  AND country_code != ''
+		GROUP BY country_code
+		ORDER BY connections DESC
+		LIMIT 50
+	`, interval))
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	defer rows.Close()
+
+	type CountryRow struct {
+		Code          string `json:"code"`
+		Name          string `json:"name"`
+		Connections   uint64 `json:"connections"`
+		BytesOut      uint64 `json:"bytes_out"`
+		UniqueSources uint64 `json:"unique_sources"`
+		MaxThreat     uint8  `json:"max_threat_score"`
+	}
+
+	countries := make([]CountryRow, 0)
+	for rows.Next() {
+		var r CountryRow
+		if err := rows.Scan(
+			&r.Code, &r.Name, &r.Connections,
+			&r.BytesOut, &r.UniqueSources, &r.MaxThreat,
+		); err != nil {
+			continue
+		}
+		countries = append(countries, r)
+	}
+
+	return c.JSON(fiber.Map{"countries": countries, "window": window, "total": len(countries)})
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 func isExternalIP(ipStr string) bool {

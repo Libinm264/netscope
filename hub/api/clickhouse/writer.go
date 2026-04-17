@@ -107,8 +107,9 @@ func (w *Writer) insertFlows(flows []models.Flow) error {
 		 (id, agent_id, hostname, ts, protocol, src_ip, src_port, dst_ip, dst_port,
 		  bytes_in, bytes_out, duration_ms, info,
 		  http_method, http_path, http_status,
-		  dns_query, dns_type)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		  dns_query, dns_type,
+		  country_code, country_name, as_org, threat_score, threat_level)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	)
 	if err != nil {
 		return err
@@ -151,6 +152,11 @@ func (w *Writer) insertFlows(flows []models.Flow) error {
 			httpStatus,
 			dnsQuery,
 			dnsType,
+			f.CountryCode,
+			f.CountryName,
+			f.ASOrg,
+			f.ThreatScore,
+			f.ThreatLevel,
 		); err != nil {
 			slog.Warn("clickhouse: append row failed", "err", err, "id", f.ID)
 			continue
