@@ -33,7 +33,6 @@ const FRAME_CONTINUATION: u8 = 0x9;
 
 // ── Frame flags ───────────────────────────────────────────────────────────────
 
-const FLAG_END_STREAM:  u8 = 0x1;
 const FLAG_END_HEADERS: u8 = 0x4;
 const FLAG_PADDED:      u8 = 0x8;
 const FLAG_PRIORITY:    u8 = 0x20;
@@ -66,7 +65,6 @@ pub fn parse_h2(data: &[u8]) -> Option<Http2Flow> {
     let mut hpack_buf: Vec<u8> = Vec::new();
     let mut stream_id: u32 = 0;
     let mut is_request = false;
-    let mut end_headers = false;
 
     while pos + 9 <= data.len() {
         let frame = match parse_frame_header(&data[pos..]) {
@@ -88,9 +86,8 @@ pub fn parse_h2(data: &[u8]) -> Option<Http2Flow> {
 
                 let hpack_data = strip_padding_and_priority(payload, frame.flags);
                 hpack_buf.extend_from_slice(&hpack_data);
-                end_headers = frame.flags & FLAG_END_HEADERS != 0;
 
-                if end_headers {
+                if frame.flags & FLAG_END_HEADERS != 0 {
                     let headers = decode_hpack(&mut decoder, &hpack_buf);
                     let flow = build_flow(stream_id, &headers, is_request);
                     hpack_buf.clear();

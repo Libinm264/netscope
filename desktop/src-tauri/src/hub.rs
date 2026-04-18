@@ -168,6 +168,7 @@ pub fn hub_record_to_dto(rec: HubFlowRecord) -> FlowDto {
         length: rec.bytes,
         info,
         http: None,
+        http2: None,
         dns: None,
         tls: None,
         icmp: None,

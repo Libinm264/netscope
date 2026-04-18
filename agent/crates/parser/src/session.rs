@@ -7,7 +7,7 @@ use crate::http2::{looks_like_h2, H2Session};
 use crate::tls::{looks_like_tls, parse_tls};
 use capture::tcp_stream::{Direction, TcpReassembler};
 use chrono::{DateTime, Utc};
-use etherparse::{Icmpv4Type, InternetSlice, SlicedPacket, TransportSlice};
+use etherparse::{Icmpv4Type, SlicedPacket, TransportSlice};
 use proto::{
     ArpFlow, DnsFlow, Flow, FlowPayload, HttpFlow, IcmpFlow, PacketEvent, Protocol, TcpStats,
 };
