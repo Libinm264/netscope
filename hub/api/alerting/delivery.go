@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/util"
 )
 
 var httpClient = &http.Client{Timeout: 10 * time.Second}
@@ -218,6 +219,14 @@ func BuildMessage(rule models.AlertRule, value float64) string {
 // ── internal helpers ──────────────────────────────────────────────────────────
 
 func postJSON(ctx context.Context, url string, body any, extraHeaders map[string]string) bool {
+	// Defence-in-depth: re-validate the URL at delivery time to catch DNS-rebinding
+	// attacks (the URL may have been valid when stored but re-resolve to an
+	// internal address by the time the alert fires).
+	if err := util.ValidateWebhookURL(url); err != nil {
+		slog.Error("alert delivery: blocked SSRF attempt", "url", url, "err", err)
+		return false
+	}
+
 	data, err := json.Marshal(body)
 	if err != nil {
 		slog.Error("alert delivery: marshal", "err", err)

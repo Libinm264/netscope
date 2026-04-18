@@ -8,6 +8,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// knownDefaultDSN is the well-known insecure ClickHouse DSN shipped in the
+// repository.  We detect it at startup to warn operators (and refuse to start
+// in PRODUCTION mode).
+const knownDefaultDSN = "clickhouse://netscope:netscope_pass@clickhouse:9000/netscope"
+
 // Config holds all runtime configuration loaded from environment variables.
 type Config struct {
 	APIKey         string
@@ -16,11 +21,10 @@ type Config struct {
 	KafkaTopic     string
 	Port           string
 	// AllowedOrigins is the CORS allowed-origins list (comma-separated).
-	// Defaults to "*" for local dev; set to your domain(s) in production.
+	// Defaults to "*" for local dev; MUST be set to your domain(s) in production.
 	AllowedOrigins string
 
-	// Geo-IP database paths (MaxMind GeoLite2 .mmdb files).
-	// Leave empty to disable geo enrichment.
+	// GeoIP database paths (MaxMind GeoLite2 .mmdb files).
 	GeoIPCityDB string
 	GeoIPAsnDB  string
 
@@ -29,6 +33,11 @@ type Config struct {
 
 	// Path to a CIDR blocklist file for the threat scorer (optional).
 	ThreatBlocklist string
+
+	// MetricsToken, when non-empty, requires "Authorization: Bearer <token>"
+	// on requests to the /metrics endpoint.  Leave empty to allow unauthenticated
+	// scraping (suitable only when Prometheus is on a private network).
+	MetricsToken string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -41,7 +50,7 @@ func Load() *Config {
 
 	cfg := &Config{
 		APIKey:          getEnv("API_KEY", ""),
-		ClickHouseDSN:   getEnv("CLICKHOUSE_DSN", "clickhouse://netscope:netscope_pass@clickhouse:9000/netscope"),
+		ClickHouseDSN:   getEnv("CLICKHOUSE_DSN", knownDefaultDSN),
 		KafkaTopic:      getEnv("KAFKA_TOPIC", "netscope.flows"),
 		Port:            getEnv("PORT", "8080"),
 		AllowedOrigins:  getEnv("ALLOWED_ORIGINS", "*"),
@@ -49,13 +58,38 @@ func Load() *Config {
 		GeoIPAsnDB:      getEnv("GEOIP_ASN_DB", ""),
 		AbuseIPDBKey:    getEnv("ABUSEIPDB_KEY", ""),
 		ThreatBlocklist: getEnv("THREAT_BLOCKLIST", ""),
+		MetricsToken:    getEnv("METRICS_TOKEN", ""),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")
 	cfg.KafkaBrokers = splitAndTrim(brokerStr, ",")
 
+	// ── Security validation ───────────────────────────────────────────────────
+
+	production := os.Getenv("PRODUCTION") == "true"
+
 	if cfg.APIKey == "" {
-		slog.Warn("API_KEY env var is not set — all requests will be rejected")
+		if production {
+			slog.Error("PRODUCTION: API_KEY is required — refusing to start")
+			os.Exit(1)
+		}
+		slog.Warn("⚠  SECURITY: API_KEY is not set — all API requests will be rejected")
+	}
+
+	if cfg.ClickHouseDSN == knownDefaultDSN {
+		if production {
+			slog.Error("PRODUCTION: CLICKHOUSE_DSN is using the public default credentials — refusing to start. Set CLICKHOUSE_DSN.")
+			os.Exit(1)
+		}
+		slog.Warn("⚠  SECURITY: Using default ClickHouse credentials (publicly known). Set CLICKHOUSE_DSN before deploying.")
+	}
+
+	if cfg.AllowedOrigins == "*" {
+		if production {
+			slog.Error("PRODUCTION: ALLOWED_ORIGINS is set to wildcard (*) — refusing to start. Set ALLOWED_ORIGINS to your domain.")
+			os.Exit(1)
+		}
+		slog.Warn("⚠  SECURITY: CORS is open to all origins (*). Set ALLOWED_ORIGINS=https://your-domain.com for production.")
 	}
 
 	return cfg

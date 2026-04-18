@@ -149,6 +149,17 @@ func main() {
 		AllowHeaders: "Origin, Content-Type, Accept, X-Api-Key",
 		AllowMethods: "GET,POST,PATCH,DELETE,OPTIONS",
 	}))
+
+	// ── Security response headers ─────────────────────────────────────────────
+	app.Use(func(c *fiber.Ctx) error {
+		c.Set("X-Content-Type-Options", "nosniff")
+		c.Set("X-Frame-Options", "DENY")
+		c.Set("X-XSS-Protection", "1; mode=block")
+		c.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		c.Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+		return c.Next()
+	})
+
 	// Count every request
 	app.Use(func(c *fiber.Ctx) error {
 		nsmetrics.APIRequestsTotal.Add(1)
@@ -164,6 +175,14 @@ func main() {
 		return c.JSON(fiber.Map{"status": status, "version": "0.1.0"})
 	})
 	app.Get("/metrics", func(c *fiber.Ctx) error {
+		// Optional bearer-token protection.  Set METRICS_TOKEN to require
+		// "Authorization: Bearer <token>" on Prometheus scrape jobs.
+		if cfg.MetricsToken != "" {
+			auth := c.Get("Authorization")
+			if auth != "Bearer "+cfg.MetricsToken {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "unauthorized"})
+			}
+		}
 		c.Set("Content-Type", "text/plain; version=0.0.4")
 		return c.SendString(nsmetrics.Text())
 	})

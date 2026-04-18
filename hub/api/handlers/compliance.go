@@ -8,6 +8,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
+	"github.com/netscope/hub-api/util"
+
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/models"
 )
@@ -41,7 +43,7 @@ func (h *ComplianceHandler) Summary(c *fiber.Ctx) error {
 		WHERE ts >= now() - INTERVAL %s
 	`, interval))
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 
 	var totalConns, externalConns uint64
@@ -113,7 +115,7 @@ func (h *ComplianceHandler) Connections(c *fiber.Ctx) error {
 		LIMIT ?
 	`, where), args...)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
@@ -151,7 +153,7 @@ func (h *ComplianceHandler) TLSAudit(c *fiber.Ctx) error {
 		LIMIT 500
 	`)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
@@ -221,7 +223,7 @@ func (h *ComplianceHandler) TopTalkers(c *fiber.Ctx) error {
 		LIMIT 20
 	`, interval))
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
@@ -275,7 +277,7 @@ func (h *ComplianceHandler) ExternalConnections(c *fiber.Ctx) error {
 		LIMIT 100
 	`, interval))
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
@@ -334,7 +336,7 @@ func (h *ComplianceHandler) GeoSummary(c *fiber.Ctx) error {
 		LIMIT 50
 	`, interval))
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 

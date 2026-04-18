@@ -7,6 +7,7 @@ import (
 
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/util"
 )
 
 // ServicesHandler provides the service dependency graph endpoint.
@@ -43,7 +44,7 @@ func (h *ServicesHandler) Graph(c *fiber.Ctx) error {
 		LIMIT 300
 	`, interval))
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 

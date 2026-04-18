@@ -9,6 +9,7 @@ import (
 
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/util"
 )
 
 // AlertHandler manages alert rule CRUD and recent event queries.
@@ -27,7 +28,7 @@ func (h *AlertHandler) ListRules(c *fiber.Ctx) error {
 		        integration_type, webhook_url, enabled, cooldown_minutes, created_at
 		 FROM alert_rules ORDER BY created_at DESC`)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
@@ -97,6 +98,12 @@ func (h *AlertHandler) CreateRule(c *fiber.Ctx) error {
 	if req.CooldownMinutes == 0 {
 		req.CooldownMinutes = 15
 	}
+	// Validate webhook URL to prevent SSRF attacks
+	if req.WebhookURL != "" {
+		if err := util.ValidateWebhookURL(req.WebhookURL); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+	}
 
 	if h.CH == nil {
 		return c.Status(503).JSON(fiber.Map{"error": "ClickHouse not available"})
@@ -112,7 +119,7 @@ func (h *AlertHandler) CreateRule(c *fiber.Ctx) error {
 		id, req.Name, req.Metric, req.Condition, req.Threshold,
 		req.WindowMinutes, req.IntegrationType, req.WebhookURL, req.CooldownMinutes, now,
 	); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 
 	slog.Info("alert rule created", "id", id, "name", req.Name)
@@ -146,14 +153,20 @@ func (h *AlertHandler) UpdateRule(c *fiber.Ctx) error {
 		if err := h.CH.Exec(c.Context(),
 			`ALTER TABLE alert_rules UPDATE enabled = ? WHERE id = ?`, v, id,
 		); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return util.InternalError(c, err)
 		}
 	}
 	if body.WebhookURL != nil {
+		// Re-validate on update — prevents SSRF via webhook URL change
+		if *body.WebhookURL != "" {
+			if err := util.ValidateWebhookURL(*body.WebhookURL); err != nil {
+				return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+			}
+		}
 		if err := h.CH.Exec(c.Context(),
 			`ALTER TABLE alert_rules UPDATE webhook_url = ? WHERE id = ?`, *body.WebhookURL, id,
 		); err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			return util.InternalError(c, err)
 		}
 	}
 
@@ -172,7 +185,7 @@ func (h *AlertHandler) DeleteRule(c *fiber.Ctx) error {
 	if err := h.CH.Exec(c.Context(),
 		`ALTER TABLE alert_rules DELETE WHERE id = ?`, id,
 	); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	return c.JSON(fiber.Map{"ok": true})
 }
@@ -187,7 +200,7 @@ func (h *AlertHandler) ListEvents(c *fiber.Ctx) error {
 		`SELECT id, rule_id, rule_name, metric, value, threshold, fired_at, delivered
 		 FROM alert_events ORDER BY fired_at DESC LIMIT ?`, uint64(limit))
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 

@@ -11,6 +11,7 @@ import (
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/config"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/util"
 )
 
 // EnrollmentHandler manages enrollment tokens and the agent enrol flow.
@@ -30,7 +31,7 @@ func (h *EnrollmentHandler) ListTokens(c *fiber.Ctx) error {
 		 FROM enrollment_tokens
 		 ORDER BY created_at DESC`)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
@@ -76,7 +77,7 @@ func (h *EnrollmentHandler) CreateToken(c *fiber.Ctx) error {
 		 VALUES (?, ?, ?, ?, ?, 0, 0)`,
 		id, req.Name, token, now, expiresAt,
 	); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 
 	slog.Info("enrollment token created", "name", req.Name, "id", id)
@@ -98,7 +99,7 @@ func (h *EnrollmentHandler) RevokeToken(c *fiber.Ctx) error {
 		 SELECT id, name, token, created_at, expires_at, used_count, 1
 		 FROM enrollment_tokens WHERE id = ? LIMIT 1`, id,
 	); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	return c.JSON(fiber.Map{"revoked": true})
 }
@@ -119,7 +120,7 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 		`SELECT id, expires_at, revoked FROM enrollment_tokens FINAL
 		 WHERE token = ? LIMIT 1`, req.Token)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
@@ -147,7 +148,7 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 		 VALUES (?, ?, ?, ?, ?, ?)`,
 		agentID, req.Hostname, req.Version, req.Interface, now, now,
 	); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 
 	// Increment used_count (insert updated row; ReplacingMergeTree keeps latest)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/util"
 )
 
 // AgentHandler provides list and register endpoints for agent management.
@@ -28,7 +29,7 @@ func (h *AgentHandler) List(c *fiber.Ctx) error {
 		 FROM agents
 		 ORDER BY last_seen DESC`)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
@@ -74,7 +75,7 @@ func (h *AgentHandler) Register(c *fiber.Ctx) error {
 		 VALUES (?, ?, ?, ?, ?, ?)`,
 		req.AgentID, req.Hostname, req.Version, req.Interface, now, now,
 	); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 
 	slog.Info("agent registered", "agent_id", req.AgentID, "hostname", req.Hostname)

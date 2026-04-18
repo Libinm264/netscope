@@ -15,6 +15,7 @@ import (
 	"github.com/netscope/hub-api/kafka"
 	"github.com/netscope/hub-api/models"
 	"github.com/netscope/hub-api/threat"
+	"github.com/netscope/hub-api/util"
 )
 
 // ── SSE broadcast hub ────────────────────────────────────────────────────────
@@ -231,7 +232,7 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 		fmt.Sprintf("SELECT count() FROM flows WHERE %s", where),
 		countArgs...)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	var total uint64
 	if countRows.Next() {
@@ -253,7 +254,7 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 		 LIMIT ? OFFSET ?`, where),
 		dataArgs...)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 

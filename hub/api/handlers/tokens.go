@@ -9,6 +9,7 @@ import (
 
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/util"
 )
 
 // TokenHandler manages API access tokens (RBAC).
@@ -27,7 +28,7 @@ func (h *TokenHandler) List(c *fiber.Ctx) error {
 		 FROM api_tokens FINAL
 		 ORDER BY created_at DESC`)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
@@ -75,7 +76,7 @@ func (h *TokenHandler) Create(c *fiber.Ctx) error {
 		 VALUES (?, ?, ?, ?, ?, ?, 0)`,
 		id, req.Name, req.Role, token, now, now,
 	); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 
 	slog.Info("api token created", "name", req.Name, "role", req.Role)
@@ -96,7 +97,7 @@ func (h *TokenHandler) Revoke(c *fiber.Ctx) error {
 		 SELECT id, name, role, token, created_at, last_used, 1
 		 FROM api_tokens FINAL WHERE id = ? LIMIT 1`, id,
 	); err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	return c.JSON(fiber.Map{"revoked": true})
 }

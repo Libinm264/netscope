@@ -7,6 +7,7 @@ import (
 
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/util"
 )
 
 // AnalyticsHandler provides HTTP endpoint analytics.
@@ -51,7 +52,7 @@ func (h *AnalyticsHandler) Endpoints(c *fiber.Ctx) error {
 		LIMIT 100
 	`, interval))
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 

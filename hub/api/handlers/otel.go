@@ -9,6 +9,7 @@ import (
 
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/util"
 )
 
 // OtelHandler exports flows in OpenTelemetry JSON format.
@@ -42,7 +43,7 @@ func (h *OtelHandler) ExportTraces(c *fiber.Ctx) error {
 		LIMIT 1000
 	`, interval))
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 

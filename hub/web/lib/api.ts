@@ -93,32 +93,50 @@ export interface Agent {
   registered_at: string;
 }
 
-// ── Client ────────────────────────────────────────────────────────────────────
+// ── Proxy client ──────────────────────────────────────────────────────────────
+//
+// All requests go to the Next.js server-side proxy at /api/proxy/*, which
+// injects the hub API key from a server-only environment variable.
+//
+// The API key is NEVER present in the browser bundle.  Do NOT add
+// NEXT_PUBLIC_API_KEY or NEXT_PUBLIC_API_URL — use HUB_API_KEY and HUB_API_URL
+// in your server environment instead (see hub/web/.env.example).
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+const PROXY = "/api/proxy";
 
-const API_KEY =
-  process.env.NEXT_PUBLIC_API_KEY ?? "changeme";
-
-function headers(): HeadersInit {
-  return {
-    "Content-Type": "application/json",
-    "X-Api-Key": API_KEY,
-  };
+function stdHeaders(): HeadersInit {
+  return { "Content-Type": "application/json" };
 }
 
 async function get<T>(path: string, params?: Record<string, string | number>): Promise<T> {
-  const url = new URL(`${BASE_URL}${path}`);
+  const url = new URL(`${PROXY}${path}`, typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
   if (params) {
     Object.entries(params).forEach(([k, v]) => {
       if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
     });
   }
-  const res = await fetch(url.toString(), { headers: headers(), cache: "no-store" });
+  const res = await fetch(url.toString(), { headers: stdHeaders(), cache: "no-store" });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(`API ${path} → ${res.status}: ${body}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+async function api<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  const res = await fetch(`${PROXY}${path}`, {
+    method,
+    headers: stdHeaders(),
+    cache: "no-store",
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`API ${method} ${path} → ${res.status}: ${text}`);
   }
   return res.json() as Promise<T>;
 }
@@ -130,20 +148,20 @@ export async function fetchFlows(params?: {
   src_ip?: string;
   dst_ip?: string;
   hostname?: string;
-  from?: string;       // ISO datetime or datetime-local string
-  to?: string;         // ISO datetime or datetime-local string
+  from?: string;
+  to?: string;
   limit?: number;
   offset?: number;
 }): Promise<{ flows: Flow[]; total: number }> {
-  return get("/api/v1/flows", params as Record<string, string | number>);
+  return get("/flows", params as Record<string, string | number>);
 }
 
 export async function fetchStats(): Promise<StatsResponse> {
-  return get("/api/v1/stats");
+  return get("/stats");
 }
 
 export async function fetchAgents(): Promise<{ agents: Agent[] }> {
-  return get("/api/v1/agents");
+  return get("/agents");
 }
 
 // ── Alert types ───────────────────────────────────────────────────────────────
@@ -173,7 +191,7 @@ export interface AlertRule {
   window_minutes: number;
   integration_type: AlertIntegrationType;
   webhook_url: string;
-  enabled: number;        // 0 | 1 (ClickHouse UInt8)
+  enabled: number;
   cooldown_minutes: number;
   created_at: string;
 }
@@ -200,49 +218,27 @@ export interface CreateAlertRuleRequest {
   cooldown_minutes?: number;
 }
 
-// ── Alert API helpers ─────────────────────────────────────────────────────────
-
-async function api<T>(
-  method: string,
-  path: string,
-  body?: unknown,
-): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers: headers(),
-    cache: "no-store",
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`API ${method} ${path} → ${res.status}: ${text}`);
-  }
-  return res.json() as Promise<T>;
-}
-
 export async function fetchAlertRules(): Promise<{ rules: AlertRule[] }> {
-  return get("/api/v1/alerts");
+  return get("/alerts");
 }
 
-export async function createAlertRule(
-  req: CreateAlertRuleRequest,
-): Promise<AlertRule> {
-  return api<AlertRule>("POST", "/api/v1/alerts", req);
+export async function createAlertRule(req: CreateAlertRuleRequest): Promise<AlertRule> {
+  return api<AlertRule>("POST", "/alerts", req);
 }
 
 export async function updateAlertRule(
   id: string,
   patch: Partial<Pick<AlertRule, "enabled" | "webhook_url">>,
 ): Promise<AlertRule> {
-  return api<AlertRule>("PATCH", `/api/v1/alerts/${id}`, patch);
+  return api<AlertRule>("PATCH", `/alerts/${id}`, patch);
 }
 
 export async function deleteAlertRule(id: string): Promise<void> {
-  await api<unknown>("DELETE", `/api/v1/alerts/${id}`);
+  await api<unknown>("DELETE", `/alerts/${id}`);
 }
 
 export async function fetchAlertEvents(): Promise<{ events: AlertEvent[] }> {
-  return get("/api/v1/alerts/events");
+  return get("/alerts/events");
 }
 
 // ── Enrollment tokens ─────────────────────────────────────────────────────────
@@ -258,18 +254,18 @@ export interface EnrollmentToken {
 }
 
 export async function fetchEnrollmentTokens(): Promise<{ tokens: EnrollmentToken[] }> {
-  return get("/api/v1/enrollment-tokens");
+  return get("/enrollment-tokens");
 }
 
 export async function createEnrollmentToken(name: string, expires_in = "7d"): Promise<EnrollmentToken> {
-  return api<EnrollmentToken>("POST", "/api/v1/enrollment-tokens", { name, expires_in });
+  return api<EnrollmentToken>("POST", "/enrollment-tokens", { name, expires_in });
 }
 
 export async function revokeEnrollmentToken(id: string): Promise<void> {
-  await api<unknown>("DELETE", `/api/v1/enrollment-tokens/${id}`);
+  await api<unknown>("DELETE", `/enrollment-tokens/${id}`);
 }
 
-// ── TLS certificate fleet ──────────────────────────────────────────────────────
+// ── TLS certificate fleet ─────────────────────────────────────────────────────
 
 export interface TlsCert {
   fingerprint: string;
@@ -295,7 +291,7 @@ export interface CertSummary {
 }
 
 export async function fetchCerts(): Promise<{ certs: TlsCert[]; total: number; summary: CertSummary }> {
-  return get("/api/v1/certs");
+  return get("/certs");
 }
 
 // ── API tokens (RBAC) ─────────────────────────────────────────────────────────
@@ -311,18 +307,18 @@ export interface APIToken {
 }
 
 export async function fetchAPITokens(): Promise<{ tokens: APIToken[] }> {
-  return get("/api/v1/tokens");
+  return get("/tokens");
 }
 
 export async function createAPIToken(name: string, role: "admin" | "viewer"): Promise<APIToken> {
-  return api<APIToken>("POST", "/api/v1/tokens", { name, role });
+  return api<APIToken>("POST", "/tokens", { name, role });
 }
 
 export async function revokeAPIToken(id: string): Promise<void> {
-  await api<unknown>("DELETE", `/api/v1/tokens/${id}`);
+  await api<unknown>("DELETE", `/tokens/${id}`);
 }
 
-// ── Service dependency graph ───────────────────────────────────────────────────
+// ── Service dependency graph ──────────────────────────────────────────────────
 
 export interface ServiceNode {
   id: string;
@@ -348,10 +344,10 @@ export interface ServiceGraph {
 }
 
 export async function fetchServiceGraph(window = "1h"): Promise<ServiceGraph> {
-  return get("/api/v1/services/graph", { window });
+  return get("/services/graph", { window });
 }
 
-// ── HTTP endpoint analytics ────────────────────────────────────────────────────
+// ── HTTP endpoint analytics ───────────────────────────────────────────────────
 
 export interface EndpointStat {
   method: string;
@@ -359,7 +355,7 @@ export interface EndpointStat {
   count: number;
   success_count: number;
   error_count: number;
-  error_rate: number;    // percent 0-100
+  error_rate: number;
   avg_latency_ms: number;
   p50_ms: number;
   p95_ms: number;
@@ -373,10 +369,10 @@ export interface EndpointStatsResponse {
 }
 
 export async function fetchEndpointStats(window = "1h"): Promise<EndpointStatsResponse> {
-  return get("/api/v1/analytics/endpoints", { window });
+  return get("/analytics/endpoints", { window });
 }
 
-// ── Compliance reporting ───────────────────────────────────────────────────────
+// ── Compliance reporting ──────────────────────────────────────────────────────
 
 export interface ComplianceSummary {
   total_connections: number;
@@ -435,7 +431,7 @@ export interface ExternalDest {
 }
 
 export async function fetchComplianceSummary(window = "24h"): Promise<ComplianceSummary> {
-  return get("/api/v1/compliance/summary", { window });
+  return get("/compliance/summary", { window });
 }
 
 export async function fetchComplianceConnections(params?: {
@@ -446,22 +442,22 @@ export async function fetchComplianceConnections(params?: {
   external_only?: string;
   limit?: number;
 }): Promise<{ connections: ConnectionRecord[]; window: string; total: number }> {
-  return get("/api/v1/compliance/connections", params as Record<string, string | number>);
+  return get("/compliance/connections", params as Record<string, string | number>);
 }
 
 export async function fetchTLSAudit(): Promise<{ certs: TLSAuditRecord[]; total: number }> {
-  return get("/api/v1/compliance/tls");
+  return get("/compliance/tls");
 }
 
 export async function fetchTopTalkers(window = "24h"): Promise<{ talkers: TopTalker[]; window: string }> {
-  return get("/api/v1/compliance/top-talkers", { window });
+  return get("/compliance/top-talkers", { window });
 }
 
 export async function fetchExternalConnections(window = "24h"): Promise<{ destinations: ExternalDest[]; window: string }> {
-  return get("/api/v1/compliance/external", { window });
+  return get("/compliance/external", { window });
 }
 
-// ── Geo enrichment ─────────────────────────────────────────────────────────────
+// ── Geo enrichment ────────────────────────────────────────────────────────────
 
 export interface GeoCountry {
   code: string;
@@ -473,20 +469,22 @@ export interface GeoCountry {
 }
 
 export async function fetchGeoSummary(window = "24h"): Promise<{ countries: GeoCountry[]; window: string; total: number }> {
-  return get("/api/v1/compliance/geo", { window });
+  return get("/compliance/geo", { window });
 }
 
-/**
- * Open a Server-Sent Events connection to the live flow stream.
- * Returns a cleanup function — call it to close the connection.
- */
+// ── Live flow stream (SSE) ────────────────────────────────────────────────────
+//
+// The EventSource connects to the Next.js proxy at /api/proxy/flows/stream
+// (same-origin, no credentials in the URL).  The proxy injects the hub API key
+// server-side before forwarding to the backend.
+
 export function createFlowStream(
   onFlow: (flow: Flow) => void,
   onError?: () => void,
   onOpen?: () => void,
 ): () => void {
-  const url = `${BASE_URL}/api/v1/flows/stream?api_key=${encodeURIComponent(API_KEY)}`;
-  const es = new EventSource(url);
+  // Same-origin proxy URL — no API key in the browser URL
+  const es = new EventSource(`${PROXY}/flows/stream`);
 
   es.onopen = () => onOpen?.();
 
@@ -495,7 +493,7 @@ export function createFlowStream(
       const flow = JSON.parse(e.data) as Flow;
       onFlow(flow);
     } catch {
-      // Ignore malformed events (e.g. keep-alive comments)
+      // Ignore malformed events (keep-alive comments, etc.)
     }
   };
 

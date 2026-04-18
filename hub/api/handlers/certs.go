@@ -9,6 +9,7 @@ import (
 
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/util"
 )
 
 // CertHandler provides the TLS certificate fleet endpoints.
@@ -33,7 +34,7 @@ func (h *CertHandler) List(c *fiber.Ctx) error {
 		LIMIT 500
 	`)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
