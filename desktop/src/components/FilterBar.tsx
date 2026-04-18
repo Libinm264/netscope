@@ -5,10 +5,13 @@ import { Button } from "@/components/ui/button";
 import { useCaptureStore } from "@/store/captureStore";
 
 const QUICK_FILTERS = [
-  { label: "All traffic", value: "" },
-  { label: "HTTP only", value: "http" },
-  { label: "DNS only", value: "dns" },
+  { label: "All traffic",   value: "" },
+  { label: "HTTP only",     value: "http" },
+  { label: "DNS only",      value: "dns" },
+  { label: "TLS only",      value: "tls" },
   { label: "Errors (4xx/5xx)", value: "errors" },
+  { label: "Threats",       value: "threats" },
+  { label: "Hub flows",     value: "hub" },
 ];
 
 export function FilterBar() {
@@ -21,7 +24,7 @@ export function FilterBar() {
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
         <Input
           className="pl-8 pr-8 font-mono text-xs"
-          placeholder="Filter: host 192.168.1.1   or   http   or   dns"
+          placeholder="Filter: 192.168.1.1   http   dns   threats"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
@@ -35,7 +38,6 @@ export function FilterBar() {
         )}
       </div>
 
-      {/* Quick filter dropdown */}
       <div className="relative">
         <Button
           variant="outline"

@@ -21,6 +21,13 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 chrono = { version = "0.4", features = ["serde"] }
 sqlx = { version = "0.7", features = ["sqlite", "runtime-tokio-native-tls", "macros", "chrono"] }
+# GeoIP enrichment
+maxminddb = "0.24"
+dirs = "5"
+# Threat scoring — CIDR matching
+ipnet = "2"
+# Hub API client
+reqwest = { version = "0.12", features = ["json"] }
 # Shared crates from the agent workspace
 capture = { path = "../../agent/crates/capture" }
 parser  = { path = "../../agent/crates/parser" }

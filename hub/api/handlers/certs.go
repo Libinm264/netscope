@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"strings"
 	"time"
 
@@ -80,9 +81,9 @@ func (h *CertHandler) List(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"certs":    certs,
-		"total":    len(certs),
-		"summary":  fiber.Map{"expired": expired, "critical": critical, "warning": warning, "ok": ok},
+		"certs":   certs,
+		"total":   len(certs),
+		"summary": fiber.Map{"expired": expired, "critical": critical, "warning": warning, "ok": ok},
 	})
 }
 
@@ -105,8 +106,10 @@ func ExtractAndStoreCert(ch *clickhouse.Client, flow models.Flow) {
 	}
 	now := time.Now().UTC()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	_ = ch.Exec(
-		nil, // fire-and-forget; use background context
+		ctx,
 		`INSERT INTO tls_certs
 		 (fingerprint, cn, issuer, expiry, expired, sans,
 		  agent_id, hostname, src_ip, dst_ip, first_seen, last_seen)

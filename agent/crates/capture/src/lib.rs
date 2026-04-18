@@ -135,11 +135,18 @@ fn parse_packet(data: &[u8], timestamp: chrono::DateTime<Utc>) -> Option<PacketE
             Some(tcp.destination_port()),
             Protocol::Tcp,
         ),
-        Some(TransportSlice::Udp(udp)) => (
-            Some(udp.source_port()),
-            Some(udp.destination_port()),
-            Protocol::Udp,
-        ),
+        Some(TransportSlice::Udp(udp)) => {
+            let src = udp.source_port();
+            let dst = udp.destination_port();
+            // Promote port-53 / port-5353 (mDNS) UDP to Dns so the session
+            // manager routes them into the DNS parser instead of dropping them.
+            let proto = if src == 53 || dst == 53 || src == 5353 || dst == 5353 {
+                Protocol::Dns
+            } else {
+                Protocol::Udp
+            };
+            (Some(src), Some(dst), proto)
+        }
         Some(TransportSlice::Icmpv4(_)) => (None, None, Protocol::Icmp),
         Some(TransportSlice::Icmpv6(_)) => (None, None, Protocol::Icmp),
         _ => (None, None, Protocol::Unknown),

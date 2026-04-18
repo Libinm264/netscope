@@ -1,9 +1,14 @@
 use crate::db;
-use crate::dto::{flow_to_dto, CaptureStatus, FlowDto, InterfaceDto};
+use crate::dto::{flow_to_dto, CaptureStatus, FlowDto, GeoInfoDto, InterfaceDto, ThreatInfoDto};
+use crate::geoip::GeoIpReader;
+use crate::hub::{hub_record_to_dto, HubClient, HubConfig, HubFlowFilters};
 use crate::state::SharedState;
+use crate::threat::ThreatScorer;
 use capture::CaptureError;
 use config::AgentConfig;
 use parser::session::SessionManager;
+use std::path::Path;
+use std::sync::Arc;
 use tauri::{AppHandle, Emitter, State};
 use tokio::sync::oneshot;
 use tracing::{error, info};
@@ -30,15 +35,10 @@ pub fn list_interfaces() -> Result<Vec<InterfaceDto>, String> {
 
 #[tauri::command]
 pub fn check_privileges() -> bool {
-    // Attempt to list devices; if it fails with a permission error we lack privileges.
     match capture::list_interfaces() {
-        Ok(_) => {
-            // A more accurate check: try opening the first interface for capture.
-            // For now, list success is a reasonable proxy.
-            true
-        }
+        Ok(_) => true,
         Err(CaptureError::InsufficientPrivileges) => false,
-        Err(_) => true, // other errors are not privilege-related
+        Err(_) => true,
     }
 }
 
@@ -51,23 +51,23 @@ pub async fn start_capture(
     app: AppHandle,
     state: State<'_, SharedState>,
 ) -> Result<(), String> {
-    {
-        let s = state.lock().unwrap();
+    let (stop_tx, mut stop_rx) = oneshot::channel::<()>();
+
+    // Check-and-set status + clone enrichment engines in one atomic lock acquisition.
+    // Splitting the check and set across separate locks creates a TOCTOU race where
+    // two concurrent start_capture calls both pass the check before either sets Running.
+    let (geoip_reader, threat_scorer): (Option<Arc<GeoIpReader>>, Arc<ThreatScorer>) = {
+        let mut s = state.lock().unwrap();
         if s.status == CaptureStatus::Running {
             return Err("Capture already running".into());
         }
-    }
-
-    let (stop_tx, mut stop_rx) = oneshot::channel::<()>();
-
-    {
-        let mut s = state.lock().unwrap();
         s.status = CaptureStatus::Running;
         s.interface = Some(interface.clone());
         s.filter = filter.clone();
         s.stop_tx = Some(stop_tx);
         s.flows.clear();
-    }
+        (s.geoip.clone(), s.threat_scorer.clone())
+    };
 
     let cfg = AgentConfig {
         interface: interface.clone(),
@@ -78,30 +78,53 @@ pub async fn start_capture(
     let state_clone = state.inner().clone();
     let app_clone = app.clone();
 
-    // Capture runs on a dedicated thread (libpcap is blocking)
     std::thread::spawn(move || {
         let (pkt_tx, pkt_rx) = std::sync::mpsc::channel();
 
         let cfg_clone = cfg.clone();
-        let capture_thread = std::thread::spawn(move || {
-            capture::start_capture(&cfg_clone, pkt_tx)
-        });
+        let capture_thread = std::thread::spawn(move || capture::start_capture(&cfg_clone, pkt_tx));
 
         let mut session_mgr = SessionManager::new();
 
         loop {
-            // Check for stop signal (non-blocking)
             if stop_rx.try_recv().is_ok() {
                 info!("Capture stop signal received");
                 break;
             }
 
-            // Drain available packets with a short timeout
             match pkt_rx.recv_timeout(std::time::Duration::from_millis(50)) {
                 Ok(packet) => {
                     let flows = session_mgr.process(&packet);
                     for flow in flows {
-                        let dto = flow_to_dto(&flow);
+                        let mut dto = flow_to_dto(&flow);
+
+                        // ── GeoIP enrichment ──────────────────────────────
+                        if let Some(geo) = &geoip_reader {
+                            dto.geo_src = geo.lookup(&dto.src_ip).map(|g| GeoInfoDto {
+                                country_code: g.country_code,
+                                country_name: g.country_name,
+                                city: g.city,
+                                asn: g.asn,
+                                as_org: g.as_org,
+                            });
+                            dto.geo_dst = geo.lookup(&dto.dst_ip).map(|g| GeoInfoDto {
+                                country_code: g.country_code,
+                                country_name: g.country_name,
+                                city: g.city,
+                                asn: g.asn,
+                                as_org: g.as_org,
+                            });
+                        }
+
+                        // ── Threat scoring ────────────────────────────────
+                        dto.threat = threat_scorer
+                            .score_flow(&dto.src_ip, &dto.dst_ip, dto.dst_port)
+                            .map(|t| ThreatInfoDto {
+                                score: t.score,
+                                level: t.level.as_str().to_string(),
+                                reasons: t.reasons,
+                            });
+
                         // Store in state
                         {
                             let mut s = state_clone.lock().unwrap();
@@ -175,7 +198,6 @@ pub async fn save_session(
         .await
         .map_err(|e| e.to_string())?;
     pool.close().await;
-
     state.lock().unwrap().session_path = Some(path);
     Ok(())
 }
@@ -192,11 +214,96 @@ pub async fn load_session(
         .await
         .map_err(|e| e.to_string())?;
     pool.close().await;
-
     {
         let mut s = state.lock().unwrap();
         s.flows = flows.clone();
         s.session_path = Some(path);
     }
     Ok(flows)
+}
+
+// ── GeoIP management ──────────────────────────────────────────────────────────
+
+/// Returns true if GeoIP databases are loaded and ready.
+#[tauri::command]
+pub fn get_geoip_status(state: State<'_, SharedState>) -> bool {
+    state.lock().unwrap().geoip.is_some()
+}
+
+/// Load GeoIP databases from the given paths (or use defaults if empty).
+#[tauri::command]
+pub fn load_geoip_db(
+    city_path: String,
+    asn_path: String,
+    state: State<'_, SharedState>,
+) -> Result<(), String> {
+    let reader = if city_path.is_empty() && asn_path.is_empty() {
+        GeoIpReader::try_default().ok_or("No GeoIP databases found in ~/.netscope/")?
+    } else {
+        GeoIpReader::open(Path::new(&city_path), Path::new(&asn_path))?
+    };
+    state.lock().unwrap().geoip = Some(Arc::new(reader));
+    Ok(())
+}
+
+// ── Hub connection ────────────────────────────────────────────────────────────
+
+/// Store hub connection config. Pass null/empty url to disconnect.
+#[tauri::command]
+pub fn set_hub_config(
+    url: String,
+    token: String,
+    state: State<'_, SharedState>,
+) {
+    let mut s = state.lock().unwrap();
+    if url.is_empty() {
+        s.hub_config = None;
+    } else {
+        s.hub_config = Some(HubConfig { url, token });
+    }
+}
+
+#[tauri::command]
+pub fn get_hub_config(state: State<'_, SharedState>) -> Option<HubConfig> {
+    state.lock().unwrap().hub_config.clone()
+}
+
+/// Test that the configured hub is reachable.
+#[tauri::command]
+pub async fn test_hub_connection(state: State<'_, SharedState>) -> Result<(), String> {
+    let config = state
+        .lock()
+        .unwrap()
+        .hub_config
+        .clone()
+        .ok_or("No hub configured")?;
+    HubClient::new(config).test_connection().await
+}
+
+/// Query flows from the hub and merge them into local state.
+#[tauri::command]
+pub async fn query_hub_flows(
+    filters: HubFlowFilters,
+    state: State<'_, SharedState>,
+) -> Result<Vec<FlowDto>, String> {
+    let config = state
+        .lock()
+        .unwrap()
+        .hub_config
+        .clone()
+        .ok_or("No hub configured")?;
+
+    let records = HubClient::new(config).query_flows(&filters).await?;
+    let dtos: Vec<FlowDto> = records.into_iter().map(hub_record_to_dto).collect();
+
+    // Merge into local flow store so they appear in the packet list
+    {
+        let mut s = state.lock().unwrap();
+        // Remove any previously loaded hub flows before replacing
+        s.flows.retain(|f| f.source != "hub");
+        s.flows.extend(dtos.clone());
+        s.flows.sort_by_key(|f| f.timestamp);
+    }
+
+    Ok(dtos)
 }

@@ -30,20 +30,16 @@ export interface DnsFlowDto {
 export interface TlsFlowDto {
   recordType: string;        // "ClientHello" | "ServerHello" | "Certificate" | "Alert" | "Finished"
   version: string;           // "TLS 1.2" | "TLS 1.3" etc.
-  // ClientHello
   sni?: string;
   cipherSuites: string[];
   hasWeakCipher: boolean;
-  // ServerHello
   chosenCipher?: string;
   negotiatedVersion?: string;
-  // Certificate
   certCn?: string;
   certSans: string[];
   certExpiry?: string;       // "YYYY-MM-DD"
   certExpired: boolean;
   certIssuer?: string;
-  // Alert
   alertLevel?: string;       // "warning" | "fatal"
   alertDescription?: string;
 }
@@ -51,10 +47,10 @@ export interface TlsFlowDto {
 export interface IcmpFlowDto {
   icmpType: number;
   icmpCode: number;
-  typeStr: string;           // "Echo Request", "Echo Reply", "Destination Unreachable", …
+  typeStr: string;
   echoId?: number;
   echoSeq?: number;
-  rttMs?: number;            // milliseconds, set on Echo Reply when matching request found
+  rttMs?: number;
 }
 
 export interface ArpFlowDto {
@@ -68,6 +64,20 @@ export interface ArpFlowDto {
 export interface TcpStatsDto {
   retransmissions: number;
   outOfOrder: number;
+}
+
+export interface GeoInfoDto {
+  countryCode: string;       // "US" | "DE" | "??" etc.
+  countryName: string;
+  city: string;
+  asn: number;
+  asOrg: string;
+}
+
+export interface ThreatInfoDto {
+  score: number;             // 0–100
+  level: "clean" | "low" | "medium" | "high";
+  reasons: string[];
 }
 
 export interface FlowDto {
@@ -87,6 +97,10 @@ export interface FlowDto {
   icmp?: IcmpFlowDto;
   arp?: ArpFlowDto;
   tcpStats?: TcpStatsDto;
+  geoSrc?: GeoInfoDto;
+  geoDst?: GeoInfoDto;
+  threat?: ThreatInfoDto;
+  source: "local" | "hub";  // where the flow originated
   rawHex: string;
 }
 

@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useCaptureStore } from "@/store/captureStore";
 import { rowBgColor, cn } from "@/lib/utils";
-import type { FlowDto } from "@/types/flow";
+import type { FlowDto, GeoInfoDto, ThreatInfoDto } from "@/types/flow";
 
 const COL_WIDTHS = {
   time:     "w-28 min-w-[7rem] shrink-0",
@@ -13,7 +13,16 @@ const COL_WIDTHS = {
   info:     "flex-1 min-w-0 overflow-hidden",
 };
 
-// ── Protocol badge colours ────────────────────────────────────────────────────
+// ── Country flag emoji from ISO-3166 code ─────────────────────────────────────
+
+function countryFlag(code: string): string {
+  if (!code || code === "??" || code.length !== 2) return "";
+  return String.fromCodePoint(
+    ...code.toUpperCase().split("").map((c) => 0x1f1e0 + c.charCodeAt(0) - 65),
+  );
+}
+
+// ── Protocol badge ────────────────────────────────────────────────────────────
 
 function protocolBadge(protocol: string): { bg: string; text: string } {
   const p = protocol.toUpperCase();
@@ -29,35 +38,74 @@ function protocolBadge(protocol: string): { bg: string; text: string } {
   return               { bg: "bg-gray-800/50",          text: "text-gray-400" };
 }
 
-// Badges shown after the protocol name in the Info column
+// ── Threat badge ──────────────────────────────────────────────────────────────
+
+function ThreatBadge({ threat }: { threat: ThreatInfoDto }) {
+  const cfg = {
+    high:   { cls: "bg-red-900/60 text-red-400 border-red-700/60",    label: "HIGH" },
+    medium: { cls: "bg-orange-900/50 text-orange-400 border-orange-700/50", label: "MED" },
+    low:    { cls: "bg-yellow-900/40 text-yellow-400 border-yellow-700/40", label: "LOW" },
+    clean:  { cls: "bg-gray-800/40 text-gray-400 border-gray-700/40", label: "CLN" },
+  }[threat.level] ?? { cls: "bg-gray-800 text-gray-400", label: "?" };
+
+  return (
+    <span
+      className={cn(
+        "ml-1.5 shrink-0 rounded px-1 py-px text-[9px] font-bold border",
+        cfg.cls,
+      )}
+      title={threat.reasons.join(" · ")}
+    >
+      ⚠ {cfg.label}
+    </span>
+  );
+}
+
+// ── IP cell with geo info ─────────────────────────────────────────────────────
+
+function IpCell({ ip, port, geo }: { ip: string; port: number; geo?: GeoInfoDto }) {
+  const flag = geo ? countryFlag(geo.countryCode) : "";
+  const tooltip = geo
+    ? `${geo.countryName}${geo.city ? `, ${geo.city}` : ""}${geo.asOrg ? ` · ${geo.asOrg}` : ""}`
+    : `${ip}${port > 0 ? `:${port}` : ""}`;
+
+  return (
+    <span
+      className="flex flex-col min-w-0 leading-tight"
+      title={tooltip}
+    >
+      <span className="truncate text-gray-300 text-xs">
+        {ip}{port > 0 && `:${port}`}
+      </span>
+      {flag && (
+        <span className="text-[9px] text-gray-500 truncate">
+          {flag} {geo!.countryCode}{geo!.asOrg ? ` · ${geo!.asOrg.slice(0, 16)}` : ""}
+        </span>
+      )}
+    </span>
+  );
+}
+
+// ── Flow badges ───────────────────────────────────────────────────────────────
+
 function FlowBadges({ flow }: { flow: FlowDto }) {
   const badges: { label: string; cls: string }[] = [];
 
-  // TLS alert severity
-  if (flow.tls?.alertLevel === "fatal") {
+  if (flow.tls?.alertLevel === "fatal")
     badges.push({ label: "fatal", cls: "bg-red-900/50 text-red-400 border-red-700/50" });
-  }
-  // Expired certificate
-  if (flow.tls?.certExpired) {
+  if (flow.tls?.certExpired)
     badges.push({ label: "EXPIRED", cls: "bg-red-900/50 text-red-400 border-red-700/50" });
-  }
-  // Weak cipher
-  if (flow.tls?.hasWeakCipher) {
+  if (flow.tls?.hasWeakCipher)
     badges.push({ label: "weak", cls: "bg-amber-900/50 text-amber-400 border-amber-700/50" });
-  }
-  // TCP retransmissions
-  if (flow.tcpStats && flow.tcpStats.retransmissions > 0) {
+  if (flow.tcpStats && flow.tcpStats.retransmissions > 0)
     badges.push({
       label: `↺${flow.tcpStats.retransmissions}`,
       cls: "bg-amber-900/40 text-amber-400 border-amber-700/40",
     });
-  }
-  // ARP spoofing hint (is-at coming from unexpected sender)
-  if (flow.arp?.operation === "is-at") {
+  if (flow.arp?.operation === "is-at")
     badges.push({ label: "is-at", cls: "bg-amber-900/30 text-amber-400 border-amber-700/30" });
-  }
-
-  if (badges.length === 0) return null;
+  if (flow.source === "hub")
+    badges.push({ label: "hub", cls: "bg-blue-900/40 text-blue-400 border-blue-700/40" });
 
   return (
     <>
@@ -76,7 +124,7 @@ function FlowBadges({ flow }: { flow: FlowDto }) {
   );
 }
 
-// ── Row component ─────────────────────────────────────────────────────────────
+// ── Row ───────────────────────────────────────────────────────────────────────
 
 function FlowRow({
   flow,
@@ -104,35 +152,21 @@ function FlowRow({
 
       {/* Protocol badge */}
       <span className={cn("shrink-0", COL_WIDTHS.protocol)}>
-        <span
-          className={cn(
-            "inline-block rounded px-1.5 py-px text-[10px] font-semibold",
-            bg,
-            text,
-          )}
-        >
+        <span className={cn("inline-block rounded px-1.5 py-px text-[10px] font-semibold", bg, text)}>
           {flow.protocol}
         </span>
       </span>
 
-      {/* Source */}
-      <span
-        className={cn("truncate text-gray-300", COL_WIDTHS.src)}
-        title={`${flow.srcIp}:${flow.srcPort}`}
-      >
-        {flow.srcIp}
-        {flow.srcPort > 0 && `:${flow.srcPort}`}
+      {/* Source IP + geo */}
+      <span className={cn("shrink-0", COL_WIDTHS.src)}>
+        <IpCell ip={flow.srcIp} port={flow.srcPort} geo={flow.geoSrc} />
       </span>
 
       <span className="w-5 shrink-0 text-center text-[10px] text-gray-500">→</span>
 
-      {/* Destination */}
-      <span
-        className={cn("truncate text-gray-300", COL_WIDTHS.dst)}
-        title={`${flow.dstIp}:${flow.dstPort}`}
-      >
-        {flow.dstIp}
-        {flow.dstPort > 0 && `:${flow.dstPort}`}
+      {/* Destination IP + geo */}
+      <span className={cn("shrink-0", COL_WIDTHS.dst)}>
+        <IpCell ip={flow.dstIp} port={flow.dstPort} geo={flow.geoDst} />
       </span>
 
       {/* Length */}
@@ -140,10 +174,13 @@ function FlowRow({
         {flow.length}
       </span>
 
-      {/* Info + badges */}
+      {/* Info + badges + threat */}
       <span className={cn("ml-2 flex items-center min-w-0", COL_WIDTHS.info)}>
         <span className="truncate text-gray-300">{flow.info}</span>
         <FlowBadges flow={flow} />
+        {flow.threat && flow.threat.level !== "clean" && (
+          <ThreatBadge threat={flow.threat} />
+        )}
       </span>
     </div>
   );
@@ -159,17 +196,15 @@ export function PacketListPane() {
   const rowVirtualizer = useVirtualizer({
     count: filteredFlows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 22,
+    estimateSize: () => 44,  // two-line rows (IP + geo sub-line); measureElement auto-corrects
     overscan: 20,
   });
 
-  // Auto-scroll to bottom when new flows arrive (unless user scrolled up)
   useEffect(() => {
     const el = parentRef.current;
     if (!el) return;
     const handleScroll = () => {
-      autoScrollRef.current =
-        el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      autoScrollRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     };
     el.addEventListener("scroll", handleScroll, { passive: true });
     return () => el.removeEventListener("scroll", handleScroll);
@@ -232,7 +267,6 @@ export function PacketListPane() {
         </div>
       </div>
 
-      {/* Empty state */}
       {filteredFlows.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm pointer-events-none">
           No packets captured yet — select an interface and press Start

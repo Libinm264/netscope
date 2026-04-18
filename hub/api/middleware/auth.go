@@ -43,22 +43,27 @@ func TokenAuth(bootstrapKey string, ch *chclient.Client) fiber.Handler {
 			if err == nil {
 				if rows.Next() {
 					var tokenID, role string
-					rows.Scan(&tokenID, &role)
+					if scanErr := rows.Scan(&tokenID, &role); scanErr != nil {
+						rows.Close()
+						// Scan failure — treat as invalid token rather than granting access
+					} else {
+						rows.Close()
+
+						// Update last_used asynchronously
+						go func() {
+							_ = ch.Exec(context.Background(),
+								`INSERT INTO api_tokens (id, name, role, token, created_at, last_used, revoked)
+								 SELECT id, name, role, token, created_at, ?, revoked
+								 FROM api_tokens FINAL WHERE id = ? LIMIT 1`,
+								time.Now().UTC(), tokenID)
+						}()
+
+						c.Locals("role", role)
+						return c.Next()
+					}
+				} else {
 					rows.Close()
-
-					// Update last_used asynchronously
-					go func() {
-						_ = ch.Exec(context.Background(),
-							`INSERT INTO api_tokens (id, name, role, token, created_at, last_used, revoked)
-							 SELECT id, name, role, token, created_at, ?, revoked
-							 FROM api_tokens FINAL WHERE id = ? LIMIT 1`,
-							time.Now().UTC(), tokenID)
-					}()
-
-					c.Locals("role", role)
-					return c.Next()
 				}
-				rows.Close()
 			}
 		}
 

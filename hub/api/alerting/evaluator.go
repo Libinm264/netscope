@@ -141,7 +141,9 @@ func (e *Evaluator) computeMetric(ctx context.Context, metric string, windowMinu
 		defer rows.Close()
 		var v float64
 		if rows.Next() {
-			rows.Scan(&v)
+			if scanErr := rows.Scan(&v); scanErr != nil {
+				return 0, scanErr
+			}
 		}
 		return v, nil
 
@@ -158,7 +160,9 @@ func (e *Evaluator) computeMetric(ctx context.Context, metric string, windowMinu
 		defer rows.Close()
 		var v float64
 		if rows.Next() {
-			rows.Scan(&v)
+			if scanErr := rows.Scan(&v); scanErr != nil {
+				return 0, scanErr
+			}
 		}
 		return v, nil
 
@@ -175,7 +179,9 @@ func (e *Evaluator) computeMetric(ctx context.Context, metric string, windowMinu
 		defer rows.Close()
 		var v float64
 		if rows.Next() {
-			rows.Scan(&v)
+			if scanErr := rows.Scan(&v); scanErr != nil {
+				return 0, scanErr
+			}
 		}
 		return v, nil
 
@@ -199,7 +205,10 @@ func (e *Evaluator) computeMetric(ctx context.Context, metric string, windowMinu
 		}
 		var bAvg, bStd float64
 		if baseRows.Next() {
-			baseRows.Scan(&bAvg, &bStd)
+			if scanErr := baseRows.Scan(&bAvg, &bStd); scanErr != nil {
+				baseRows.Close()
+				return 0, scanErr
+			}
 		}
 		baseRows.Close()
 
@@ -215,7 +224,10 @@ func (e *Evaluator) computeMetric(ctx context.Context, metric string, windowMinu
 		}
 		var curr float64
 		if currRows.Next() {
-			currRows.Scan(&curr)
+			if scanErr := currRows.Scan(&curr); scanErr != nil {
+				currRows.Close()
+				return 0, scanErr
+			}
 		}
 		currRows.Close()
 
@@ -238,7 +250,10 @@ func (e *Evaluator) computeMetric(ctx context.Context, metric string, windowMinu
 		}
 		var bAvg, bStd float64
 		if baseRows.Next() {
-			baseRows.Scan(&bAvg, &bStd)
+			if scanErr := baseRows.Scan(&bAvg, &bStd); scanErr != nil {
+				baseRows.Close()
+				return 0, scanErr
+			}
 		}
 		baseRows.Close()
 
@@ -256,7 +271,10 @@ func (e *Evaluator) computeMetric(ctx context.Context, metric string, windowMinu
 		}
 		var curr float64
 		if currRows.Next() {
-			currRows.Scan(&curr)
+			if scanErr := currRows.Scan(&curr); scanErr != nil {
+				currRows.Close()
+				return 0, scanErr
+			}
 		}
 		currRows.Close()
 
@@ -270,15 +288,19 @@ func (e *Evaluator) computeMetric(ctx context.Context, metric string, windowMinu
 func (e *Evaluator) inCooldown(ctx context.Context, ruleID string, cooldownMinutes uint32) bool {
 	rows, err := e.ch.Query(ctx,
 		fmt.Sprintf(`SELECT count() FROM alert_events
-		             WHERE rule_id = '%s'
-		               AND fired_at > now() - INTERVAL %d MINUTE`, ruleID, cooldownMinutes))
+		             WHERE rule_id = ?
+		               AND fired_at > now() - INTERVAL %d MINUTE`, cooldownMinutes),
+		ruleID)
 	if err != nil {
 		return false
 	}
 	defer rows.Close()
 	var cnt uint64
 	if rows.Next() {
-		rows.Scan(&cnt)
+		if err := rows.Scan(&cnt); err != nil {
+			slog.Warn("alert evaluator: scan cooldown count", "err", err)
+			return false
+		}
 	}
 	return cnt > 0
 }
