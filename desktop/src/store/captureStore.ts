@@ -157,7 +157,7 @@ function updateEndpointStats(
   if (existing) {
     existing.count++;
     if ((http.statusCode ?? 0) >= 400) existing.errorCount++;
-    if (http.latencyMs !== undefined) {
+    if (http.latencyMs != null) {
       existing.latencies.push(http.latencyMs);
       const sorted = [...existing.latencies].sort((a, b) => a - b);
       existing.p50 = percentile(sorted, 50);
@@ -168,7 +168,7 @@ function updateEndpointStats(
     return [...stats];
   }
 
-  const latencies = http.latencyMs !== undefined ? [http.latencyMs] : [];
+  const latencies = http.latencyMs != null ? [http.latencyMs] : [];
   const sorted = [...latencies].sort((a, b) => a - b);
   return [
     ...stats,

@@ -126,14 +126,14 @@ function buildTree(flow: FlowDto): TreeNode[] {
       });
     }
 
-    if (h.statusCode !== undefined) {
+    if (h.statusCode != null) {
       const isError = h.statusCode >= 400;
       httpChildren.push({
         label: "Response",
         error: isError,
         children: [
           { label: "Status",  value: `${h.statusCode} ${h.statusText ?? ""}`, error: isError },
-          ...(h.latencyMs !== undefined ? [{ label: "Latency", value: `${h.latencyMs} ms` }] : []),
+          ...(h.latencyMs != null ? [{ label: "Latency", value: `${h.latencyMs} ms` }] : []),
           {
             label: `Headers (${h.respHeaders.length})`,
             children: h.respHeaders.map(([k, v]) => ({ label: k, value: v })),
@@ -228,9 +228,9 @@ function buildTree(flow: FlowDto): TreeNode[] {
       children: [
         { label: "Type",  value: `${i.icmpType} (${i.typeStr})`, error: isUnreachable },
         { label: "Code",  value: String(i.icmpCode) },
-        ...(i.echoId  !== undefined ? [{ label: "Identifier", value: `0x${i.echoId.toString(16).padStart(4, "0")}` }] : []),
-        ...(i.echoSeq !== undefined ? [{ label: "Sequence",   value: String(i.echoSeq) }] : []),
-        ...(i.rttMs   !== undefined ? [{ label: "Round-trip time", value: `${i.rttMs.toFixed(2)} ms` }] : []),
+        ...(i.echoId  != null ? [{ label: "Identifier", value: `0x${i.echoId.toString(16).padStart(4, "0")}` }] : []),
+        ...(i.echoSeq != null ? [{ label: "Sequence",   value: String(i.echoSeq) }] : []),
+        ...(i.rttMs   != null ? [{ label: "Round-trip time", value: `${i.rttMs.toFixed(2)} ms` }] : []),
       ],
     });
   }

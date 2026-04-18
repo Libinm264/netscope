@@ -73,15 +73,23 @@ fn default_source() -> String {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HttpFlowDto {
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub method: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub host: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub status_code: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub status_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub latency_ms: Option<u64>,
     pub req_headers: Vec<[String; 2]>,
     pub resp_headers: Vec<[String; 2]>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub req_body_preview: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub resp_body_preview: Option<String>,
 }
 
@@ -92,6 +100,7 @@ pub struct DnsFlowDto {
     pub query_name: String,
     pub query_type: String,
     pub is_response: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub rcode: Option<String>,
     pub answers: Vec<DnsAnswerDto>,
 }
@@ -118,17 +127,25 @@ pub struct InterfaceDto {
 pub struct TlsFlowDto {
     pub record_type: String,
     pub version: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sni: Option<String>,
     pub cipher_suites: Vec<String>,
     pub has_weak_cipher: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub chosen_cipher: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub negotiated_version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cert_cn: Option<String>,
     pub cert_sans: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cert_expiry: Option<String>,
     pub cert_expired: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cert_issuer: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub alert_level: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub alert_description: Option<String>,
 }
 
@@ -138,8 +155,11 @@ pub struct IcmpFlowDto {
     pub icmp_type: u8,
     pub icmp_code: u8,
     pub type_str: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub echo_id: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub echo_seq: Option<u16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub rtt_ms: Option<f64>,
 }
 
