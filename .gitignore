@@ -43,3 +43,16 @@ Desktop.ini
 *.AppImage
 *.msi
 *.exe
+
+# ── Vite / Next.js build caches ──────────────────────────────────────────────
+desktop/.vite/
+hub/web/.next/
+hub/web/tsconfig.tsbuildinfo
+hub/web/next-env.d.ts
+
+# ── GeoIP tarballs and databases (binary — extract to ~/.netscope/ instead) ──
+*.tar.gz
+*.mmdb
+
+# ── Misc generated lockfiles ─────────────────────────────────────────────────
+hub/web/package-lock.json
