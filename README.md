@@ -73,6 +73,7 @@ It ships as three complementary pieces:
 |---|---|
 | **Live packet capture** | libpcap / Npcap with BPF filter support; promiscuous mode toggle |
 | **HTTP/1.1 decoding** | Full request/response pairing: method, path, host, status, headers, body preview, latency |
+| **HTTP/2 + gRPC decoding** | Binary frame walking, HPACK header decompression, stream pairing, gRPC service/method/status extraction |
 | **DNS decoding** | Query/response pairing with record types (A, AAAA, CNAME, MX, TXT, PTR), RCODE, TTLs |
 | **TLS handshake inspection** | ClientHello SNI, cipher suites, negotiated version, weak cipher detection, certificate CN/SANs/expiry, alert decoding |
 | **TCP reassembly** | Out-of-order segment handling, retransmission counting, stream fragmentation |
@@ -106,9 +107,11 @@ It ships as three complementary pieces:
 | **Real-time SSE stream** | `GET /api/v1/flows/stream` — fan-out to all connected dashboard clients |
 | **ClickHouse analytics** | Time-series queries, per-endpoint stats, p50/p95/p99 latency, DNS NXDOMAIN rates |
 | **GeoIP + threat enrichment** | Hub-side enrichment on ingest; data available to all downstream consumers |
-| **Alert rules** | Configurable thresholds (flows/min, HTTP error rate, DNS NXDOMAIN rate, anomaly σ); webhook delivery |
+| **Alert rules** | Configurable thresholds (flows/min, HTTP error rate, DNS NXDOMAIN rate, anomaly σ); webhook delivery with exponential back-off retry (1 s → 5 s → 30 s, 3 attempts) |
 | **TLS certificate fleet** | Certs extracted from ingested TLS flows; expiry dashboard across entire agent fleet |
 | **RBAC** | `admin` / `viewer` roles on API tokens; `RequireAdmin` middleware on write endpoints |
+| **Audit log** | Every authenticated API call recorded to `audit_events` (ClickHouse): token ID, role, method, path, status, latency, client IP. Queryable via `GET /api/v1/audit` (admin only). 90-day TTL. |
+| **Per-agent scoped tokens** | Enrolled agents receive a unique `viewer`-role token — never the global bootstrap admin key |
 | **Compliance reporting** | PCI-DSS, HIPAA, CIS benchmark report generation |
 | **OpenTelemetry export** | Forward flow metrics to any OTLP-compatible backend |
 | **Kubernetes** | Helm chart + manifests for deploying hub + ClickHouse + Kafka in-cluster |
@@ -189,11 +192,13 @@ etherparse — Ethernet / IP header slicing
                           ▼
                    SessionManager
                           │
-                          ├── TLS? ──► tls::parse_handshake() ──► TlsFlow
+                          ├── TLS? ──► tls::parse_handshake() ──────────► TlsFlow
+                          │
+                          ├── HTTP/2? ──► http2::H2Session ──► HPACK ──► Http2Flow / gRPCFlow
                           │
                           ├── HTTP? ──► http::parse_request/response ──► HttpFlow
                           │
-                          └── raw TCP ──────────────────────────────► TcpFlow
+                          └── raw TCP ──────────────────────────────────► TcpFlow
                                            │
                                            ▼
                                  proto::Flow (shared type)
@@ -236,7 +241,9 @@ Tracks active TCP connections keyed by `(src_ip, dst_ip, src_port, dst_port)`. B
 
 #### Protocol Parsers (`parser/src/`)
 
-- **HTTP** — `httparse` for request/response parsing. Extracts all headers, detects `Content-Length` / `Transfer-Encoding` for body boundaries, stores a 512-byte body preview, measures latency by matching request/response pairs in the same stream.
+- **HTTP/1.1** — `httparse` for request/response parsing. Extracts all headers, detects `Content-Length` / `Transfer-Encoding` for body boundaries, stores a 512-byte body preview, measures latency by matching request/response pairs in the same stream.
+- **HTTP/2** — Binary frame parser (`http2.rs`). Detects the 24-byte client connection preface, walks SETTINGS/DATA/HEADERS/CONTINUATION frames, decodes HPACK-compressed headers using the `hpack` crate, pairs client/server streams by stream ID, measures per-stream latency.
+- **gRPC** — Detected when `content-type: application/grpc*` is present in HTTP/2 HEADERS frame. Extracts service and method from `:path` (`/package.Service/Method`) and `grpc-status` from response trailers.
 - **DNS** — Manual wire-format parsing. Reads question section (QNAME, QTYPE), iterates resource records (A, AAAA, CNAME, MX, TXT, PTR), extracts RCODE from flags.
 - **TLS** — Handshake record parsing: ClientHello (SNI, cipher suites, extensions), ServerHello (chosen cipher, negotiated version), Certificate (CN, SANs, expiry, issuer), Alert (level + description). Detects weak cipher suites (RC4, 3DES, NULL, EXPORT, MD5).
 - **ICMP** — Type/code decoding with human-readable strings; echo request/reply RTT calculation.
@@ -284,7 +291,9 @@ Tracks active TCP connections keyed by `(src_ip, dst_ip, src_port, dst_port)`. B
 | `handlers/compliance.go` | PCI-DSS, HIPAA, CIS report generation |
 | `handlers/fleet.go` | Agent registration and heartbeat |
 | `alerting/evaluator.go` | Background rule evaluator; metric computation; webhook firing |
-| `middleware/auth.go` | `TokenAuth` — API key validation against ClickHouse `api_tokens`; `RequireAdmin` role gate |
+| `middleware/auth.go` | `TokenAuth` — API key validation against ClickHouse `api_tokens`; stores `role` + `token_id` in context; `RequireAdmin` role gate |
+| `middleware/audit.go` | `AuditLog` — fires after every authenticated handler; writes `audit_events` row asynchronously |
+| `handlers/audit.go` | `GET /audit` — queryable audit log (admin only); filter by token, status, limit |
 | `geoip/` | MaxMind GeoLite2 reader for hub-side enrichment |
 | `threat/` | Threat scorer for hub-side enrichment on ingest |
 | `kafka/` | Franz-go producer; `Publish` method with fallback to direct write |
@@ -311,6 +320,7 @@ netscope/
 │       ├── parser/src/
 │       │   ├── lib.rs
 │       │   ├── http.rs             # HTTP/1.1 request+response pairing
+│       │   ├── http2.rs            # HTTP/2 frame parser + HPACK + gRPC extraction
 │       │   ├── dns.rs              # DNS wire-format decoder
 │       │   ├── tls.rs              # TLS 1.2/1.3 handshake + cert parsing
 │       │   ├── icmp.rs
@@ -368,7 +378,7 @@ netscope/
     │   ├── config/
     │   ├── handlers/               # HTTP handlers (flows, analytics, certs, alerts…)
     │   ├── alerting/               # Rule evaluator + webhook delivery
-    │   ├── middleware/             # Auth (TokenAuth, RequireAdmin), rate limit
+    │   ├── middleware/             # Auth (TokenAuth, RequireAdmin), rate limit, audit log
     │   ├── models/                 # Go structs: Flow, AlertRule, TlsCert…
     │   ├── clickhouse/             # ClickHouse client + async batch writer
     │   ├── kafka/                  # Franz-go producer
@@ -394,6 +404,7 @@ netscope/
 | [pcap](https://crates.io/crates/pcap) | 2.x | libpcap / Npcap bindings |
 | [etherparse](https://crates.io/crates/etherparse) | 0.15 | Ethernet / IP / TCP / UDP header parsing |
 | [httparse](https://crates.io/crates/httparse) | 1.x | HTTP/1.1 request & response parsing |
+| [hpack](https://crates.io/crates/hpack) | 0.3 | HPACK header decompression for HTTP/2 |
 | [maxminddb](https://crates.io/crates/maxminddb) | 0.24 | MaxMind GeoLite2 binary database reader |
 | [ipnet](https://crates.io/crates/ipnet) | 2.x | CIDR range matching for threat scoring |
 | [reqwest](https://crates.io/crates/reqwest) | 0.12 | Async HTTP client for hub API |
@@ -800,7 +811,9 @@ All four bundles are uploaded as GitHub Release assets via `tauri-apps/tauri-act
 - [x] **Phase 7** — Alerting & Kubernetes: webhook alert rules, compliance reporting (PCI-DSS, HIPAA, CIS), Helm chart
 - [x] **Phase 8** — eBPF agent + enrichment: kernel-side eBPF capture, GeoIP + threat intelligence (hub and desktop)
 - [x] **Desktop upgrade** — GeoIP enrichment, threat badges, Hub Connect Mode, cert sidebar, HTTP analytics, service mini-map; full bug audit
-- [ ] **Next** — TBD
+- [x] **Production hardening** — API key proxy (no browser exposure), SSRF prevention, security headers, startup production gate, error sanitisation
+- [x] **Phase 9** — Production foundation: HTTP/2 + gRPC decoder, per-agent scoped tokens, audit log, alert delivery retry, SSE rate limit, hub URL fix
+- [ ] **Phase 10** — K8s metadata enrichment (pod/namespace/labels from eBPF), WASM plugin SDK for custom protocol parsers, OTel trace → packet drill-down
 
 ---
 

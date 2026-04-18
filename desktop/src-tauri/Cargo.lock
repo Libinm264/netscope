@@ -1628,12 +1628,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "hpack"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c68f61350ad23817dd207b035b5258d91ac5eaef69e96f906628aaed8854dda"
+dependencies = [
+ "log 0.3.9",
+]
+
+[[package]]
 name = "html5ever"
 version = "0.29.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3b7410cae13cbc75623c98ac4cbfd1f0bedddf3227afc24f370cf0f50a44a11c"
 dependencies = [
- "log",
+ "log 0.4.29",
  "mac",
  "markup5ever 0.14.1",
  "match_token",
@@ -1645,7 +1654,7 @@ version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1054432bae2f14e0061e33d23402fbaa67a921d319d56adc6bcf887ddad1cbc2"
 dependencies = [
- "log",
+ "log 0.4.29",
  "markup5ever 0.38.0",
 ]
 
@@ -1775,7 +1784,7 @@ dependencies = [
  "core-foundation-sys",
  "iana-time-zone-haiku",
  "js-sys",
- "log",
+ "log 0.4.29",
  "wasm-bindgen",
  "windows-core 0.62.2",
 ]
@@ -2010,7 +2019,7 @@ dependencies = [
  "cfg-if",
  "combine",
  "jni-sys 0.3.1",
- "log",
+ "log 0.4.29",
  "thiserror 1.0.69",
  "walkdir",
  "windows-sys 0.45.0",
@@ -2126,7 +2135,7 @@ dependencies = [
  "gtk",
  "gtk-sys",
  "libappindicator-sys",
- "log",
+ "log 0.4.29",
 ]
 
 [[package]]
@@ -2218,6 +2227,15 @@ dependencies = [
 
 [[package]]
 name = "log"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e19e8d5c34a3e0e2223db8e060f9e8264aeeb5c5fc64a4ee9965c062211c024b"
+dependencies = [
+ "log 0.4.29",
+]
+
+[[package]]
+name = "log"
 version = "0.4.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
@@ -2234,7 +2252,7 @@ version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c7a7213d12e1864c0f002f52c2923d4556935a43dec5e71355c2760e0f6e7a18"
 dependencies = [
- "log",
+ "log 0.4.29",
  "phf 0.11.3",
  "phf_codegen 0.11.3",
  "string_cache 0.8.9",
@@ -2248,7 +2266,7 @@ version = "0.38.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8983d30f2915feeaaab2d6babdd6bc7e9ed1a00b66b5e6d74df19aa9c0e91862"
 dependencies = [
- "log",
+ "log 0.4.29",
  "tendril 0.5.0",
  "web_atoms",
 ]
@@ -2286,7 +2304,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6087e5d8ea14861bb7c7f573afbc7be3798d3ef0fae87ec4fd9a4de9a127c3c"
 dependencies = [
  "ipnetwork",
- "log",
+ "log 0.4.29",
  "memchr",
  "serde",
 ]
@@ -2377,7 +2395,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "465500e14ea162429d264d44189adc38b199b62b1c21eea9f69e4b73cb03bbf2"
 dependencies = [
  "libc",
- "log",
+ "log 0.4.29",
  "openssl",
  "openssl-probe",
  "openssl-sys",
@@ -2395,7 +2413,7 @@ checksum = "c3f42e7bbe13d351b6bead8286a43aac9534b82bd3cc43e47037f012ebfd62d4"
 dependencies = [
  "bitflags 2.11.1",
  "jni-sys 0.3.1",
- "log",
+ "log 0.4.29",
  "ndk-sys",
  "num_enum",
  "raw-window-handle",
@@ -2802,6 +2820,7 @@ dependencies = [
  "capture",
  "chrono",
  "etherparse",
+ "hpack",
  "httparse",
  "proto",
  "thiserror 1.0.69",
@@ -3439,7 +3458,7 @@ dependencies = [
  "hyper-tls",
  "hyper-util",
  "js-sys",
- "log",
+ "log 0.4.29",
  "mime",
  "native-tls",
  "percent-encoding",
@@ -3476,7 +3495,7 @@ dependencies = [
  "hyper",
  "hyper-util",
  "js-sys",
- "log",
+ "log 0.4.29",
  "percent-encoding",
  "pin-project-lite",
  "serde",
@@ -3506,7 +3525,7 @@ dependencies = [
  "gobject-sys",
  "gtk-sys",
  "js-sys",
- "log",
+ "log 0.4.29",
  "objc2",
  "objc2-app-kit",
  "objc2-core-foundation",
@@ -3742,7 +3761,7 @@ dependencies = [
  "cssparser 0.29.6",
  "derive_more 0.99.20",
  "fxhash",
- "log",
+ "log 0.4.29",
  "phf 0.8.0",
  "phf_codegen 0.8.0",
  "precomputed-hash",
@@ -3759,7 +3778,7 @@ dependencies = [
  "bitflags 2.11.1",
  "cssparser 0.36.0",
  "derive_more 2.1.1",
- "log",
+ "log 0.4.29",
  "new_debug_unreachable",
  "phf 0.13.1",
  "phf_codegen 0.13.1",
@@ -4168,7 +4187,7 @@ dependencies = [
  "hashlink",
  "hex",
  "indexmap 2.14.0",
- "log",
+ "log 0.4.29",
  "memchr",
  "native-tls",
  "once_cell",
@@ -4250,7 +4269,7 @@ dependencies = [
  "hkdf",
  "hmac",
  "itoa",
- "log",
+ "log 0.4.29",
  "md-5",
  "memchr",
  "once_cell",
@@ -4291,7 +4310,7 @@ dependencies = [
  "hmac",
  "home",
  "itoa",
- "log",
+ "log 0.4.29",
  "md-5",
  "memchr",
  "once_cell",
@@ -4322,7 +4341,7 @@ dependencies = [
  "futures-intrusive",
  "futures-util",
  "libsqlite3-sys",
- "log",
+ "log 0.4.29",
  "percent-encoding",
  "serde",
  "sqlx-core",
@@ -4527,7 +4546,7 @@ dependencies = [
  "gtk",
  "jni",
  "libc",
- "log",
+ "log 0.4.29",
  "ndk",
  "ndk-context",
  "ndk-sys",
@@ -4582,7 +4601,7 @@ dependencies = [
  "http",
  "jni",
  "libc",
- "log",
+ "log 0.4.29",
  "mime",
  "muda",
  "objc2",
@@ -4700,7 +4719,7 @@ version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a1fa4150c95ae391946cc8b8f905ab14797427caba3a8a2f79628e956da91809"
 dependencies = [
- "log",
+ "log 0.4.29",
  "raw-window-handle",
  "rfd",
  "serde",
@@ -4721,7 +4740,7 @@ dependencies = [
  "anyhow",
  "dunce",
  "glob",
- "log",
+ "log 0.4.29",
  "objc2-foundation",
  "percent-encoding",
  "schemars 0.8.22",
@@ -4770,7 +4789,7 @@ dependencies = [
  "gtk",
  "http",
  "jni",
- "log",
+ "log 0.4.29",
  "objc2",
  "objc2-app-kit",
  "once_cell",
@@ -4804,7 +4823,7 @@ dependencies = [
  "infer",
  "json-patch",
  "kuchikiki",
- "log",
+ "log 0.4.29",
  "memchr",
  "phf 0.11.3",
  "proc-macro2",
@@ -5203,7 +5222,7 @@ version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100"
 dependencies = [
- "log",
+ "log 0.4.29",
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",
@@ -5236,7 +5255,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee855f1f400bd0e5c02d150ae5de3840039a3f54b025156404e34c23c03f47c3"
 dependencies = [
- "log",
+ "log 0.4.29",
  "once_cell",
  "tracing-core",
 ]
@@ -6407,7 +6426,7 @@ dependencies = [
  "anyhow",
  "bitflags 2.11.1",
  "indexmap 2.14.0",
- "log",
+ "log 0.4.29",
  "serde",
  "serde_derive",
  "serde_json",
@@ -6426,7 +6445,7 @@ dependencies = [
  "anyhow",
  "id-arena",
  "indexmap 2.14.0",
- "log",
+ "log 0.4.29",
  "semver",
  "serde",
  "serde_derive",

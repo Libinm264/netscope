@@ -1,5 +1,6 @@
 pub mod dns;
 pub mod http;
+pub mod http2;
 pub mod session;
 pub mod tls;
 

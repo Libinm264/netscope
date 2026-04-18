@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize};
 pub enum Protocol {
     Http,
     Https,
+    Http2,
+    Grpc,
     Dns,
     Tcp,
     Udp,
@@ -22,6 +24,8 @@ impl std::fmt::Display for Protocol {
         match self {
             Protocol::Http    => write!(f, "HTTP"),
             Protocol::Https   => write!(f, "HTTPS"),
+            Protocol::Http2   => write!(f, "HTTP/2"),
+            Protocol::Grpc    => write!(f, "gRPC"),
             Protocol::Dns     => write!(f, "DNS"),
             Protocol::Tcp     => write!(f, "TCP"),
             Protocol::Udp     => write!(f, "UDP"),
@@ -54,6 +58,7 @@ pub struct Flow {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FlowPayload {
     Http(HttpFlow),
+    Http2(Http2Flow),
     Dns(DnsFlow),
     Tls(TlsHandshake),
     Icmp(IcmpFlow),
@@ -87,6 +92,47 @@ pub struct HttpResponse {
     pub version: String,
     pub headers: Vec<(String, String)>,
     pub body_preview: Option<String>,
+    pub timestamp: DateTime<Utc>,
+}
+
+// ── HTTP/2 + gRPC ─────────────────────────────────────────────────────────────
+
+/// A decoded HTTP/2 exchange (one request stream + optional response stream).
+/// When `grpc_service` is Some, the frame carried a gRPC call.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Http2Flow {
+    /// HTTP/2 stream ID (odd = client-initiated).
+    pub stream_id: u32,
+    /// Decoded request pseudo-headers + headers from the HEADERS frame.
+    pub request: Option<Http2Request>,
+    /// Decoded response pseudo-headers from the server HEADERS frame.
+    pub response: Option<Http2Response>,
+    /// Round-trip latency in milliseconds (set when both sides seen).
+    pub latency_ms: Option<u64>,
+    /// gRPC service extracted from `:path` (`/package.Service/Method` → `package.Service`).
+    pub grpc_service: Option<String>,
+    /// gRPC method extracted from `:path`.
+    pub grpc_method: Option<String>,
+    /// gRPC status code from the `grpc-status` trailer (0 = OK).
+    pub grpc_status: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Http2Request {
+    pub method: String,
+    pub path: String,
+    pub authority: String,
+    pub scheme: String,
+    /// All decoded headers (pseudo + regular), in order.
+    pub headers: Vec<(String, String)>,
+    pub timestamp: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Http2Response {
+    pub status_code: u16,
+    /// All decoded headers (pseudo + regular), in order.
+    pub headers: Vec<(String, String)>,
     pub timestamp: DateTime<Utc>,
 }
 

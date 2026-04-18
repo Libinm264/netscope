@@ -218,6 +218,9 @@ func BuildMessage(rule models.AlertRule, value float64) string {
 
 // ── internal helpers ──────────────────────────────────────────────────────────
 
+// retryDelays defines the wait intervals between delivery attempts (1 s, 5 s, 30 s).
+var retryDelays = []time.Duration{1 * time.Second, 5 * time.Second, 30 * time.Second}
+
 func postJSON(ctx context.Context, url string, body any, extraHeaders map[string]string) bool {
 	// Defence-in-depth: re-validate the URL at delivery time to catch DNS-rebinding
 	// attacks (the URL may have been valid when stored but re-resolve to an
@@ -233,10 +236,42 @@ func postJSON(ctx context.Context, url string, body any, extraHeaders map[string
 		return false
 	}
 
+	// Attempt delivery up to 3 times with exponential back-off (1 s → 5 s → 30 s).
+	maxAttempts := len(retryDelays) + 1
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		ok, fatal := tryPost(ctx, url, data, extraHeaders)
+		if ok {
+			if attempt > 1 {
+				slog.Info("alert delivery: succeeded after retry", "url", url, "attempt", attempt)
+			}
+			return true
+		}
+		if fatal {
+			// Non-retryable error (e.g. request build failure).
+			return false
+		}
+		if attempt < maxAttempts {
+			delay := retryDelays[attempt-1]
+			slog.Warn("alert delivery: retrying", "url", url, "attempt", attempt, "next_in", delay)
+			select {
+			case <-ctx.Done():
+				slog.Warn("alert delivery: context cancelled during retry", "url", url)
+				return false
+			case <-time.After(delay):
+			}
+		}
+	}
+	slog.Error("alert delivery: all attempts failed", "url", url, "attempts", maxAttempts)
+	return false
+}
+
+// tryPost makes a single HTTP POST attempt.
+// Returns (success bool, fatal bool) — fatal=true means do not retry.
+func tryPost(ctx context.Context, url string, data []byte, extraHeaders map[string]string) (bool, bool) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(data))
 	if err != nil {
 		slog.Error("alert delivery: build request", "url", url, "err", err)
-		return false
+		return false, true // can't build request — fatal
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "NetScope-Hub/0.1")
@@ -247,13 +282,18 @@ func postJSON(ctx context.Context, url string, body any, extraHeaders map[string
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		slog.Warn("alert delivery: request failed", "url", url, "err", err)
-		return false
+		return false, false
 	}
 	defer resp.Body.Close()
 
-	ok := resp.StatusCode >= 200 && resp.StatusCode < 300
-	if !ok {
-		slog.Warn("alert delivery: non-2xx", "url", url, "status", resp.StatusCode)
+	// 429 or 5xx → retry; 4xx (except 429) → permanent failure
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return true, false
 	}
-	return ok
+	if resp.StatusCode != 429 && resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		slog.Warn("alert delivery: non-retryable error", "url", url, "status", resp.StatusCode)
+		return false, true
+	}
+	slog.Warn("alert delivery: non-2xx (will retry)", "url", url, "status", resp.StatusCode)
+	return false, false
 }

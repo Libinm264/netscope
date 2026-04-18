@@ -11,6 +11,7 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 chrono = { workspace = true }
 httparse = "1"
+hpack = "0.3"
 etherparse = "0.15"
 x509-parser = { version = "0.15", default-features = false }
 uuid = { version = "1", features = ["v4"] }

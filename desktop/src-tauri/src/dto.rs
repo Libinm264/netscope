@@ -3,6 +3,43 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+// ── HTTP/2 + gRPC DTOs ────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Http2RequestDto {
+    pub method: String,
+    pub path: String,
+    pub authority: String,
+    pub scheme: String,
+    pub headers: Vec<[String; 2]>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Http2ResponseDto {
+    pub status_code: u16,
+    pub headers: Vec<[String; 2]>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Http2FlowDto {
+    pub stream_id: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub request: Option<Http2RequestDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response: Option<Http2ResponseDto>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub latency_ms: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grpc_service: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grpc_method: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub grpc_status: Option<u32>,
+}
+
 // ── GeoIP ─────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -43,6 +80,8 @@ pub struct FlowDto {
     /// One-line summary for the Info column
     pub info: String,
     pub http: Option<HttpFlowDto>,
+    #[serde(default)]
+    pub http2: Option<Http2FlowDto>,
     pub dns: Option<DnsFlowDto>,
     pub tls: Option<TlsFlowDto>,
     pub icmp: Option<IcmpFlowDto>,
@@ -197,6 +236,7 @@ pub fn flow_to_dto(flow: &proto::Flow) -> FlowDto {
     let time_str = flow.timestamp.format("%H:%M:%S%.3f").to_string();
 
     let mut http: Option<HttpFlowDto> = None;
+    let mut http2_dto: Option<Http2FlowDto> = None;
     let mut dns: Option<DnsFlowDto> = None;
     let mut tls: Option<TlsFlowDto> = None;
     let mut icmp_dto: Option<IcmpFlowDto> = None;
@@ -284,6 +324,60 @@ pub fn flow_to_dto(flow: &proto::Flow) -> FlowDto {
                     .response
                     .as_ref()
                     .and_then(|r| r.body_preview.clone()),
+            });
+            (proto_str, info)
+        }
+
+        Some(FlowPayload::Http2(h2)) => {
+            let is_grpc = h2.grpc_service.is_some();
+            let proto_str = if is_grpc { "gRPC".to_string() } else { "HTTP/2".to_string() };
+
+            let info = if is_grpc {
+                format!(
+                    "{}/{}{}",
+                    h2.grpc_service.as_deref().unwrap_or("?"),
+                    h2.grpc_method.as_deref().unwrap_or("?"),
+                    h2.grpc_status
+                        .map(|s| if s == 0 { " OK".to_string() } else { format!(" ERR({})", s) })
+                        .unwrap_or_default()
+                )
+            } else if let Some(req) = &h2.request {
+                format!(
+                    "{} {}{}",
+                    req.method,
+                    req.path,
+                    h2.response
+                        .as_ref()
+                        .map(|r| format!(" → {}", r.status_code))
+                        .unwrap_or_default()
+                )
+            } else if let Some(resp) = &h2.response {
+                format!("HTTP/2 {} (stream {})", resp.status_code, h2.stream_id)
+            } else {
+                format!("HTTP/2 stream {}", h2.stream_id)
+            };
+
+            let headers_to_arr = |v: &[(String, String)]| -> Vec<[String; 2]> {
+                v.iter().map(|(k, val)| [k.clone(), val.clone()]).collect()
+            };
+
+            http2_dto = Some(Http2FlowDto {
+                stream_id: h2.stream_id,
+                request: h2.request.as_ref().map(|r| Http2RequestDto {
+                    method: r.method.clone(),
+                    path: r.path.clone(),
+                    authority: r.authority.clone(),
+                    scheme: r.scheme.clone(),
+                    headers: headers_to_arr(&r.headers),
+                }),
+                response: h2.response.as_ref().map(|r| Http2ResponseDto {
+                    status_code: r.status_code,
+                    headers: headers_to_arr(&r.headers),
+                }),
+                latency_ms: h2.latency_ms,
+                grpc_service: h2.grpc_service.clone(),
+                grpc_method: h2.grpc_method.clone(),
+                grpc_status: h2.grpc_status,
             });
             (proto_str, info)
         }
@@ -431,6 +525,7 @@ pub fn flow_to_dto(flow: &proto::Flow) -> FlowDto {
         length: flow.bytes_in + flow.bytes_out,
         info,
         http,
+        http2: http2_dto,
         dns,
         tls,
         icmp: icmp_dto,

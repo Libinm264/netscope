@@ -59,6 +59,7 @@ func TokenAuth(bootstrapKey string, ch *chclient.Client) fiber.Handler {
 						}()
 
 						c.Locals("role", role)
+						c.Locals("token_id", tokenID)
 						return c.Next()
 					}
 				} else {

@@ -157,11 +157,30 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 		 SELECT id, name, token, created_at, expires_at, used_count + 1, revoked
 		 FROM enrollment_tokens FINAL WHERE id = ?`, tokenID)
 
-	slog.Info("agent enrolled", "agent_id", agentID, "hostname", req.Hostname)
+	// Issue a scoped viewer token for this agent — never hand out the global admin key.
+	agentTokenID := uuid.New().String()
+	agentToken := uuid.New().String()
+	tokenNow := time.Now().UTC()
+	if err := h.CH.Exec(c.Context(),
+		`INSERT INTO api_tokens (id, name, role, token, created_at, last_used, revoked)
+		 VALUES (?, ?, 'viewer', ?, ?, ?, 0)`,
+		agentTokenID,
+		fmt.Sprintf("agent:%s", req.Hostname),
+		agentToken,
+		tokenNow,
+		tokenNow,
+	); err != nil {
+		return util.InternalError(c, err)
+	}
+
+	// Build hub URL from the incoming request (works behind a proxy / k8s service).
+	hubURL := fmt.Sprintf("%s://%s", c.Protocol(), c.Hostname())
+
+	slog.Info("agent enrolled", "agent_id", agentID, "hostname", req.Hostname, "token_id", agentTokenID)
 	return c.Status(201).JSON(models.EnrollResponse{
 		AgentID: agentID,
-		APIKey:  h.Cfg.APIKey,
-		HubURL:  fmt.Sprintf("http://localhost:%s", h.Cfg.Port),
+		APIKey:  agentToken,
+		HubURL:  hubURL,
 	})
 }
 

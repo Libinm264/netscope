@@ -11,6 +11,29 @@ export interface HttpFlowDto {
   respBodyPreview?: string;
 }
 
+export interface Http2RequestDto {
+  method: string;
+  path: string;
+  authority: string;
+  scheme: string;
+  headers: [string, string][];
+}
+
+export interface Http2ResponseDto {
+  statusCode: number;
+  headers: [string, string][];
+}
+
+export interface Http2FlowDto {
+  streamId: number;
+  request?: Http2RequestDto;
+  response?: Http2ResponseDto;
+  latencyMs?: number;
+  grpcService?: string;
+  grpcMethod?: string;
+  grpcStatus?: number;   // 0 = OK, non-zero = error
+}
+
 export interface DnsAnswerDto {
   name: string;
   recordType: string;
@@ -92,6 +115,7 @@ export interface FlowDto {
   length: number;
   info: string;
   http?: HttpFlowDto;
+  http2?: Http2FlowDto;
   dns?: DnsFlowDto;
   tls?: TlsFlowDto;
   icmp?: IcmpFlowDto;

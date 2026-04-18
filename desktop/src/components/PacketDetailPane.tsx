@@ -84,7 +84,8 @@ function buildTree(flow: FlowDto): TreeNode[] {
   // Transport layer
   if (flow.arp == null && flow.icmp == null) {
     const transportProto =
-      flow.protocol.startsWith("HTTP") || flow.protocol === "TLS"
+      flow.protocol.startsWith("HTTP") || flow.protocol === "TLS" ||
+      flow.protocol === "HTTP/2" || flow.protocol === "gRPC"
         ? "TCP"
         : flow.protocol === "DNS"
         ? "UDP"
@@ -102,6 +103,70 @@ function buildTree(flow: FlowDto): TreeNode[] {
           ? [{ label: "Out-of-order segments", value: String(flow.tcpStats.outOfOrder), warn: true }]
           : []),
       ],
+    });
+  }
+
+  // ── HTTP/2 + gRPC ─────────────────────────────────────────────────────────
+  if (flow.http2) {
+    const h2 = flow.http2;
+    const isGrpc = !!h2.grpcService;
+    const h2Children: TreeNode[] = [
+      { label: "Stream ID", value: String(h2.streamId) },
+    ];
+
+    if (isGrpc) {
+      const grpcOk = h2.grpcStatus === 0 || h2.grpcStatus == null;
+      h2Children.push({
+        label: "gRPC call",
+        error: !grpcOk,
+        children: [
+          { label: "Service", value: h2.grpcService ?? "?" },
+          { label: "Method",  value: h2.grpcMethod  ?? "?" },
+          ...(h2.grpcStatus != null
+            ? [{ label: "Status", value: h2.grpcStatus === 0 ? "0 (OK)" : `${h2.grpcStatus} (Error)`, error: !grpcOk }]
+            : []),
+          ...(h2.latencyMs != null ? [{ label: "Latency", value: `${h2.latencyMs} ms` }] : []),
+        ],
+      });
+    }
+
+    if (h2.request) {
+      const req = h2.request;
+      h2Children.push({
+        label: "Request",
+        children: [
+          { label: "Method",    value: req.method },
+          { label: "Path",      value: req.path },
+          ...(req.authority ? [{ label: "Authority", value: req.authority }] : []),
+          ...(req.scheme   ? [{ label: "Scheme",    value: req.scheme }]   : []),
+          {
+            label: `Headers (${req.headers.length})`,
+            children: req.headers.map(([k, v]) => ({ label: k, value: v })),
+          },
+        ],
+      });
+    }
+
+    if (h2.response) {
+      const resp = h2.response;
+      const isError = resp.statusCode >= 400;
+      h2Children.push({
+        label: "Response",
+        error: isError,
+        children: [
+          { label: "Status", value: String(resp.statusCode), error: isError },
+          ...(!isGrpc && h2.latencyMs != null ? [{ label: "Latency", value: `${h2.latencyMs} ms` }] : []),
+          {
+            label: `Headers (${resp.headers.length})`,
+            children: resp.headers.map(([k, v]) => ({ label: k, value: v })),
+          },
+        ],
+      });
+    }
+
+    nodes.push({
+      label: isGrpc ? "gRPC / HTTP/2" : "Hypertext Transfer Protocol 2",
+      children: h2Children,
     });
   }
 

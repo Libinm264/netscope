@@ -188,12 +188,13 @@ func main() {
 	})
 
 	// Protected API routes — TokenAuth checks bootstrap key OR api_tokens table
-	auth := middleware.TokenAuth(cfg.APIKey, chClient)
+	auth     := middleware.TokenAuth(cfg.APIKey, chClient)
+	auditLog := middleware.AuditLog(chClient)
 	// Ingest gets a generous limit (agents post many flows); general API is tighter.
 	ingestLimit := middleware.RateLimit(50_000, time.Minute)
 	apiLimit    := middleware.RateLimit(2_000, time.Minute)
 
-	v1 := app.Group("/api/v1", auth)
+	v1 := app.Group("/api/v1", auth, auditLog)
 
 	flowH      := &handlers.FlowHandler{CH: chClient, Writer: chWriter, Producer: producer, CertsCH: chClient, GeoIP: geoReader, Threat: threatScorer}
 	agentH     := &handlers.AgentHandler{CH: chClient}
@@ -206,6 +207,7 @@ func main() {
 	certH      := &handlers.CertHandler{CH: chClient}
 	tokenH     := &handlers.TokenHandler{CH: chClient}
 	complianceH := &handlers.ComplianceHandler{CH: chClient}
+	auditH     := &handlers.AuditHandler{CH: chClient}
 
 	// ── Public (no auth) ──────────────────────────────────────────────────────
 	app.Post("/api/v1/agents/enroll", apiLimit, enrollH.Enroll)
@@ -213,7 +215,7 @@ func main() {
 
 	v1.Post("/ingest",                    ingestLimit,                         flowH.Ingest)
 	v1.Get("/flows",                      apiLimit,                            flowH.Query)
-	v1.Get("/flows/stream",                                                    flowH.Stream)
+	v1.Get("/flows/stream",               apiLimit,                            flowH.Stream)
 	v1.Get("/stats",                      apiLimit,                            statsH.Stats)
 	v1.Get("/agents",                     apiLimit,                            agentH.List)
 	v1.Post("/agents/register",           apiLimit, middleware.RequireAdmin(), agentH.Register)
@@ -242,6 +244,8 @@ func main() {
 	v1.Get("/compliance/external",        apiLimit, complianceH.ExternalConnections)
 	// Phase 8 — geo enrichment
 	v1.Get("/compliance/geo",             apiLimit, complianceH.GeoSummary)
+	// Phase 9 — audit log
+	v1.Get("/audit",                      apiLimit, middleware.RequireAdmin(), auditH.List)
 
 	// ── Graceful shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
@@ -383,6 +387,22 @@ func runMigrations(ch *clickhouse.Client) error {
 			revoked    UInt8 DEFAULT 0
 		) ENGINE = ReplacingMergeTree(last_used)
 		ORDER BY id`,
+
+		// Phase 9: audit log — every authenticated API call
+		`CREATE TABLE IF NOT EXISTS audit_events (
+			id         String,
+			token_id   String            DEFAULT '',
+			role       LowCardinality(String) DEFAULT '',
+			method     LowCardinality(String),
+			path       String,
+			status     UInt16,
+			client_ip  String            DEFAULT '',
+			latency_ms UInt32            DEFAULT 0,
+			ts         DateTime64(3, 'UTC') DEFAULT now64()
+		) ENGINE = MergeTree()
+		PARTITION BY toYYYYMM(ts)
+		ORDER BY (ts, token_id)
+		TTL ts + INTERVAL 90 DAY`,
 	}
 
 	for _, q := range ddl {
