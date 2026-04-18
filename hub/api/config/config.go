@@ -3,6 +3,7 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/joho/godotenv"
@@ -38,6 +39,18 @@ type Config struct {
 	// on requests to the /metrics endpoint.  Leave empty to allow unauthenticated
 	// scraping (suitable only when Prometheus is on a private network).
 	MetricsToken string
+
+	// SMTP email delivery for alert notifications.
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
+
+	// AppURL is the public base URL of the hub (used in email alert links).
+	AppURL string
+	// OrgName is a display name for the organisation (used in alert emails/UI).
+	OrgName string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -59,6 +72,13 @@ func Load() *Config {
 		AbuseIPDBKey:    getEnv("ABUSEIPDB_KEY", ""),
 		ThreatBlocklist: getEnv("THREAT_BLOCKLIST", ""),
 		MetricsToken:    getEnv("METRICS_TOKEN", ""),
+		SMTPHost:        getEnv("SMTP_HOST", ""),
+		SMTPPort:        getEnvInt("SMTP_PORT", 587),
+		SMTPUser:        getEnv("SMTP_USER", ""),
+		SMTPPassword:    getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:        getEnv("SMTP_FROM", "noreply@netscope.local"),
+		AppURL:          getEnv("APP_URL", "http://localhost:8080"),
+		OrgName:         getEnv("ORG_NAME", "NetScope"),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")
@@ -98,6 +118,15 @@ func Load() *Config {
 func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func getEnvInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		if i, err := strconv.Atoi(v); err == nil {
+			return i
+		}
 	}
 	return fallback
 }

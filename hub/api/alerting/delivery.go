@@ -4,6 +4,9 @@ package alerting
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -18,7 +21,10 @@ var httpClient = &http.Client{Timeout: 10 * time.Second}
 
 // FireAlert dispatches an alert to the correct channel based on rule.IntegrationType.
 // Falls back to generic webhook when the type is empty or unrecognised.
-func FireAlert(ctx context.Context, rule models.AlertRule, payload models.WebhookPayload) bool {
+func FireAlert(ctx context.Context, rule models.AlertRule, payload models.WebhookPayload, smtpCfg SMTPConfig) bool {
+	if rule.IntegrationType == "email" {
+		return FireEmail(smtpCfg, rule.EmailTo, payload)
+	}
 	if rule.WebhookURL == "" {
 		return false
 	}
@@ -31,16 +37,26 @@ func FireAlert(ctx context.Context, rule models.AlertRule, payload models.Webhoo
 		return FireOpsGenie(ctx, rule.WebhookURL, payload)
 	case "teams":
 		return FireTeams(ctx, rule.WebhookURL, payload)
-	default:
-		return FireWebhook(ctx, rule.WebhookURL, payload)
+	default: // "webhook" or empty
+		return FireWebhook(ctx, rule.WebhookURL, payload, rule.WebhookSecret)
 	}
 }
 
 // ── Generic webhook ───────────────────────────────────────────────────────────
 
 // FireWebhook posts the raw WebhookPayload JSON to any HTTP endpoint.
-func FireWebhook(ctx context.Context, url string, payload models.WebhookPayload) bool {
-	return postJSON(ctx, url, payload, nil)
+// If webhookSecret is non-empty, the request is signed with HMAC-SHA256 and the
+// signature sent in the X-NetScope-Signature header.
+func FireWebhook(ctx context.Context, url string, payload models.WebhookPayload, webhookSecret string) bool {
+	headers := map[string]string{}
+	if webhookSecret != "" {
+		data, _ := json.Marshal(payload)
+		mac := hmac.New(sha256.New, []byte(webhookSecret))
+		mac.Write(data)
+		sig := hex.EncodeToString(mac.Sum(nil))
+		headers["X-NetScope-Signature"] = "sha256=" + sig
+	}
+	return postJSON(ctx, url, payload, headers)
 }
 
 // ── Slack ─────────────────────────────────────────────────────────────────────

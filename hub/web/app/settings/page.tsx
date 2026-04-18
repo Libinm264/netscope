@@ -6,8 +6,9 @@ import { clsx } from "clsx";
 import {
   fetchAPITokens, createAPIToken, revokeAPIToken,
   fetchEnrollmentTokens, createEnrollmentToken, revokeEnrollmentToken,
+  fetchAuditEvents,
 } from "@/lib/api";
-import type { APIToken, EnrollmentToken } from "@/lib/api";
+import type { APIToken, EnrollmentToken, AuditEvent } from "@/lib/api";
 
 // ── Copy button ────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,67 @@ function Section({ title, subtitle, children }: {
         <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
       </div>
       <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+// ── Audit Log Section ──────────────────────────────────────────────────────────
+
+function AuditLogSection() {
+  const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchAuditEvents({ limit: 100 })
+      .then((r) => setEvents(r.events ?? []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-16">
+      <RefreshCw size={16} className="animate-spin text-slate-600" />
+    </div>
+  );
+
+  if (events.length === 0) return (
+    <p className="text-xs text-slate-600 text-center py-6">No audit events yet</p>
+  );
+
+  const statusColor = (s: number) =>
+    s >= 500 ? "text-red-400" :
+    s >= 400 ? "text-amber-400" :
+    s >= 200 ? "text-emerald-400" : "text-slate-400";
+
+  return (
+    <div className="overflow-x-auto max-h-72 overflow-y-auto">
+      <table className="w-full text-left">
+        <thead className="sticky top-0 bg-[#0d0d1a]">
+          <tr>
+            {["Time", "Method", "Path", "Status", "Role", "IP", "Latency"].map((h) => (
+              <th key={h} className="px-3 py-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((e) => (
+            <tr key={e.id} className="border-t border-white/[0.04] hover:bg-white/[0.02]">
+              <td className="px-3 py-2 text-[10px] text-slate-500 whitespace-nowrap font-mono">
+                {new Date(e.ts).toLocaleTimeString()}
+              </td>
+              <td className="px-3 py-2 text-[10px] font-mono text-indigo-400">{e.method}</td>
+              <td className="px-3 py-2 text-[10px] text-slate-300 font-mono max-w-[200px] truncate">{e.path}</td>
+              <td className={`px-3 py-2 text-[10px] font-mono font-bold ${statusColor(e.status)}`}>{e.status}</td>
+              <td className="px-3 py-2 text-[10px] text-slate-500">{e.role}</td>
+              <td className="px-3 py-2 text-[10px] text-slate-500 font-mono">{e.client_ip}</td>
+              <td className="px-3 py-2 text-[10px] text-slate-500 text-right">{e.latency_ms}ms</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -314,6 +376,14 @@ export default function SettingsPage() {
             ))}
           </div>
         )}
+      </Section>
+
+      {/* Audit log */}
+      <Section
+        title="Audit Log"
+        subtitle="Every authenticated API request — last 100 events."
+      >
+        <AuditLogSection />
       </Section>
     </div>
   );

@@ -13,11 +13,16 @@ type AlertRule struct {
 	Condition       string    `json:"condition"`
 	Threshold       float64   `json:"threshold"`
 	WindowMinutes   uint32    `json:"window_minutes"`
-	// IntegrationType: "webhook" | "slack" | "pagerduty" | "opsgenie" | "teams"
+	// IntegrationType: "webhook" | "slack" | "pagerduty" | "opsgenie" | "teams" | "email"
 	IntegrationType string    `json:"integration_type"`
 	// WebhookURL holds the delivery target — a URL for webhook/slack/teams,
 	// or an API/routing key for pagerduty/opsgenie.
 	WebhookURL      string    `json:"webhook_url"`
+	// WebhookSecret is used to sign webhook deliveries with HMAC-SHA256.
+	// Returned only at creation time; stored hashed.
+	WebhookSecret   string    `json:"webhook_secret,omitempty"`
+	// EmailTo is the recipient for "email" integration type.
+	EmailTo         string    `json:"email_to,omitempty"`
 	Enabled         bool      `json:"enabled"`
 	CooldownMinutes uint32    `json:"cooldown_minutes"`
 	CreatedAt       time.Time `json:"created_at"`
@@ -44,6 +49,8 @@ type CreateAlertRuleRequest struct {
 	WindowMinutes   uint32  `json:"window_minutes"`
 	IntegrationType string  `json:"integration_type"`
 	WebhookURL      string  `json:"webhook_url"`
+	WebhookSecret   string  `json:"webhook_secret,omitempty"`
+	EmailTo         string  `json:"email_to,omitempty"`
 	CooldownMinutes uint32  `json:"cooldown_minutes"`
 }
 

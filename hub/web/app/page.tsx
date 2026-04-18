@@ -6,6 +6,7 @@ import Link from "next/link";
 import { StatsCards } from "@/components/StatsCards";
 import { LiveFeed } from "@/components/LiveFeed";
 import { ProtocolChart } from "@/components/ProtocolChart";
+import { FlowsChart } from "@/components/FlowsChart";
 import { fetchStats } from "@/lib/api";
 
 // ── Onboarding guide shown when no flows have been captured yet ───────────────
@@ -131,7 +132,8 @@ export default function DashboardPage() {
       <h1 className="text-xl font-semibold text-white">Dashboard</h1>
       <StatsCards />
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        <div className="xl:col-span-2">
+        <div className="xl:col-span-2 space-y-6">
+          <FlowsChart />
           <LiveFeed />
         </div>
         <div>

@@ -84,3 +84,36 @@ func (h *AgentHandler) Register(c *fiber.Ctx) error {
 		"registered_at": now,
 	})
 }
+
+// Heartbeat handles POST /api/v1/agents/heartbeat.
+// Called periodically by agents to update their last_seen timestamp.
+func (h *AgentHandler) Heartbeat(c *fiber.Ctx) error {
+	var req struct {
+		AgentID   string `json:"agent_id"`
+		Hostname  string `json:"hostname"`
+		Version   string `json:"version"`
+		Interface string `json:"interface"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid body: " + err.Error()})
+	}
+	if req.AgentID == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "agent_id is required"})
+	}
+	if h.CH == nil {
+		return c.Status(503).JSON(fiber.Map{"error": "ClickHouse not available"})
+	}
+
+	now := time.Now().UTC()
+	// ReplacingMergeTree on last_seen: inserting a new row with the same agent_id
+	// effectively updates last_seen after the next OPTIMIZE.
+	if err := h.CH.Exec(c.Context(),
+		`INSERT INTO agents (agent_id, hostname, version, interface, last_seen, registered_at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		req.AgentID, req.Hostname, req.Version, req.Interface, now, now,
+	); err != nil {
+		return util.InternalError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"ok": true, "ts": now})
+}

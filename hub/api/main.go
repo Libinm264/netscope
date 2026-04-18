@@ -22,6 +22,7 @@ import (
 	nsmetrics "github.com/netscope/hub-api/metrics"
 	"github.com/netscope/hub-api/middleware"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/pubsub"
 	"github.com/netscope/hub-api/threat"
 )
 
@@ -93,11 +94,17 @@ func main() {
 	consCtx, consCancel := context.WithCancel(context.Background())
 	defer consCancel()
 
+	// flowH is declared here so the Kafka goroutine can reference it.
+	// It is fully initialised below, before any requests are served.
+	var flowH *handlers.FlowHandler
+
 	if consumer != nil && chWriter != nil {
 		go func() {
 			if err := consumer.Consume(consCtx, func(flow models.Flow) {
 				chWriter.Write(flow)
-				handlers.BroadcastFlow(flow)
+				if flowH != nil {
+					flowH.BroadcastFlow(flow)
+				}
 			}); err != nil && err != context.Canceled {
 				slog.Error("Kafka consumer exited", "err", err)
 			}
@@ -118,10 +125,22 @@ func main() {
 		}
 	}
 
+	// ── SSE broadcast hub ─────────────────────────────────────────────────────
+	flowHub := pubsub.NewInMemoryHub()
+
 	// ── Alert evaluator ───────────────────────────────────────────────────────
 	var evaluator *alerting.Evaluator
 	if chClient != nil {
 		evaluator = alerting.NewEvaluator(chClient, 60*time.Second)
+		evaluator.SMTP = alerting.SMTPConfig{
+			Host:     cfg.SMTPHost,
+			Port:     cfg.SMTPPort,
+			User:     cfg.SMTPUser,
+			Password: cfg.SMTPPassword,
+			From:     cfg.SMTPFrom,
+			OrgName:  cfg.OrgName,
+			AppURL:   cfg.AppURL,
+		}
 		evaluator.Start()
 		defer evaluator.Stop()
 		slog.Info("alert evaluator started")
@@ -196,8 +215,9 @@ func main() {
 
 	v1 := app.Group("/api/v1", auth, auditLog)
 
-	flowH      := &handlers.FlowHandler{CH: chClient, Writer: chWriter, Producer: producer, CertsCH: chClient, GeoIP: geoReader, Threat: threatScorer}
+	flowH = &handlers.FlowHandler{CH: chClient, Writer: chWriter, Producer: producer, CertsCH: chClient, GeoIP: geoReader, Threat: threatScorer, Hub: flowHub}
 	agentH     := &handlers.AgentHandler{CH: chClient}
+	metricsH   := &handlers.MetricsHandler{CH: chClient}
 	statsH     := &handlers.StatsHandler{CH: chClient}
 	alertH     := &handlers.AlertHandler{CH: chClient}
 	servicesH  := &handlers.ServicesHandler{CH: chClient}
@@ -219,6 +239,7 @@ func main() {
 	v1.Get("/stats",                      apiLimit,                            statsH.Stats)
 	v1.Get("/agents",                     apiLimit,                            agentH.List)
 	v1.Post("/agents/register",           apiLimit, middleware.RequireAdmin(), agentH.Register)
+	v1.Post("/agents/heartbeat",          apiLimit,                            agentH.Heartbeat)
 	v1.Get("/alerts",                     apiLimit,                            alertH.ListRules)
 	v1.Post("/alerts",                    apiLimit, middleware.RequireAdmin(), alertH.CreateRule)
 	v1.Patch("/alerts/:id",               apiLimit, middleware.RequireAdmin(), alertH.UpdateRule)
@@ -246,6 +267,9 @@ func main() {
 	v1.Get("/compliance/geo",             apiLimit, complianceH.GeoSummary)
 	// Phase 9 — audit log
 	v1.Get("/audit",                      apiLimit, middleware.RequireAdmin(), auditH.List)
+	// Phase 10 — metrics timeseries
+	v1.Get("/metrics/timeseries",         apiLimit,                            metricsH.Timeseries)
+	v1.Get("/metrics/protocols",          apiLimit,                            metricsH.ProtocolBreakdown)
 
 	// ── Graceful shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
@@ -387,6 +411,10 @@ func runMigrations(ch *clickhouse.Client) error {
 			revoked    UInt8 DEFAULT 0
 		) ENGINE = ReplacingMergeTree(last_used)
 		ORDER BY id`,
+
+		// Phase 10: new alert_rules columns (idempotent)
+		`ALTER TABLE alert_rules ADD COLUMN IF NOT EXISTS webhook_secret String DEFAULT ''`,
+		`ALTER TABLE alert_rules ADD COLUMN IF NOT EXISTS email_to String DEFAULT ''`,
 
 		// Phase 9: audit log — every authenticated API call
 		`CREATE TABLE IF NOT EXISTS audit_events (

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchFlows, type Flow } from "@/lib/api";
 import { FlowTable } from "@/components/FlowTable";
-import { RefreshCw, Search, Clock, X } from "lucide-react";
+import { RefreshCw, Search, Clock, X, Download } from "lucide-react";
 
 const PAGE_SIZE = 100;
 
@@ -14,6 +14,22 @@ const PRESETS = [
   { label: "Last 6 hrs",  minutes: 360 },
   { label: "Last 24 hrs", minutes: 1440 },
 ] as const;
+
+function exportCSV(flows: Flow[]) {
+  const header = "id,timestamp,protocol,src_ip,src_port,dst_ip,dst_port,bytes_in,bytes_out,info\n";
+  const rows = flows.map(f =>
+    [f.id, f.timestamp, f.protocol, f.src_ip, f.src_port,
+     f.dst_ip, f.dst_port, f.bytes_in, f.bytes_out,
+     `"${(f.info ?? "").replace(/"/g, '""')}"`].join(",")
+  ).join("\n");
+  const blob = new Blob([header + rows], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `netscope-flows-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 function toLocalDatetimeValue(d: Date) {
   // Returns "YYYY-MM-DDTHH:MM" for datetime-local inputs
@@ -35,6 +51,7 @@ export default function FlowsPage() {
   const [page, setPage] = useState(0);
   const [protocol, setProtocol] = useState("");
   const [srcIP, setSrcIP] = useState("");
+  const [dstIP, setDstIP] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
@@ -47,6 +64,7 @@ export default function FlowsPage() {
       const res = await fetchFlows({
         protocol:  protocol || undefined,
         src_ip:    srcIP    || undefined,
+        dst_ip:    dstIP    || undefined,
         from:      from     || undefined,
         to:        to       || undefined,
         limit:     PAGE_SIZE,
@@ -59,7 +77,7 @@ export default function FlowsPage() {
     } finally {
       setLoading(false);
     }
-  }, [protocol, srcIP, from, to, page]);
+  }, [protocol, srcIP, dstIP, from, to, page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -86,14 +104,26 @@ export default function FlowsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-white">Flow Explorer</h1>
-        <button
-          onClick={load}
-          className="flex items-center gap-2 px-3 py-1.5 rounded bg-[#12121f] border border-white/10
-                     text-sm text-slate-300 hover:text-white hover:border-white/20 transition-colors"
-        >
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportCSV(flows)}
+            disabled={flows.length === 0}
+            className="flex items-center gap-2 px-3 py-1.5 rounded bg-[#12121f] border border-white/10
+                       text-sm text-slate-300 hover:text-white hover:border-white/20 transition-colors
+                       disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Download size={14} />
+            Export CSV
+          </button>
+          <button
+            onClick={load}
+            className="flex items-center gap-2 px-3 py-1.5 rounded bg-[#12121f] border border-white/10
+                       text-sm text-slate-300 hover:text-white hover:border-white/20 transition-colors"
+          >
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Filters ── row 1: protocol + src IP */}
@@ -111,6 +141,12 @@ export default function FlowsPage() {
             <option value="DNS">DNS</option>
             <option value="TCP">TCP</option>
             <option value="UDP">UDP</option>
+            <option value="TLS">TLS</option>
+            <option value="HTTPS">HTTPS</option>
+            <option value="HTTP/2">HTTP/2</option>
+            <option value="gRPC">gRPC</option>
+            <option value="ICMP">ICMP</option>
+            <option value="ARP">ARP</option>
           </select>
         </div>
         <input
@@ -118,6 +154,14 @@ export default function FlowsPage() {
           placeholder="Filter by source IP…"
           value={srcIP}
           onChange={(e) => { setSrcIP(e.target.value); setPage(0); }}
+          className="w-48 bg-[#0d0d1a] border border-white/10 rounded px-3 py-2
+                     text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"
+        />
+        <input
+          type="text"
+          placeholder="Filter by dest IP…"
+          value={dstIP}
+          onChange={(e) => { setDstIP(e.target.value); setPage(0); }}
           className="w-48 bg-[#0d0d1a] border border-white/10 rounded px-3 py-2
                      text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"
         />

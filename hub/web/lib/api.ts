@@ -1,5 +1,29 @@
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export interface TimeseriesPoint {
+  ts: string;
+  count: number;
+  bytes_in: number;
+  bytes_out: number;
+}
+
+export interface ProtocolCount {
+  protocol: string;
+  count: number;
+}
+
+export interface AuditEvent {
+  id: string;
+  token_id: string;
+  role: string;
+  method: string;
+  path: string;
+  status: number;
+  client_ip: string;
+  latency_ms: number;
+  ts: string;
+}
+
 export interface HttpFlow {
   method: string;
   path: string;
@@ -178,7 +202,8 @@ export type AlertIntegrationType =
   | "slack"
   | "pagerduty"
   | "opsgenie"
-  | "teams";
+  | "teams"
+  | "email";
 
 export type AlertCondition = "gt" | "lt";
 
@@ -194,6 +219,8 @@ export interface AlertRule {
   enabled: number;
   cooldown_minutes: number;
   created_at: string;
+  webhook_secret?: string;
+  email_to?: string;
 }
 
 export interface AlertEvent {
@@ -216,6 +243,7 @@ export interface CreateAlertRuleRequest {
   integration_type?: AlertIntegrationType;
   webhook_url?: string;
   cooldown_minutes?: number;
+  email_to?: string;
 }
 
 export async function fetchAlertRules(): Promise<{ rules: AlertRule[] }> {
@@ -470,6 +498,18 @@ export interface GeoCountry {
 
 export async function fetchGeoSummary(window = "24h"): Promise<{ countries: GeoCountry[]; window: string; total: number }> {
   return get("/compliance/geo", { window });
+}
+
+export async function fetchTimeseries(hours = 1): Promise<{ points: TimeseriesPoint[]; hours: number }> {
+  return get("/metrics/timeseries", { hours });
+}
+
+export async function fetchProtocolBreakdown(hours = 1): Promise<{ protocols: ProtocolCount[]; hours: number }> {
+  return get("/metrics/protocols", { hours });
+}
+
+export async function fetchAuditEvents(params?: { limit?: number; token?: string; status?: number }): Promise<{ events: AuditEvent[]; count: number }> {
+  return get("/audit", params as Record<string, string | number>);
 }
 
 // ── Live flow stream (SSE) ────────────────────────────────────────────────────

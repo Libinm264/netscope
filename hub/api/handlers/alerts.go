@@ -25,7 +25,7 @@ func (h *AlertHandler) ListRules(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(c.Context(),
 		`SELECT id, name, metric, condition, threshold, window_minutes,
-		        integration_type, webhook_url, enabled, cooldown_minutes, created_at
+		        integration_type, webhook_url, webhook_secret, email_to, enabled, cooldown_minutes, created_at
 		 FROM alert_rules ORDER BY created_at DESC`)
 	if err != nil {
 		return util.InternalError(c, err)
@@ -39,7 +39,7 @@ func (h *AlertHandler) ListRules(c *fiber.Ctx) error {
 		if err := rows.Scan(
 			&r.ID, &r.Name, &r.Metric, &r.Condition,
 			&r.Threshold, &r.WindowMinutes,
-			&r.IntegrationType, &r.WebhookURL, &enabledInt, &r.CooldownMinutes, &r.CreatedAt,
+			&r.IntegrationType, &r.WebhookURL, &r.WebhookSecret, &r.EmailTo, &enabledInt, &r.CooldownMinutes, &r.CreatedAt,
 		); err != nil {
 			slog.Warn("alerts: scan rule", "err", err)
 			continue
@@ -77,14 +77,18 @@ func (h *AlertHandler) CreateRule(c *fiber.Ctx) error {
 		"pagerduty":  true,
 		"opsgenie":   true,
 		"teams":      true,
+		"email":      true,
 	}
 	if !validIntegrations[req.IntegrationType] {
 		return c.Status(400).JSON(fiber.Map{
-			"error": "integration_type must be one of: webhook, slack, pagerduty, opsgenie, teams",
+			"error": "integration_type must be one of: webhook, slack, pagerduty, opsgenie, teams, email",
 		})
 	}
 	if req.IntegrationType == "" {
 		req.IntegrationType = "webhook"
+	}
+	if req.IntegrationType == "email" && req.EmailTo == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "email_to is required for email integration"})
 	}
 	if req.Condition != "gt" && req.Condition != "lt" {
 		return c.Status(400).JSON(fiber.Map{"error": "condition must be 'gt' or 'lt'"})
@@ -110,20 +114,25 @@ func (h *AlertHandler) CreateRule(c *fiber.Ctx) error {
 	}
 
 	id := uuid.New().String()
+	webhookSecret := uuid.New().String()
 	now := time.Now().UTC()
 	if err := h.CH.Exec(c.Context(),
 		`INSERT INTO alert_rules
 		 (id, name, metric, condition, threshold, window_minutes,
-		  integration_type, webhook_url, enabled, cooldown_minutes, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+		  integration_type, webhook_url, webhook_secret, email_to, enabled, cooldown_minutes, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
 		id, req.Name, req.Metric, req.Condition, req.Threshold,
-		req.WindowMinutes, req.IntegrationType, req.WebhookURL, req.CooldownMinutes, now,
+		req.WindowMinutes, req.IntegrationType, req.WebhookURL, webhookSecret, req.EmailTo, req.CooldownMinutes, now,
 	); err != nil {
 		return util.InternalError(c, err)
 	}
 
 	slog.Info("alert rule created", "id", id, "name", req.Name)
-	return c.Status(201).JSON(fiber.Map{"id": id, "created_at": now})
+	return c.Status(201).JSON(fiber.Map{
+		"id":             id,
+		"created_at":     now,
+		"webhook_secret": webhookSecret,
+	})
 }
 
 // UpdateRule handles PATCH /api/v1/alerts/:id (toggle enabled / update webhook).

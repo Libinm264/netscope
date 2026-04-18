@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -14,60 +13,10 @@ import (
 	"github.com/netscope/hub-api/geoip"
 	"github.com/netscope/hub-api/kafka"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/pubsub"
 	"github.com/netscope/hub-api/threat"
 	"github.com/netscope/hub-api/util"
 )
-
-// ── SSE broadcast hub ────────────────────────────────────────────────────────
-
-type sseHub struct {
-	mu   sync.RWMutex
-	subs map[string]chan []byte
-}
-
-var globalHub = &sseHub{subs: make(map[string]chan []byte)}
-
-func (h *sseHub) subscribe(id string) chan []byte {
-	ch := make(chan []byte, 64)
-	h.mu.Lock()
-	h.subs[id] = ch
-	h.mu.Unlock()
-	return ch
-}
-
-func (h *sseHub) unsubscribe(id string) {
-	h.mu.Lock()
-	if ch, ok := h.subs[id]; ok {
-		close(ch)
-		delete(h.subs, id)
-	}
-	h.mu.Unlock()
-}
-
-func (h *sseHub) broadcast(data []byte) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-	for _, ch := range h.subs {
-		select {
-		case ch <- data:
-		default:
-			// Slow consumer — skip rather than block
-		}
-	}
-}
-
-// BroadcastFlow serialises a flow and fans it out to all active SSE clients.
-// Called by both the ingest handler and the Kafka consumer goroutine.
-func BroadcastFlow(flow models.Flow) {
-	data, err := json.Marshal(flow)
-	if err != nil {
-		slog.Warn("broadcast: marshal failed", "err", err)
-		return
-	}
-	globalHub.broadcast(data)
-}
-
-// ── FlowHandler ──────────────────────────────────────────────────────────────
 
 // FlowHandler groups the three flow-related HTTP handlers.
 type FlowHandler struct {
@@ -77,6 +26,21 @@ type FlowHandler struct {
 	CertsCH  *clickhouse.Client // may be same as CH; used for cert extraction
 	GeoIP    *geoip.Reader      // nil = geo enrichment disabled
 	Threat   *threat.Scorer     // nil = threat scoring disabled
+	Hub      pubsub.Hub         // SSE broadcast hub
+}
+
+// BroadcastFlow serialises a flow and fans it out to all active SSE clients.
+// Called by both the ingest handler and the Kafka consumer goroutine.
+func (h *FlowHandler) BroadcastFlow(flow models.Flow) {
+	if h.Hub == nil {
+		return
+	}
+	data, err := json.Marshal(flow)
+	if err != nil {
+		slog.Warn("broadcast: marshal failed", "err", err)
+		return
+	}
+	h.Hub.Broadcast(data)
 }
 
 // Ingest handles POST /api/v1/ingest.
@@ -126,7 +90,7 @@ func (h *FlowHandler) Ingest(c *fiber.Ctx) error {
 		}
 
 		// SSE fan-out (always, regardless of persistence status)
-		BroadcastFlow(*f)
+		h.BroadcastFlow(*f)
 
 		// Extract TLS certs asynchronously — fire-and-forget
 		if f.TLS != nil && f.TLS.RecordType == "Certificate" {
@@ -309,11 +273,17 @@ func (h *FlowHandler) Stream(c *fiber.Ctx) error {
 	c.Set("Access-Control-Allow-Origin", "*")
 	c.Set("X-Accel-Buffering", "no")
 
+	if h.Hub == nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
+			"error": "SSE hub not initialised",
+		})
+	}
+
 	subID := fmt.Sprintf("sse-%d", time.Now().UnixNano())
-	ch := globalHub.subscribe(subID)
+	ch := h.Hub.Subscribe(subID)
 
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
-		defer globalHub.unsubscribe(subID)
+		defer h.Hub.Unsubscribe(subID)
 
 		ticker := time.NewTicker(20 * time.Second)
 		defer ticker.Stop()

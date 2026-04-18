@@ -19,6 +19,7 @@ type Evaluator struct {
 	ch       *chclient.Client
 	interval time.Duration
 	stopCh   chan struct{}
+	SMTP     SMTPConfig
 }
 
 // NewEvaluator creates an Evaluator that checks rules every interval.
@@ -59,7 +60,7 @@ func (e *Evaluator) evaluateAll() {
 
 	rows, err := e.ch.Query(ctx,
 		`SELECT id, name, metric, condition, threshold, window_minutes,
-		        webhook_url, cooldown_minutes
+		        integration_type, webhook_url, webhook_secret, email_to, cooldown_minutes
 		 FROM alert_rules
 		 WHERE enabled = 1`)
 	if err != nil {
@@ -70,11 +71,10 @@ func (e *Evaluator) evaluateAll() {
 
 	for rows.Next() {
 		var r models.AlertRule
-		var enabledInt uint8
-		_ = enabledInt
 		if err := rows.Scan(
 			&r.ID, &r.Name, &r.Metric, &r.Condition,
-			&r.Threshold, &r.WindowMinutes, &r.WebhookURL, &r.CooldownMinutes,
+			&r.Threshold, &r.WindowMinutes,
+			&r.IntegrationType, &r.WebhookURL, &r.WebhookSecret, &r.EmailTo, &r.CooldownMinutes,
 		); err != nil {
 			slog.Warn("alert evaluator: scan rule", "err", err)
 			continue
@@ -116,7 +116,7 @@ func (e *Evaluator) evaluate(ctx context.Context, rule models.AlertRule) {
 		Message:   BuildMessage(rule, value),
 	}
 
-	delivered := FireAlert(ctx, rule, payload)
+	delivered := FireAlert(ctx, rule, payload, e.SMTP)
 
 	if delivered {
 		nsmetrics.AlertsFiredTotal.Add(1)

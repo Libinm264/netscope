@@ -24,6 +24,7 @@ import {
   X,
   CheckCircle2,
   XCircle,
+  Copy,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -43,6 +44,7 @@ const INTEGRATION_LABELS: Record<AlertIntegrationType, string> = {
   pagerduty: "PagerDuty",
   opsgenie:  "OpsGenie",
   teams:     "Microsoft Teams",
+  email:     "Email (SMTP)",
 };
 
 const INTEGRATION_PLACEHOLDER: Record<AlertIntegrationType, string> = {
@@ -51,6 +53,7 @@ const INTEGRATION_PLACEHOLDER: Record<AlertIntegrationType, string> = {
   pagerduty: "Routing key (e.g. abc123…)",
   opsgenie:  "API key (e.g. xxxxxxxx-…)",
   teams:     "https://outlook.office.com/webhook/…",
+  email:     "recipient@example.com",
 };
 
 const CONDITION_LABELS: Record<AlertCondition, string> = {
@@ -83,6 +86,7 @@ function CreateRuleModal({ onClose, onCreated }: ModalProps) {
     cooldown_minutes: 15,
     integration_type: "webhook",
     webhook_url:      "",
+    email_to:         "",
   });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -215,19 +219,31 @@ function CreateRuleModal({ onClose, onCreated }: ModalProps) {
           </Field>
 
           {/* Destination — label/placeholder adapts to integration type */}
-          <Field label={
-            form.integration_type === "pagerduty" ? "Routing key" :
-            form.integration_type === "opsgenie"  ? "API key" :
-            "Webhook URL"
-          }>
-            <input
-              type={form.integration_type === "pagerduty" || form.integration_type === "opsgenie" ? "text" : "url"}
-              placeholder={INTEGRATION_PLACEHOLDER[form.integration_type ?? "webhook"]}
-              value={form.webhook_url}
-              onChange={(e) => set("webhook_url", e.target.value)}
-              className={inputCls}
-            />
-          </Field>
+          {form.integration_type === "email" ? (
+            <Field label="Recipient email">
+              <input
+                type="email"
+                placeholder={INTEGRATION_PLACEHOLDER["email"]}
+                value={form.email_to ?? ""}
+                onChange={(e) => set("email_to", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+          ) : (
+            <Field label={
+              form.integration_type === "pagerduty" ? "Routing key" :
+              form.integration_type === "opsgenie"  ? "API key" :
+              "Webhook URL"
+            }>
+              <input
+                type={form.integration_type === "pagerduty" || form.integration_type === "opsgenie" ? "text" : "url"}
+                placeholder={INTEGRATION_PLACEHOLDER[form.integration_type ?? "webhook"]}
+                value={form.webhook_url}
+                onChange={(e) => set("webhook_url", e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+          )}
 
           {error && (
             <p className="text-sm text-red-400 bg-red-900/20 border border-red-500/30 rounded px-3 py-2">
@@ -429,6 +445,7 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [newRuleSecret, setNewRuleSecret] = useState<{ name: string; secret: string } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -459,9 +476,12 @@ export default function AlertsPage() {
     setRules((prev) => prev.filter((r) => r.id !== id));
   }
 
-  function handleCreated(rule: AlertRule) {
+  function handleCreated(rule: AlertRule & { webhook_secret?: string }) {
     setRules((prev) => [rule, ...prev]);
     setShowCreate(false);
+    if (rule.webhook_secret && rule.integration_type !== "email") {
+      setNewRuleSecret({ name: rule.name, secret: rule.webhook_secret });
+    }
   }
 
   return (
@@ -499,6 +519,28 @@ export default function AlertsPage() {
           </button>
         </div>
       </div>
+
+      {newRuleSecret && (
+        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 space-y-1">
+          <p className="text-xs font-semibold text-emerald-400">
+            Webhook secret for &quot;{newRuleSecret.name}&quot; — copy it now, it won&apos;t be shown again
+          </p>
+          <div className="flex items-center gap-2 font-mono text-xs text-white break-all">
+            {newRuleSecret.secret}
+            <button onClick={() => navigator.clipboard.writeText(newRuleSecret.secret)}
+                    className="ml-1 p-1 rounded hover:bg-white/10 text-slate-500 hover:text-slate-300">
+              <Copy size={11} />
+            </button>
+          </div>
+          <p className="text-[10px] text-slate-500">
+            Use this as X-NetScope-Signature verification secret in your webhook receiver.
+          </p>
+          <button onClick={() => setNewRuleSecret(null)}
+                  className="text-[10px] text-slate-500 hover:text-slate-300 underline">
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="rounded-lg bg-red-900/20 border border-red-500/30 px-4 py-3 text-sm text-red-400">
