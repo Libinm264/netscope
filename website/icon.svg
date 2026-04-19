@@ -1,0 +1,76 @@
+<svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bgGrad" cx="40%" cy="38%" r="65%">
+      <stop offset="0%"   stop-color="#0f1829"/>
+      <stop offset="100%" stop-color="#060810"/>
+    </radialGradient>
+    <radialGradient id="sweepGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#00d4ff" stop-opacity="0"/>
+      <stop offset="70%"  stop-color="#00d4ff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0.35"/>
+    </radialGradient>
+    <radialGradient id="blipGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#00d4ff" stop-opacity="0.9"/>
+      <stop offset="40%"  stop-color="#00d4ff" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#00d4ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="centerGrad" cx="40%" cy="35%" r="60%">
+      <stop offset="0%"   stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#5b21b6"/>
+    </radialGradient>
+    <clipPath id="roundedClip">
+      <rect width="1024" height="1024" rx="220" ry="220"/>
+    </clipPath>
+  </defs>
+
+  <rect width="1024" height="1024" rx="220" ry="220" fill="url(#bgGrad)"/>
+
+  <g clip-path="url(#roundedClip)">
+
+    <circle cx="512" cy="512" r="390" fill="none" stroke="#00d4ff" stroke-width="1.5" opacity="0.08"/>
+    <circle cx="512" cy="512" r="330" fill="none" stroke="#00d4ff" stroke-width="3"   opacity="0.18"/>
+    <circle cx="512" cy="512" r="230" fill="none" stroke="#00d4ff" stroke-width="3"   opacity="0.25"/>
+    <circle cx="512" cy="512" r="130" fill="none" stroke="#00d4ff" stroke-width="3"   opacity="0.35"/>
+    <circle cx="512" cy="512" r="50"  fill="none" stroke="#00d4ff" stroke-width="2.5" opacity="0.5"/>
+
+    <line x1="512" y1="128" x2="512" y2="896" stroke="#00d4ff" stroke-width="1.5" opacity="0.12"/>
+    <line x1="128" y1="512" x2="896" y2="512" stroke="#00d4ff" stroke-width="1.5" opacity="0.12"/>
+    <line x1="278" y1="278" x2="746" y2="746" stroke="#00d4ff" stroke-width="1"   opacity="0.06"/>
+    <line x1="746" y1="278" x2="278" y2="746" stroke="#00d4ff" stroke-width="1"   opacity="0.06"/>
+
+    <g stroke="#00d4ff" stroke-width="4" opacity="0.35" stroke-linecap="round">
+      <line x1="512" y1="178" x2="512" y2="202"/>
+      <line x1="677" y1="227" x2="668" y2="243"/>
+      <line x1="797" y1="347" x2="781" y2="356"/>
+      <line x1="842" y1="512" x2="822" y2="512"/>
+      <line x1="797" y1="677" x2="781" y2="668"/>
+      <line x1="677" y1="797" x2="668" y2="781"/>
+      <line x1="512" y1="842" x2="512" y2="822"/>
+      <line x1="347" y1="797" x2="356" y2="781"/>
+      <line x1="227" y1="677" x2="243" y2="668"/>
+      <line x1="182" y1="512" x2="202" y2="512"/>
+      <line x1="227" y1="347" x2="243" y2="356"/>
+      <line x1="347" y1="227" x2="356" y2="243"/>
+    </g>
+
+    <path d="M512,512 L625,202 A330,330 0 0,1 822,399 Z" fill="url(#sweepGrad)"/>
+
+    <line x1="512" y1="512" x2="745" y2="279" stroke="#00d4ff" stroke-width="3" opacity="0.6" stroke-linecap="round"/>
+
+    <circle cx="745" cy="279" r="55" fill="url(#blipGlow)"/>
+    <circle cx="745" cy="279" r="32" fill="none" stroke="#00d4ff" stroke-width="2" opacity="0.4"/>
+    <circle cx="745" cy="279" r="14" fill="#00d4ff" opacity="0.95"/>
+    <circle cx="739" cy="273" r="5"  fill="#ffffff" opacity="0.6"/>
+
+    <circle cx="532" cy="283" r="8"  fill="#00d4ff" opacity="0.25"/>
+    <circle cx="532" cy="283" r="18" fill="#00d4ff" opacity="0.08"/>
+
+    <circle cx="595" cy="412" r="6"  fill="#00d4ff" opacity="0.2"/>
+    <circle cx="595" cy="412" r="14" fill="#00d4ff" opacity="0.06"/>
+
+    <circle cx="512" cy="512" r="22" fill="url(#centerGrad)"/>
+    <circle cx="512" cy="512" r="22" fill="none" stroke="#a78bfa" stroke-width="2" opacity="0.6"/>
+    <circle cx="505" cy="505" r="7"  fill="#c4b5fd" opacity="0.5"/>
+
+  </g>
+</svg>

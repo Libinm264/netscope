@@ -5,6 +5,11 @@ import { Sidebar } from "@/components/Sidebar";
 export const metadata: Metadata = {
   title: "NetScope Hub",
   description: "Network observability dashboard",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 // Resolve the current Auth0 user if auth is configured.

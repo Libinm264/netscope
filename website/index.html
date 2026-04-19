@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NetScope — Network Observability Platform</title>
   <meta name="description" content="Real-time packet capture, deep protocol inspection, GeoIP & threat intelligence, and a SaaS hub for fleet-wide visibility. Built with Rust, Go, and React." />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -900,20 +901,17 @@
 <nav>
   <a href="#" class="nav-logo">
     <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="14" cy="14" r="13" stroke="#00d4ff" stroke-width="1.5" opacity=".4"/>
-      <circle cx="14" cy="14" r="4" fill="#00d4ff"/>
-      <line x1="14" y1="2" x2="14" y2="10" stroke="#00d4ff" stroke-width="1.5"/>
-      <line x1="14" y1="18" x2="14" y2="26" stroke="#00d4ff" stroke-width="1.5"/>
-      <line x1="2" y1="14" x2="10" y2="14" stroke="#00d4ff" stroke-width="1.5"/>
-      <line x1="18" y1="14" x2="26" y2="14" stroke="#00d4ff" stroke-width="1.5"/>
-      <circle cx="6" cy="6" r="2" fill="#7c3aed"/>
-      <circle cx="22" cy="6" r="2" fill="#7c3aed"/>
-      <circle cx="6" cy="22" r="2" fill="#7c3aed"/>
-      <circle cx="22" cy="22" r="2" fill="#7c3aed"/>
-      <line x1="7.4" y1="7.4" x2="10.5" y2="10.5" stroke="#7c3aed" stroke-width="1"/>
-      <line x1="20.6" y1="7.4" x2="17.5" y2="10.5" stroke="#7c3aed" stroke-width="1"/>
-      <line x1="7.4" y1="20.6" x2="10.5" y2="17.5" stroke="#7c3aed" stroke-width="1"/>
-      <line x1="20.6" y1="20.6" x2="17.5" y2="17.5" stroke="#7c3aed" stroke-width="1"/>
+      <rect width="28" height="28" rx="6" fill="#0a0e1a"/>
+      <circle cx="14" cy="14" r="11"  fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".25"/>
+      <circle cx="14" cy="14" r="7.5" fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".35"/>
+      <circle cx="14" cy="14" r="4"   fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".5"/>
+      <line x1="14" y1="3"  x2="14" y2="25" stroke="#00d4ff" stroke-width=".5" opacity=".15"/>
+      <line x1="3"  y1="14" x2="25" y2="14" stroke="#00d4ff" stroke-width=".5" opacity=".15"/>
+      <path d="M14,14 L20,7.5 A8.5,8.5 0 0,1 22.5,14 Z" fill="#00d4ff" opacity=".18"/>
+      <line x1="14" y1="14" x2="20" y2="7.5" stroke="#00d4ff" stroke-width="1" opacity=".7" stroke-linecap="round"/>
+      <circle cx="20" cy="7.5" r="1.8" fill="#00d4ff" opacity=".95"/>
+      <circle cx="20" cy="7.5" r="3.2" fill="#00d4ff" opacity=".18"/>
+      <circle cx="14" cy="14" r="2" fill="#7c3aed"/>
     </svg>
     NetScope
   </a>
@@ -1875,7 +1873,7 @@
   <div class="container">
     <div class="footer-inner">
       <div style="display:flex; align-items:center; gap:.5rem; font-weight:700; color:var(--text);">
-        <svg width="20" height="20" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="13" stroke="#00d4ff" stroke-width="1.5" opacity=".4"/><circle cx="14" cy="14" r="4" fill="#00d4ff"/><line x1="14" y1="2" x2="14" y2="10" stroke="#00d4ff" stroke-width="1.5"/><line x1="14" y1="18" x2="14" y2="26" stroke="#00d4ff" stroke-width="1.5"/><line x1="2" y1="14" x2="10" y2="14" stroke="#00d4ff" stroke-width="1.5"/><line x1="18" y1="14" x2="26" y2="14" stroke="#00d4ff" stroke-width="1.5"/></svg>
+        <svg width="22" height="22" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#0a0e1a"/><circle cx="14" cy="14" r="11" fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".25"/><circle cx="14" cy="14" r="7.5" fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".35"/><circle cx="14" cy="14" r="4" fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".5"/><line x1="14" y1="3" x2="14" y2="25" stroke="#00d4ff" stroke-width=".5" opacity=".15"/><line x1="3" y1="14" x2="25" y2="14" stroke="#00d4ff" stroke-width=".5" opacity=".15"/><path d="M14,14 L20,7.5 A8.5,8.5 0 0,1 22.5,14 Z" fill="#00d4ff" opacity=".18"/><line x1="14" y1="14" x2="20" y2="7.5" stroke="#00d4ff" stroke-width="1" opacity=".7" stroke-linecap="round"/><circle cx="20" cy="7.5" r="1.8" fill="#00d4ff" opacity=".95"/><circle cx="14" cy="14" r="2" fill="#7c3aed"/></svg>
         NetScope
       </div>
       <div class="footer-links">
