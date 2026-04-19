@@ -15,5 +15,12 @@
       "port": 3000,
       "cwd": "/Users/libinmathew/ClaudeProject/netscope/hub/web"
     }
+  ,{
+      "name": "netscope-website",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "4000", "."],
+      "port": 4000,
+      "cwd": "/Users/libinmathew/ClaudeProject/netscope/website"
+    }
   ]
 }

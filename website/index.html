@@ -1,0 +1,1992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetScope — Network Observability Platform</title>
+  <meta name="description" content="Real-time packet capture, deep protocol inspection, GeoIP & threat intelligence, and a SaaS hub for fleet-wide visibility. Built with Rust, Go, and React." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #060810;
+      --bg2:       #0c1120;
+      --bg3:       #111827;
+      --cyan:      #00d4ff;
+      --cyan-dim:  #00a8cc;
+      --purple:    #7c3aed;
+      --purple-dim:#6d28d9;
+      --green:     #10b981;
+      --yellow:    #f59e0b;
+      --red:       #ef4444;
+      --text:      #e2e8f0;
+      --muted:     #94a3b8;
+      --border:    rgba(255,255,255,0.07);
+      --glow-c:    rgba(0,212,255,0.15);
+      --glow-p:    rgba(124,58,237,0.15);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── CANVAS BACKGROUND ── */
+    #canvas-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      opacity: 0.45;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 64px;
+      background: rgba(6,8,16,0.8);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      font-weight: 800;
+      font-size: 1.2rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .nav-logo svg { width: 28px; height: 28px; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: .875rem;
+      font-weight: 500;
+      transition: color .2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .nav-cta {
+      display: flex;
+      gap: .75rem;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .6rem 1.4rem;
+      border-radius: 8px;
+      font-size: .875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all .2s;
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      color: #fff;
+      box-shadow: 0 0 20px var(--glow-c);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 30px var(--glow-c), 0 0 30px var(--glow-p);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    .btn-lg {
+      padding: .85rem 2rem;
+      font-size: 1rem;
+      border-radius: 10px;
+    }
+
+    /* ── SECTIONS ── */
+    section { position: relative; z-index: 1; }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 2rem 80px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      background: rgba(0,212,255,0.08);
+      border: 1px solid rgba(0,212,255,0.25);
+      color: var(--cyan);
+      padding: .35rem 1rem;
+      border-radius: 999px;
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-badge .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--cyan);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .4; transform: scale(.7); }
+    }
+
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 4.5rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -.03em;
+      margin-bottom: 1.5rem;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, var(--cyan) 0%, #a78bfa 60%, var(--purple) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: clamp(1rem, 2vw, 1.25rem);
+      color: var(--muted);
+      max-width: 640px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 4rem;
+    }
+
+    .hero-badges {
+      display: flex;
+      gap: .75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .35rem .75rem;
+      font-size: .8rem;
+      color: var(--muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .badge img { height: 14px; }
+
+    /* ── STATS BAR ── */
+    #stats {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: rgba(12,17,32,0.8);
+      padding: 2.5rem 0;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 2rem;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 2.25rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: .3rem;
+    }
+
+    .stat-label { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+
+    /* ── SECTION HEADERS ── */
+    .section-tag {
+      display: inline-block;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: .75rem;
+    }
+
+    .section-title {
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -.02em;
+      margin-bottom: 1rem;
+    }
+
+    .section-sub {
+      font-size: 1rem;
+      color: var(--muted);
+      max-width: 560px;
+      line-height: 1.7;
+    }
+
+    .section-header { margin-bottom: 3.5rem; }
+
+    /* ── PILLARS ── */
+    #pillars { padding: 6rem 0; }
+
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .pillar-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .3s, transform .3s;
+    }
+
+    .pillar-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top left, var(--glow-c), transparent 60%);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .pillar-card:hover { border-color: rgba(0,212,255,0.3); transform: translateY(-4px); }
+    .pillar-card:hover::before { opacity: 1; }
+
+    .pillar-icon {
+      width: 52px; height: 52px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      font-size: 1.5rem;
+    }
+
+    .pillar-icon.cyan { background: rgba(0,212,255,0.12); }
+    .pillar-icon.purple { background: rgba(124,58,237,0.12); }
+    .pillar-icon.green { background: rgba(16,185,129,0.12); }
+
+    .pillar-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: .6rem; }
+    .pillar-card p { font-size: .9rem; color: var(--muted); line-height: 1.7; }
+
+    /* ── FEATURE TABS ── */
+    #features { padding: 6rem 0; background: linear-gradient(180deg, transparent 0%, rgba(12,17,32,0.5) 100%); }
+
+    .tab-buttons {
+      display: flex;
+      gap: .5rem;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      padding: .6rem 1.25rem;
+      border-radius: 8px;
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      transition: all .2s;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .tab-btn:hover:not(.active) { border-color: var(--cyan); color: var(--text); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .feature-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.4rem;
+      transition: border-color .2s, transform .2s;
+    }
+
+    .feature-card:hover { border-color: rgba(0,212,255,0.2); transform: translateY(-2px); }
+
+    .feature-card-head {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: .75rem;
+    }
+
+    .feature-icon {
+      font-size: 1.2rem;
+      width: 38px; height: 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: rgba(0,212,255,0.08);
+    }
+
+    .feature-card h4 { font-size: .9rem; font-weight: 700; line-height: 1.3; }
+    .feature-card p { font-size: .82rem; color: var(--muted); line-height: 1.6; }
+
+    /* ── ARCHITECTURE ── */
+    #architecture { padding: 6rem 0; }
+
+    .arch-visual {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    .arch-layer {
+      width: 100%;
+      max-width: 860px;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 1.5rem 2rem;
+      position: relative;
+    }
+
+    .arch-layer.layer-desktop {
+      background: linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(12,17,32,0.9) 60%);
+      border-color: rgba(0,212,255,0.25);
+    }
+
+    .arch-layer.layer-agent {
+      background: linear-gradient(135deg, rgba(124,58,237,0.07) 0%, rgba(12,17,32,0.9) 60%);
+      border-color: rgba(124,58,237,0.25);
+    }
+
+    .arch-layer.layer-network {
+      background: rgba(245,158,11,0.05);
+      border-color: rgba(245,158,11,0.2);
+    }
+
+    .arch-layer.layer-hub {
+      background: linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(12,17,32,0.9) 60%);
+      border-color: rgba(16,185,129,0.25);
+    }
+
+    .arch-layer-title {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .arch-layer-title.cyan { color: var(--cyan); }
+    .arch-layer-title.purple { color: #a78bfa; }
+    .arch-layer-title.yellow { color: var(--yellow); }
+    .arch-layer-title.green { color: var(--green); }
+
+    .arch-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 600px) { .arch-cols { grid-template-columns: 1fr; } }
+
+    .arch-col-label {
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: .6rem;
+    }
+
+    .arch-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .4rem;
+    }
+
+    .arch-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: .22rem .55rem;
+      color: var(--text);
+      white-space: nowrap;
+    }
+
+    .arch-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: .15rem 0;
+    }
+
+    .arch-connector-line {
+      width: 2px;
+      height: 32px;
+      background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+    }
+
+    .arch-connector-label {
+      font-size: .7rem;
+      color: var(--muted);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: .2rem .75rem;
+      margin: .2rem 0;
+      white-space: nowrap;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .arch-hub-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: .75rem;
+    }
+
+    @media (max-width: 600px) { .arch-hub-grid { grid-template-columns: 1fr; } }
+
+    .arch-hub-col { }
+
+    /* ── DOWNLOAD ── */
+    #download { padding: 6rem 0; }
+
+    .download-intro {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+
+    .download-platforms {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .dl-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+      transition: all .25s;
+    }
+
+    .dl-card:hover { border-color: rgba(0,212,255,0.3); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+
+    .dl-card-head { display: flex; align-items: center; gap: .75rem; }
+
+    .dl-os-icon { font-size: 1.8rem; }
+
+    .dl-os-name { font-size: 1rem; font-weight: 700; }
+    .dl-os-sub  { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
+
+    .dl-variants { display: flex; flex-direction: column; gap: .5rem; }
+
+    .dl-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .5rem;
+      padding: .6rem .9rem;
+      background: rgba(0,212,255,0.06);
+      border: 1px solid rgba(0,212,255,0.15);
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--text);
+      font-size: .8rem;
+      font-weight: 600;
+      transition: all .2s;
+    }
+
+    .dl-btn:hover { background: rgba(0,212,255,0.12); border-color: var(--cyan); color: var(--cyan); }
+
+    .dl-btn-ext {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      color: var(--muted);
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      padding: .1rem .4rem;
+    }
+
+    .dl-note {
+      background: rgba(0,212,255,0.04);
+      border: 1px solid rgba(0,212,255,0.1);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      font-size: .82rem;
+      color: var(--muted);
+      display: flex;
+      align-items: flex-start;
+      gap: .6rem;
+    }
+
+    .dl-note svg { flex-shrink: 0; margin-top: 2px; color: var(--cyan); }
+
+    /* ── PROTOCOLS ── */
+    #protocols { padding: 6rem 0; background: rgba(12,17,32,0.5); }
+
+    .protocols-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 1rem;
+    }
+
+    .proto-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      text-align: center;
+      transition: all .2s;
+    }
+
+    .proto-card:hover { border-color: var(--cyan); box-shadow: 0 0 20px var(--glow-c); }
+
+    .proto-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-bottom: .3rem;
+    }
+
+    .proto-desc { font-size: .75rem; color: var(--muted); }
+
+    /* ── ROADMAP ── */
+    #roadmap { padding: 6rem 0; }
+
+    .roadmap-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 768px) { .roadmap-grid { grid-template-columns: 1fr; } }
+
+    .roadmap-col h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .roadmap-item {
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+      padding: .9rem 1rem;
+      border-radius: 10px;
+      margin-bottom: .6rem;
+      border: 1px solid transparent;
+      transition: all .2s;
+    }
+
+    .roadmap-item.done {
+      background: rgba(16,185,129,0.05);
+      border-color: rgba(16,185,129,0.12);
+    }
+
+    .roadmap-item.coming {
+      background: rgba(124,58,237,0.05);
+      border-color: rgba(124,58,237,0.15);
+    }
+
+    .roadmap-item:hover { transform: translateX(4px); }
+
+    .rm-dot {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .7rem;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .rm-dot.done { background: var(--green); color: #fff; }
+    .rm-dot.coming { background: rgba(124,58,237,0.3); border: 1px solid var(--purple); color: var(--purple); }
+
+    .rm-text { font-size: .88rem; font-weight: 500; }
+    .rm-sub { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
+
+    /* ── TECH STACK ── */
+    #techstack { padding: 6rem 0; background: rgba(12,17,32,0.5); }
+
+    .tech-categories {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .tech-col {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+    }
+
+    .tech-col-title {
+      font-size: .8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--cyan);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .tech-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      background: rgba(255,255,255,0.05);
+      border-radius: 6px;
+      padding: .35rem .7rem;
+      font-size: .8rem;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      margin: .25rem .25rem .25rem 0;
+    }
+
+    /* ── PLATFORMS ── */
+    #platforms { padding: 6rem 0; }
+
+    .platforms-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 640px) { .platforms-grid { grid-template-columns: 1fr; } }
+
+    .platform-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      transition: all .3s;
+    }
+
+    .platform-card:hover { border-color: var(--cyan); box-shadow: 0 0 30px var(--glow-c); transform: translateY(-4px); }
+
+    .platform-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .platform-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: .4rem; }
+    .platform-card p { font-size: .85rem; color: var(--muted); }
+
+    /* ── CTA ── */
+    #cta {
+      padding: 8rem 0;
+      text-align: center;
+      position: relative;
+    }
+
+    #cta::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(0,212,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    #cta h2 {
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      font-weight: 900;
+      letter-spacing: -.03em;
+      margin-bottom: 1rem;
+    }
+
+    #cta p {
+      color: var(--muted);
+      font-size: 1.1rem;
+      margin-bottom: 2.5rem;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .footer-links { display: flex; gap: 1.5rem; }
+    .footer-links a { color: var(--muted); text-decoration: none; transition: color .2s; }
+    .footer-links a:hover { color: var(--cyan); }
+
+    /* ── GLOW DIVIDERS ── */
+    .glow-line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      opacity: .3;
+      margin: 0;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      nav { padding: 0 1rem; }
+      .nav-links { display: none; }
+      .container { padding: 0 1.25rem; }
+    }
+
+    /* ── SCROLL ANIMATIONS ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ── TERMINAL DEMO ── */
+    .terminal {
+      background: #0a0d14;
+      border: 1px solid rgba(0,212,255,0.15);
+      border-radius: 12px;
+      padding: 1.5rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .82rem;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+
+    .terminal .prompt { color: var(--cyan); }
+    .terminal .cmd { color: var(--text); }
+    .terminal .out { color: var(--green); }
+    .terminal .comment { color: #4b5563; }
+    .terminal .flag { color: #a78bfa; }
+    .terminal .val { color: var(--yellow); }
+
+    .terminal-bar {
+      display: flex;
+      gap: .4rem;
+      margin-bottom: 1rem;
+    }
+
+    .terminal-bar span {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+    }
+
+    .t-red { background: #ff5f57; }
+    .t-yellow { background: #febc2e; }
+    .t-green { background: #28c840; }
+  </style>
+</head>
+<body>
+
+<!-- ── ANIMATED CANVAS BACKGROUND ── -->
+<canvas id="canvas-bg"></canvas>
+
+<!-- ── NAV ── -->
+<nav>
+  <a href="#" class="nav-logo">
+    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="14" cy="14" r="13" stroke="#00d4ff" stroke-width="1.5" opacity=".4"/>
+      <circle cx="14" cy="14" r="4" fill="#00d4ff"/>
+      <line x1="14" y1="2" x2="14" y2="10" stroke="#00d4ff" stroke-width="1.5"/>
+      <line x1="14" y1="18" x2="14" y2="26" stroke="#00d4ff" stroke-width="1.5"/>
+      <line x1="2" y1="14" x2="10" y2="14" stroke="#00d4ff" stroke-width="1.5"/>
+      <line x1="18" y1="14" x2="26" y2="14" stroke="#00d4ff" stroke-width="1.5"/>
+      <circle cx="6" cy="6" r="2" fill="#7c3aed"/>
+      <circle cx="22" cy="6" r="2" fill="#7c3aed"/>
+      <circle cx="6" cy="22" r="2" fill="#7c3aed"/>
+      <circle cx="22" cy="22" r="2" fill="#7c3aed"/>
+      <line x1="7.4" y1="7.4" x2="10.5" y2="10.5" stroke="#7c3aed" stroke-width="1"/>
+      <line x1="20.6" y1="7.4" x2="17.5" y2="10.5" stroke="#7c3aed" stroke-width="1"/>
+      <line x1="7.4" y1="20.6" x2="10.5" y2="17.5" stroke="#7c3aed" stroke-width="1"/>
+      <line x1="20.6" y1="20.6" x2="17.5" y2="17.5" stroke="#7c3aed" stroke-width="1"/>
+    </svg>
+    NetScope
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#protocols">Protocols</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#techstack">Tech Stack</a></li>
+    <li><a href="#download">Download</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="https://github.com/Libinm264/netscope" target="_blank" class="btn btn-ghost">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+      GitHub
+    </a>
+    <a href="#download" class="btn btn-primary">Download</a>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section id="hero">
+  <div>
+    <div class="hero-badge">
+      <span class="dot"></span>
+      Open Source · MIT License · v1.0
+    </div>
+    <h1>
+      Network Observability<br/>
+      <span class="gradient-text">Redefined for Modern Teams</span>
+    </h1>
+    <p class="hero-sub">
+      Real-time packet capture with deep protocol inspection, GeoIP & threat intelligence, and a SaaS hub for fleet-wide visibility — all in one platform built with Rust, Go, and React.
+    </p>
+    <div class="hero-actions">
+      <a href="https://github.com/Libinm264/netscope/releases" target="_blank" class="btn btn-primary btn-lg">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Free
+      </a>
+      <a href="https://github.com/Libinm264/netscope" target="_blank" class="btn btn-ghost btn-lg">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+        View on GitHub
+      </a>
+    </div>
+    <div class="hero-badges">
+      <span class="badge">🦀 Rust 2021</span>
+      <span class="badge">🐹 Go 1.22</span>
+      <span class="badge">⚛️ React 18</span>
+      <span class="badge">🪟 Tauri 2.x</span>
+      <span class="badge">🗄️ ClickHouse</span>
+      <span class="badge">📡 eBPF</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── STATS ── -->
+<section id="stats">
+  <div class="container">
+    <div class="stats-grid reveal">
+      <div>
+        <div class="stat-num">9+</div>
+        <div class="stat-label">Protocols Decoded</div>
+      </div>
+      <div>
+        <div class="stat-num">3</div>
+        <div class="stat-label">Platforms</div>
+      </div>
+      <div>
+        <div class="stat-num">100k+</div>
+        <div class="stat-label">Rows Without Jank</div>
+      </div>
+      <div>
+        <div class="stat-num">p99</div>
+        <div class="stat-label">Latency Tracking</div>
+      </div>
+      <div>
+        <div class="stat-num">0</div>
+        <div class="stat-label">Cloud Dependencies</div>
+      </div>
+      <div>
+        <div class="stat-num">MIT</div>
+        <div class="stat-label">License</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-line"></div>
+
+<!-- ── PILLARS ── -->
+<section id="pillars">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Why NetScope</span>
+      <h2 class="section-title">Three tools. One platform.</h2>
+      <p class="section-sub">NetScope ships as three complementary pieces that work standalone or together as a unified observability stack.</p>
+    </div>
+    <div class="pillars-grid">
+      <div class="pillar-card reveal">
+        <div class="pillar-icon cyan">🖥️</div>
+        <h3>Desktop Application</h3>
+        <p>Wireshark-inspired 3-pane UI for macOS, Windows, and Linux. Live capture, GeoIP flags, threat badges, certificate audit, HTTP analytics, and a service dependency map — all without leaving the app.</p>
+      </div>
+      <div class="pillar-card reveal">
+        <div class="pillar-icon purple">⚡</div>
+        <h3>CLI Agent</h3>
+        <p>Headless <code>netscope-agent</code> for servers, containers, and CI environments. eBPF-powered capture on Linux requires no root at runtime. Streams flows to the hub or saves to JSONL.</p>
+      </div>
+      <div class="pillar-card reveal">
+        <div class="pillar-icon green">🌐</div>
+        <h3>SaaS Hub</h3>
+        <p>Multi-tenant Go API with Kafka ingestion and ClickHouse analytics. Real-time SSE streaming, RBAC, alerting with webhook & SMTP delivery, compliance reports, and a Next.js dashboard.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-line"></div>
+
+<!-- ── FEATURES ── -->
+<section id="features">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Features</span>
+      <h2 class="section-title">Everything you need to see your network clearly</h2>
+      <p class="section-sub">From kernel-level capture to fleet-wide dashboards — every layer of the stack is covered.</p>
+    </div>
+
+    <div class="tab-buttons reveal">
+      <button class="tab-btn active" onclick="switchTab('desktop', this)">🖥️ Desktop</button>
+      <button class="tab-btn" onclick="switchTab('capture', this)">📡 Capture & Decoding</button>
+      <button class="tab-btn" onclick="switchTab('hub', this)">🌐 Hub & Backend</button>
+      <button class="tab-btn" onclick="switchTab('security', this)">🔐 Security</button>
+    </div>
+
+    <!-- Desktop Tab -->
+    <div class="tab-panel active" id="tab-desktop">
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📋</div>
+            <h4>Virtualised Packet List</h4>
+          </div>
+          <p>Handles 100,000+ rows without jank using TanStack Virtual. Two-line rows show IP plus GeoIP / ASN sub-line. Auto-scrolls during live capture.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🌍</div>
+            <h4>GeoIP Enrichment</h4>
+          </div>
+          <p>MaxMind GeoLite2-City + ASN databases auto-loaded from ~/.netscope/. Country flag emoji and ASN on every row. Offline — no API calls, no rate limits.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">⚠️</div>
+            <h4>Threat Intelligence</h4>
+          </div>
+          <p>Offline CIDR blocklist covering Tor exits, C2 infrastructure, and port heuristics. Color-coded HIGH / MED / LOW badges with full reason breakdown in the detail pane.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🗺️</div>
+            <h4>Service Dependency Map</h4>
+          </div>
+          <p>SVG force-directed graph of all IP-to-IP connections. Nodes sized by flow count, edges colored by protocol. Pan, zoom, hover tooltips with geo & ASN data.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📊</div>
+            <h4>HTTP Analytics</h4>
+          </div>
+          <p>Per-endpoint p50 / p95 / p99 latency bars, error rates, and request counts. Updates live during capture. Sort by latency or error rate to pinpoint slow endpoints.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🛡️</div>
+            <h4>TLS Certificate Fleet</h4>
+          </div>
+          <p>Sidebar aggregates every TLS cert seen in the session sorted by severity: expired → critical (&lt;7d) → warning (&lt;30d) → valid. Red badge count on toolbar.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">⛓️</div>
+            <h4>Hub Connect Mode</h4>
+          </div>
+          <p>Query historical fleet-wide flows from a running hub directly inside the desktop UI. Hub flows merge with local capture, tagged with a blue badge.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">💾</div>
+            <h4>Session Persistence</h4>
+          </div>
+          <p>Save and load .nscope sessions (SQLite). Sessions survive restart and are forward-compatible — new fields default gracefully when loading older files.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔍</div>
+            <h4>Live Filtering</h4>
+          </div>
+          <p>Protocol shortcuts (http, dns, tls, errors, threats, hub) plus free-text IP/port/keyword search apply instantly. BPF expressions pre-filter at the kernel level.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Capture Tab -->
+    <div class="tab-panel" id="tab-capture">
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📡</div>
+            <h4>eBPF Agent (Linux)</h4>
+          </div>
+          <p>Kernel-side eBPF program for high-throughput capture without root at runtime. Complements the libpcap path and scales to cloud-native environments.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔄</div>
+            <h4>TCP Reassembly</h4>
+          </div>
+          <p>Out-of-order segment buffering, retransmission counting, stream fragmentation handling. SYN/FIN/RST state machine per connection keyed by 4-tuple.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🌐</div>
+            <h4>HTTP/1.1 Decoding</h4>
+          </div>
+          <p>Full request/response pairing via httparse. Extracts method, path, host, status, all headers, body preview (512 bytes), and per-request latency.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">⚡</div>
+            <h4>HTTP/2 + gRPC</h4>
+          </div>
+          <p>Binary frame walker with HPACK header decompression. Stream ID pairing, per-stream latency measurement. gRPC service/method extraction from :path and grpc-status.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔒</div>
+            <h4>TLS Handshake Inspection</h4>
+          </div>
+          <p>ClientHello SNI + cipher suites, ServerHello negotiated version, Certificate CN/SANs/expiry, Alert decoding. Detects weak ciphers (RC4, 3DES, NULL, EXPORT).</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔎</div>
+            <h4>DNS Decoding</h4>
+          </div>
+          <p>Query/response pairing from DNS wire format. Supports A, AAAA, CNAME, MX, TXT, PTR record types. Extracts RCODE and TTLs from every answer section.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📶</div>
+            <h4>ICMP &amp; ARP</h4>
+          </div>
+          <p>Echo request/reply with RTT measurement. ARP who-has/is-at with sender and target IP/MAC pairs. Human-readable type/code strings for all ICMP messages.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🎯</div>
+            <h4>BPF Filters</h4>
+          </div>
+          <p>Pre-filter packets at the kernel level using standard BPF expressions: tcp port 443, host 8.8.8.8, not arp — dramatically reduces CPU overhead at high traffic rates.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hub Tab -->
+    <div class="tab-panel" id="tab-hub">
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📥</div>
+            <h4>Flow Ingestion</h4>
+          </div>
+          <p>Agents POST batches via /api/v1/ingest. Kafka path for high-throughput with direct ClickHouse write as fallback. Async batch writer keeps latency low.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📡</div>
+            <h4>Real-time SSE Stream</h4>
+          </div>
+          <p>GET /api/v1/flows/stream fans out to all connected dashboard clients instantly. Rate-limited per-client to prevent runaway subscribers from overwhelming the server.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📈</div>
+            <h4>ClickHouse Analytics</h4>
+          </div>
+          <p>Time-series flow counts, per-endpoint p50/p95/p99 latency, DNS NXDOMAIN rates. Per-minute timeseries with 1h/6h/24h ranges rendered with Recharts in the dashboard.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔔</div>
+            <h4>Smart Alerting</h4>
+          </div>
+          <p>Configurable threshold rules: flows/min, HTTP error rate, DNS NXDOMAIN rate, anomaly σ. Webhook + SMTP delivery with exponential back-off retry (1s → 5s → 30s).</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📋</div>
+            <h4>Compliance Reports</h4>
+          </div>
+          <p>One-click PCI-DSS, HIPAA, and CIS benchmark report generation from ClickHouse data. Schedule and export to share with auditors and security teams.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔑</div>
+            <h4>RBAC &amp; Scoped Tokens</h4>
+          </div>
+          <p>Admin/viewer roles on API tokens. RequireAdmin middleware gates all write endpoints. Enrolled agents receive a unique viewer-scoped token — never the global admin key.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📓</div>
+            <h4>Audit Log</h4>
+          </div>
+          <p>Every authenticated API call recorded to audit_events: token ID, role, method, path, status, latency, and client IP. Queryable via GET /api/v1/audit with 90-day TTL.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">☸️</div>
+            <h4>Kubernetes Ready</h4>
+          </div>
+          <p>Helm chart and manifests for deploying hub + ClickHouse + Kafka in-cluster. OpenTelemetry export to any OTLP-compatible backend. CI/CD matrix builds all platforms.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Tab -->
+    <div class="tab-panel" id="tab-security">
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔏</div>
+            <h4>API Key Proxy</h4>
+          </div>
+          <p>Server-side Next.js proxy injects HUB_API_KEY from server-only env vars. API keys never reach the browser bundle. SSE stream URL has no api_key= query parameter.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🚫</div>
+            <h4>SSRF Prevention</h4>
+          </div>
+          <p>Webhook URLs are validated against all RFC 1918 private ranges, loopback, link-local, carrier-NAT, and IPv6 private ranges — at create, update, AND fire time (DNS rebinding defence).</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🪝</div>
+            <h4>HMAC Webhook Signatures</h4>
+          </div>
+          <p>Every webhook delivery includes X-NetScope-Signature: sha256=&lt;hmac&gt; computed with a per-rule secret. Verify payloads are authentic before processing in your receiver.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🛡️</div>
+            <h4>Security Headers</h4>
+          </div>
+          <p>X-Content-Type-Options, X-Frame-Options: DENY, X-XSS-Protection, Referrer-Policy, and Permissions-Policy on every API response. Tauri CSP restricted to a minimal allowlist.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🗄️</div>
+            <h4>Credential Safety</h4>
+          </div>
+          <p>Startup fails loudly if PRODUCTION=true and default ClickHouse credentials are in use. CORS wildcard is refused in production mode. METRICS_TOKEN protects Prometheus scraping.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔒</div>
+            <h4>Parameterised Queries</h4>
+          </div>
+          <p>All ClickHouse queries use parameterised placeholders — no string interpolation. Error messages are sanitised before reaching HTTP responses to prevent information leakage.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-line"></div>
+
+<!-- ── TERMINAL DEMO ── -->
+<section id="demo" style="padding: 6rem 0;">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Quick Start</span>
+      <h2 class="section-title">Up and running in minutes</h2>
+      <p class="section-sub">The CLI agent works out of the box. Point it at an interface and start seeing traffic.</p>
+    </div>
+    <div class="terminal reveal">
+      <div class="terminal-bar">
+        <span class="t-red"></span>
+        <span class="t-yellow"></span>
+        <span class="t-green"></span>
+      </div>
+      <div><span class="comment"># List available network interfaces</span></div>
+      <div><span class="prompt">$</span> <span class="cmd">netscope-agent</span> <span class="flag">list-interfaces</span></div>
+      <div><span class="out">  en0   Wi-Fi — 192.168.1.5</span></div>
+      <div><span class="out">  lo0   Loopback — 127.0.0.1</span></div>
+      <br/>
+      <div><span class="comment"># Capture with BPF filter and stream to hub</span></div>
+      <div><span class="prompt">$</span> <span class="cmd">netscope-agent</span> <span class="flag">capture</span> \</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">--interface</span> <span class="val">en0</span> \</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">--filter</span> <span class="val">"tcp port 443 or udp port 53"</span> \</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">--hub-url</span> <span class="val">https://hub.netscope.ie</span> \</div>
+      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">--api-key</span> <span class="val">ns_your_token_here</span></div>
+      <br/>
+      <div><span class="out">✓ GeoLite2-City loaded (~720ms)</span></div>
+      <div><span class="out">✓ Connected to hub at hub.netscope.ie</span></div>
+      <div><span class="out">✓ Capture started on en0 [BPF: tcp port 443 or udp port 53]</span></div>
+      <div><span class="out">→ TLS  192.168.1.5:52341 → 142.250.80.46:443  [google.com]  cipher=TLS_AES_256_GCM  🇺🇸 AS15169</span></div>
+      <div><span class="out">→ DNS  192.168.1.5:53891 → 8.8.8.8:53  A github.com → 140.82.121.4  ttl=60s</span></div>
+      <div><span class="out">→ TLS  192.168.1.5:52345 → 140.82.121.4:443  [github.com]  cipher=TLS_CHACHA20  🇺🇸 AS36459</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PROTOCOLS ── -->
+<section id="protocols">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Protocol Support</span>
+      <h2 class="section-title">Deep decode, not just headers</h2>
+      <p class="section-sub">Every protocol is decoded to its semantic layer — not just packets.</p>
+    </div>
+    <div class="protocols-grid reveal">
+      <div class="proto-card">
+        <div class="proto-name">HTTP/1.1</div>
+        <div class="proto-desc">Full req/res pairing, headers, body preview, latency</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-name">HTTP/2</div>
+        <div class="proto-desc">Binary frames, HPACK, stream pairing, per-stream RTT</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-name">gRPC</div>
+        <div class="proto-desc">Service/method extraction, grpc-status from trailers</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-name">TLS 1.2/1.3</div>
+        <div class="proto-desc">SNI, cipher suites, certs, SANs, expiry, alerts</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-name">DNS</div>
+        <div class="proto-desc">A, AAAA, CNAME, MX, TXT, PTR, RCODE, TTLs</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-name">TCP</div>
+        <div class="proto-desc">Reassembly, retransmissions, OOO segments, RTT</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-name">ICMP</div>
+        <div class="proto-desc">Echo req/reply, RTT, type/code human strings</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-name">ARP</div>
+        <div class="proto-desc">Who-has / is-at, sender + target IP/MAC</div>
+      </div>
+      <div class="proto-card">
+        <div class="proto-name">eBPF</div>
+        <div class="proto-desc">Kernel-level capture, no root required (Linux)</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-line"></div>
+
+<!-- ── ARCHITECTURE ── -->
+<section id="architecture">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Architecture</span>
+      <h2 class="section-title">Every layer designed to scale</h2>
+      <p class="section-sub">From kernel-level eBPF capture to ClickHouse analytics — a coherent data path from bytes to insight.</p>
+    </div>
+
+    <div class="arch-visual reveal">
+
+      <!-- Layer 1: Desktop -->
+      <div class="arch-layer layer-desktop">
+        <div class="arch-layer-title cyan">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          NetScope Desktop &nbsp;·&nbsp; macOS / Windows / Linux
+        </div>
+        <div class="arch-cols">
+          <div>
+            <div class="arch-col-label">React Frontend</div>
+            <div class="arch-chips">
+              <span class="arch-chip">PacketListPane</span>
+              <span class="arch-chip">ServiceMapPane</span>
+              <span class="arch-chip">AnalyticsPane</span>
+              <span class="arch-chip">CertSidebar</span>
+              <span class="arch-chip">HubConnectModal</span>
+              <span class="arch-chip">FilterBar</span>
+              <span class="arch-chip">HexDumpPane</span>
+              <span class="arch-chip">Zustand store</span>
+            </div>
+          </div>
+          <div>
+            <div class="arch-col-label">Tauri Backend (Rust)</div>
+            <div class="arch-chips">
+              <span class="arch-chip">GeoIP reader</span>
+              <span class="arch-chip">Threat scorer</span>
+              <span class="arch-chip">Hub client</span>
+              <span class="arch-chip">SQLite sessions</span>
+              <span class="arch-chip">SharedState</span>
+              <span class="arch-chip">IPC commands</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connector 1 -->
+      <div class="arch-connector">
+        <div class="arch-connector-line"></div>
+        <div class="arch-connector-label">spawns OS thread</div>
+        <div class="arch-connector-line"></div>
+      </div>
+
+      <!-- Layer 2: Rust Agent -->
+      <div class="arch-layer layer-agent">
+        <div class="arch-layer-title purple">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Rust Agent Crates
+        </div>
+        <div class="arch-cols">
+          <div>
+            <div class="arch-col-label">Capture</div>
+            <div class="arch-chips">
+              <span class="arch-chip">capture</span>
+              <span class="arch-chip">tcp_stream</span>
+              <span class="arch-chip">ebpf-loader</span>
+            </div>
+          </div>
+          <div>
+            <div class="arch-col-label">Parse &amp; Emit</div>
+            <div class="arch-chips">
+              <span class="arch-chip">parser (HTTP/1.1)</span>
+              <span class="arch-chip">http2 + gRPC</span>
+              <span class="arch-chip">dns · tls · icmp · arp</span>
+              <span class="arch-chip">proto (shared types)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connector 2 -->
+      <div class="arch-connector">
+        <div class="arch-connector-line"></div>
+        <div class="arch-connector-label">raw frames</div>
+        <div class="arch-connector-line"></div>
+      </div>
+
+      <!-- Layer 3: Network -->
+      <div class="arch-layer layer-network">
+        <div class="arch-layer-title yellow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
+          Network Interface &nbsp;·&nbsp; libpcap / Npcap / eBPF kernel program
+        </div>
+        <div class="arch-chips">
+          <span class="arch-chip">en0 (Wi-Fi)</span>
+          <span class="arch-chip">eth0 (Ethernet)</span>
+          <span class="arch-chip">BPF filter</span>
+          <span class="arch-chip">promiscuous mode</span>
+          <span class="arch-chip">eBPF (Linux, no root)</span>
+        </div>
+      </div>
+
+      <!-- Connector 3 -->
+      <div class="arch-connector">
+        <div class="arch-connector-line"></div>
+        <div class="arch-connector-label">HTTPS &nbsp;·&nbsp; POST /api/v1/ingest</div>
+        <div class="arch-connector-line"></div>
+      </div>
+
+      <!-- Layer 4: Hub -->
+      <div class="arch-layer layer-hub">
+        <div class="arch-layer-title green">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          NetScope Hub &nbsp;·&nbsp; Go API + ClickHouse + Kafka + Next.js 14
+        </div>
+        <div class="arch-hub-grid">
+          <div class="arch-hub-col">
+            <div class="arch-col-label">Ingestion</div>
+            <div class="arch-chips">
+              <span class="arch-chip">Kafka producer</span>
+              <span class="arch-chip">ClickHouse writer</span>
+              <span class="arch-chip">SSE fan-out</span>
+              <span class="arch-chip">GeoIP enrichment</span>
+            </div>
+          </div>
+          <div class="arch-hub-col">
+            <div class="arch-col-label">Security &amp; Ops</div>
+            <div class="arch-chips">
+              <span class="arch-chip">RBAC tokens</span>
+              <span class="arch-chip">Audit log (90d)</span>
+              <span class="arch-chip">SSRF protection</span>
+              <span class="arch-chip">Rate limiting</span>
+            </div>
+          </div>
+          <div class="arch-hub-col">
+            <div class="arch-col-label">Next.js Dashboard</div>
+            <div class="arch-chips">
+              <span class="arch-chip">FlowsChart</span>
+              <span class="arch-chip">ProtocolChart</span>
+              <span class="arch-chip">AlertsPage</span>
+              <span class="arch-chip">AuditLog viewer</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /arch-visual -->
+  </div>
+</section>
+
+<div class="glow-line"></div>
+
+<!-- ── ROADMAP ── -->
+<section id="roadmap">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Roadmap</span>
+      <h2 class="section-title">Built in the open. Growing fast.</h2>
+      <p class="section-sub">10 phases shipped. More depth and integrations on the way.</p>
+    </div>
+    <div class="roadmap-grid">
+      <!-- Done -->
+      <div class="reveal">
+        <h3><span style="color:var(--green)">✓</span> Shipped</h3>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
+          <div>
+            <div class="rm-text">Phase 1 — Rust CLI agent</div>
+            <div class="rm-sub">libpcap capture, HTTP/1.1 + DNS parsers, TCP reassembler</div>
+          </div>
+        </div>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
+          <div>
+            <div class="rm-text">Phase 2 — Tauri desktop GUI</div>
+            <div class="rm-sub">Virtualised packet list, hex dump, detail tree, session persistence, CI</div>
+          </div>
+        </div>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
+          <div>
+            <div class="rm-text">Phase 3 — SaaS Hub</div>
+            <div class="rm-sub">Go/Fiber REST API, Kafka, ClickHouse analytics, Next.js 14 dashboard</div>
+          </div>
+        </div>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
+          <div>
+            <div class="rm-text">Phase 4 — Protocol expansion</div>
+            <div class="rm-sub">TLS handshake parsing, TCP retransmissions, ICMP, ARP</div>
+          </div>
+        </div>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
+          <div>
+            <div class="rm-text">Phase 5 — Analytics &amp; export</div>
+            <div class="rm-sub">Service dependency map, HTTP endpoint analytics, OpenTelemetry export</div>
+          </div>
+        </div>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
+          <div>
+            <div class="rm-text">Phase 6 — Enterprise features</div>
+            <div class="rm-sub">Fleet management, TLS cert viewer, anomaly detection, RBAC</div>
+          </div>
+        </div>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
+          <div>
+            <div class="rm-text">Phase 7 — Alerting &amp; Kubernetes</div>
+            <div class="rm-sub">Webhook alert rules, compliance reports (PCI-DSS, HIPAA, CIS), Helm chart</div>
+          </div>
+        </div>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
+          <div>
+            <div class="rm-text">Phase 8 — eBPF agent + enrichment</div>
+            <div class="rm-sub">Kernel-side eBPF capture, GeoIP + threat intelligence hub and desktop</div>
+          </div>
+        </div>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
+          <div>
+            <div class="rm-text">Phase 9 — Production foundation</div>
+            <div class="rm-sub">HTTP/2 + gRPC decoder, scoped agent tokens, audit log, alert retry, SSE rate limit</div>
+          </div>
+        </div>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
+          <div>
+            <div class="rm-text">Desktop upgrade + security hardening</div>
+            <div class="rm-sub">GeoIP, threat badges, Hub Connect, cert sidebar, analytics map; SSRF, HMAC, proxy, CSP</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coming soon -->
+      <div class="reveal">
+        <h3><span style="color:var(--purple)">◈</span> Coming Soon</h3>
+        <div class="roadmap-item coming">
+          <div class="rm-dot coming">→</div>
+          <div>
+            <div class="rm-text">Phase 11 — Desktop customer readiness</div>
+            <div class="rm-sub">Polished onboarding, license management, auto-update, crash reporting</div>
+          </div>
+        </div>
+        <div class="roadmap-item coming">
+          <div class="rm-dot coming">→</div>
+          <div>
+            <div class="rm-text">K8s metadata enrichment</div>
+            <div class="rm-sub">Pod name, namespace, and labels injected from eBPF via the Kubernetes API</div>
+          </div>
+        </div>
+        <div class="roadmap-item coming">
+          <div class="rm-dot coming">→</div>
+          <div>
+            <div class="rm-text">WASM plugin SDK</div>
+            <div class="rm-sub">Write custom protocol parsers in any language that compiles to WebAssembly</div>
+          </div>
+        </div>
+        <div class="roadmap-item coming">
+          <div class="rm-dot coming">→</div>
+          <div>
+            <div class="rm-text">OTel trace → packet drill-down</div>
+            <div class="rm-sub">Click a slow span in your trace viewer and jump directly to the raw packets</div>
+          </div>
+        </div>
+        <div class="roadmap-item coming">
+          <div class="rm-dot coming">→</div>
+          <div>
+            <div class="rm-text">AI-powered anomaly detection</div>
+            <div class="rm-sub">Baseline your traffic and get alerted on statistical deviations in real time</div>
+          </div>
+        </div>
+        <div class="roadmap-item coming">
+          <div class="rm-dot coming">→</div>
+          <div>
+            <div class="rm-text">Cloud provider connectors</div>
+            <div class="rm-sub">VPC Flow Logs from AWS / GCP / Azure ingested directly into the hub</div>
+          </div>
+        </div>
+        <div class="roadmap-item coming">
+          <div class="rm-dot coming">→</div>
+          <div>
+            <div class="rm-text">PCAPs export &amp; replay</div>
+            <div class="rm-sub">Export any session or hub query as a standard .pcap for offline analysis in Wireshark</div>
+          </div>
+        </div>
+        <div class="roadmap-item coming">
+          <div class="rm-dot coming">→</div>
+          <div>
+            <div class="rm-text">Mobile app (iOS / Android)</div>
+            <div class="rm-sub">Monitor hub dashboards and receive alert push notifications on the go</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-line"></div>
+
+<!-- ── DOWNLOAD ── -->
+<section id="download">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Download</span>
+      <h2 class="section-title">Runs everywhere your team does</h2>
+      <p class="section-sub">Pre-built binaries for every major platform. No account. No subscription.</p>
+    </div>
+
+    <div class="download-platforms reveal">
+
+      <!-- macOS Apple Silicon -->
+      <div class="dl-card">
+        <div class="dl-card-head">
+          <div class="dl-os-icon">🍎</div>
+          <div>
+            <div class="dl-os-name">macOS</div>
+            <div class="dl-os-sub">Apple Silicon (M1/M2/M3/M4)</div>
+          </div>
+        </div>
+        <div class="dl-variants">
+          <a href="https://github.com/Libinm264/netscope/releases/latest" target="_blank" class="dl-btn">
+            <span>NetScope (ARM64)</span>
+            <span class="dl-btn-ext">.dmg</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- macOS Intel -->
+      <div class="dl-card">
+        <div class="dl-card-head">
+          <div class="dl-os-icon">🍎</div>
+          <div>
+            <div class="dl-os-name">macOS</div>
+            <div class="dl-os-sub">Intel (x86_64)</div>
+          </div>
+        </div>
+        <div class="dl-variants">
+          <a href="https://github.com/Libinm264/netscope/releases/latest" target="_blank" class="dl-btn">
+            <span>NetScope (x64)</span>
+            <span class="dl-btn-ext">.dmg</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Windows -->
+      <div class="dl-card">
+        <div class="dl-card-head">
+          <div class="dl-os-icon">🪟</div>
+          <div>
+            <div class="dl-os-name">Windows</div>
+            <div class="dl-os-sub">Windows 10/11 (x64) · Requires Npcap</div>
+          </div>
+        </div>
+        <div class="dl-variants">
+          <a href="https://github.com/Libinm264/netscope/releases/latest" target="_blank" class="dl-btn">
+            <span>NetScope Installer</span>
+            <span class="dl-btn-ext">.msi</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Linux AppImage -->
+      <div class="dl-card">
+        <div class="dl-card-head">
+          <div class="dl-os-icon">🐧</div>
+          <div>
+            <div class="dl-os-name">Linux</div>
+            <div class="dl-os-sub">Any distro (x86_64) · Portable</div>
+          </div>
+        </div>
+        <div class="dl-variants">
+          <a href="https://github.com/Libinm264/netscope/releases/latest" target="_blank" class="dl-btn">
+            <span>NetScope Portable</span>
+            <span class="dl-btn-ext">.AppImage</span>
+          </a>
+          <a href="https://github.com/Libinm264/netscope/releases/latest" target="_blank" class="dl-btn">
+            <span>NetScope Package</span>
+            <span class="dl-btn-ext">.deb</span>
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /download-platforms -->
+
+    <!-- CLI Agent note -->
+    <div class="dl-note reveal">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>
+        <strong style="color:var(--text)">Build from source or deploy the CLI agent</strong> — the headless <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px">netscope-agent</code> binary ships in the same release and is ideal for servers, containers, and CI environments.
+        Run <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px">cargo build --release</code> in <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px">agent/</code> or grab the binary from the <a href="https://github.com/Libinm264/netscope/releases/latest" target="_blank" style="color:var(--cyan)">Releases page</a>.
+      </div>
+    </div>
+
+    <!-- macOS Gatekeeper note -->
+    <div class="dl-note reveal" style="margin-top:.75rem; background:rgba(245,158,11,0.04); border-color:rgba(245,158,11,0.15);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <div style="color:var(--muted)">
+        <strong style="color:var(--yellow)">macOS tip:</strong> If Gatekeeper blocks the app, run
+        <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px">xattr -cr /Applications/NetScope.app</code> in Terminal.
+        On <strong>Windows</strong>, install <a href="https://npcap.com" target="_blank" style="color:var(--cyan)">Npcap</a> first and run as Administrator for packet capture.
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="glow-line"></div>
+
+<!-- ── TECH STACK ── -->
+<section id="techstack">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Technology</span>
+      <h2 class="section-title">Best-in-class stack, carefully chosen</h2>
+      <p class="section-sub">No bloat. Every dependency earns its place.</p>
+    </div>
+    <div class="tech-categories reveal">
+      <div class="tech-col">
+        <div class="tech-col-title">🦀 Rust Agent &amp; Desktop Backend</div>
+        <span class="tech-pill">tokio</span>
+        <span class="tech-pill">pcap</span>
+        <span class="tech-pill">etherparse</span>
+        <span class="tech-pill">httparse</span>
+        <span class="tech-pill">hpack</span>
+        <span class="tech-pill">maxminddb</span>
+        <span class="tech-pill">ipnet</span>
+        <span class="tech-pill">reqwest</span>
+        <span class="tech-pill">sqlx</span>
+        <span class="tech-pill">serde</span>
+        <span class="tech-pill">tracing</span>
+        <span class="tech-pill">clap</span>
+      </div>
+      <div class="tech-col">
+        <div class="tech-col-title">🪟 Desktop App</div>
+        <span class="tech-pill">Tauri 2.x</span>
+        <span class="tech-pill">React 18</span>
+        <span class="tech-pill">TypeScript</span>
+        <span class="tech-pill">Zustand</span>
+        <span class="tech-pill">TanStack Virtual</span>
+        <span class="tech-pill">Tailwind CSS</span>
+        <span class="tech-pill">Lucide React</span>
+        <span class="tech-pill">Vite 6</span>
+        <span class="tech-pill">shadcn/ui</span>
+      </div>
+      <div class="tech-col">
+        <div class="tech-col-title">🐹 Hub Backend</div>
+        <span class="tech-pill">Go 1.22</span>
+        <span class="tech-pill">Fiber v2</span>
+        <span class="tech-pill">ClickHouse</span>
+        <span class="tech-pill">Apache Kafka</span>
+        <span class="tech-pill">franz-go</span>
+        <span class="tech-pill">MaxMind GeoIP2</span>
+        <span class="tech-pill">net/smtp</span>
+        <span class="tech-pill">Prometheus</span>
+      </div>
+      <div class="tech-col">
+        <div class="tech-col-title">🌐 Hub Dashboard</div>
+        <span class="tech-pill">Next.js 14</span>
+        <span class="tech-pill">App Router</span>
+        <span class="tech-pill">Recharts</span>
+        <span class="tech-pill">TypeScript</span>
+        <span class="tech-pill">Tailwind CSS</span>
+        <span class="tech-pill">SSE streaming</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-line"></div>
+
+<!-- ── CTA ── -->
+<section id="cta">
+  <div class="container">
+    <h2>Start seeing your network clearly.<br/><span class="gradient-text">Today. For free.</span></h2>
+    <p>Download the desktop app, deploy the CLI agent, or self-host the hub. MIT licensed. No telemetry. No lock-in.</p>
+    <div class="cta-actions">
+      <a href="#download" class="btn btn-primary btn-lg">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download Free
+      </a>
+      <a href="https://github.com/Libinm264/netscope" target="_blank" class="btn btn-ghost btn-lg">
+        View Source on GitHub
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div style="display:flex; align-items:center; gap:.5rem; font-weight:700; color:var(--text);">
+        <svg width="20" height="20" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="14" r="13" stroke="#00d4ff" stroke-width="1.5" opacity=".4"/><circle cx="14" cy="14" r="4" fill="#00d4ff"/><line x1="14" y1="2" x2="14" y2="10" stroke="#00d4ff" stroke-width="1.5"/><line x1="14" y1="18" x2="14" y2="26" stroke="#00d4ff" stroke-width="1.5"/><line x1="2" y1="14" x2="10" y2="14" stroke="#00d4ff" stroke-width="1.5"/><line x1="18" y1="14" x2="26" y2="14" stroke="#00d4ff" stroke-width="1.5"/></svg>
+        NetScope
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/Libinm264/netscope" target="_blank">GitHub</a>
+        <a href="https://github.com/Libinm264/netscope/releases" target="_blank">Releases</a>
+        <a href="https://github.com/Libinm264/netscope/blob/main/README.md" target="_blank">Docs</a>
+        <a href="https://github.com/Libinm264/netscope/blob/main/LICENSE" target="_blank">MIT License</a>
+      </div>
+      <div>Built with Rust · Go · React · ClickHouse &nbsp;·&nbsp; MIT License</div>
+    </div>
+  </div>
+</footer>
+
+<!-- ── SCRIPTS ── -->
+<script>
+  // ── Network particle canvas ──
+  const canvas = document.getElementById('canvas-bg');
+  const ctx = canvas.getContext('2d');
+  let W, H, nodes, animId;
+
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function initNodes() {
+    nodes = Array.from({ length: 65 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: (Math.random() - .5) * .35,
+      vy: (Math.random() - .5) * .35,
+      r: Math.random() * 2 + 1,
+    }));
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    const D = 160;
+
+    for (let i = 0; i < nodes.length; i++) {
+      const a = nodes[i];
+      a.x += a.vx; a.y += a.vy;
+      if (a.x < 0 || a.x > W) a.vx *= -1;
+      if (a.y < 0 || a.y > H) a.vy *= -1;
+
+      for (let j = i + 1; j < nodes.length; j++) {
+        const b = nodes[j];
+        const dx = a.x - b.x, dy = a.y - b.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < D) {
+          const alpha = (1 - dist / D) * 0.5;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = `rgba(0,212,255,${alpha * 0.6})`;
+          ctx.lineWidth = .5;
+          ctx.stroke();
+        }
+      }
+
+      ctx.beginPath();
+      ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
+      ctx.fillStyle = Math.random() > .7 ? 'rgba(124,58,237,0.7)' : 'rgba(0,212,255,0.7)';
+      ctx.fill();
+    }
+
+    animId = requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', () => { resize(); initNodes(); });
+  resize(); initNodes(); draw();
+
+  // ── Tab switching ──
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── Scroll reveal ──
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // ── Animated counter ──
+  function animateCounters() {
+    document.querySelectorAll('.stat-num').forEach(el => {
+      const target = el.textContent;
+      const num = parseFloat(target);
+      if (isNaN(num)) return;
+      const suffix = target.replace(num.toString(), '');
+      const prefix = '';
+      let start = 0;
+      const step = num / 40;
+      const interval = setInterval(() => {
+        start += step;
+        if (start >= num) { el.textContent = target; clearInterval(interval); return; }
+        el.textContent = prefix + (Number.isInteger(num) ? Math.floor(start) : start.toFixed(1)) + suffix;
+      }, 30);
+    });
+  }
+
+  const statsObserver = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) { animateCounters(); statsObserver.disconnect(); }
+  }, { threshold: 0.5 });
+
+  const statsEl = document.getElementById('stats');
+  if (statsEl) statsObserver.observe(statsEl);
+</script>
+</body>
+</html>
