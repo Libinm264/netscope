@@ -42,6 +42,7 @@ Real-time packet capture · Deep protocol inspection · GeoIP & threat intellige
   - [TLS Certificate Fleet](#tls-certificate-fleet)
   - [HTTP Analytics](#http-analytics)
   - [Service Dependency Map](#service-dependency-map)
+  - [Hub Dashboard](#hub-dashboard)
   - [Saving and Loading Sessions](#saving-and-loading-sessions)
 - [Development](#development)
 - [CI / CD](#ci--cd)
@@ -104,10 +105,13 @@ It ships as three complementary pieces:
 | Feature | Description |
 |---|---|
 | **Flow ingestion** | Agents POST batches via `POST /api/v1/ingest`; Kafka path for high-throughput, direct ClickHouse write as fallback |
-| **Real-time SSE stream** | `GET /api/v1/flows/stream` — fan-out to all connected dashboard clients |
+| **Real-time SSE stream** | `GET /api/v1/flows/stream` — fan-out via `pubsub.Hub` interface (InMemoryHub now; swap for RedisHub for multi-pod) |
 | **ClickHouse analytics** | Time-series queries, per-endpoint stats, p50/p95/p99 latency, DNS NXDOMAIN rates |
+| **Time-series metrics** | `GET /api/v1/metrics/timeseries?hours=N` — per-minute flow counts; `GET /api/v1/metrics/protocols` — per-protocol breakdown |
 | **GeoIP + threat enrichment** | Hub-side enrichment on ingest; data available to all downstream consumers |
-| **Alert rules** | Configurable thresholds (flows/min, HTTP error rate, DNS NXDOMAIN rate, anomaly σ); webhook delivery with exponential back-off retry (1 s → 5 s → 30 s, 3 attempts) |
+| **Alert rules** | Configurable thresholds (flows/min, HTTP error rate, DNS NXDOMAIN rate, anomaly σ); 6 delivery channels: webhook, Slack, PagerDuty, OpsGenie, Teams, **Email (SMTP)**; exponential back-off retry (1 s → 5 s → 30 s) |
+| **HMAC webhook signatures** | Every webhook delivery includes `X-NetScope-Signature: sha256=<hmac>` using a per-rule secret generated at creation time |
+| **Agent heartbeat** | `POST /api/v1/agents/heartbeat` — agents call periodically; updates `last_seen` via ReplacingMergeTree insert |
 | **TLS certificate fleet** | Certs extracted from ingested TLS flows; expiry dashboard across entire agent fleet |
 | **RBAC** | `admin` / `viewer` roles on API tokens; `RequireAdmin` middleware on write endpoints |
 | **Audit log** | Every authenticated API call recorded to `audit_events` (ClickHouse): token ID, role, method, path, status, latency, client IP. Queryable via `GET /api/v1/audit` (admin only). 90-day TTL. |
@@ -115,6 +119,18 @@ It ships as three complementary pieces:
 | **Compliance reporting** | PCI-DSS, HIPAA, CIS benchmark report generation |
 | **OpenTelemetry export** | Forward flow metrics to any OTLP-compatible backend |
 | **Kubernetes** | Helm chart + manifests for deploying hub + ClickHouse + Kafka in-cluster |
+
+### Hub Dashboard (Next.js)
+
+| Feature | Description |
+|---|---|
+| **Flow rate chart** | Recharts `LineChart` showing flows/minute; 1h / 6h / 24h toggle; 30-second auto-refresh |
+| **Protocol donut chart** | `PieChart` (donut) with per-protocol counts and percentage tooltips; auto-refresh |
+| **Live feed** | Real-time SSE-driven flow table — last 100 flows, protocol badges, auto-scroll |
+| **Flow Explorer** | Filterable table: protocol, source IP, **destination IP**, time range; one-click **CSV export**; supports TLS / HTTPS / HTTP/2 / gRPC / ICMP / ARP protocol filters |
+| **Alert management** | Full CRUD for alert rules; email integration type; **webhook secret one-time reveal** after creation |
+| **Audit log viewer** | Scrollable table of the last 100 API events — method, path, HTTP status (colour-coded), role, IP, latency — in Settings |
+| **API & enrollment tokens** | Create / revoke scoped API tokens and short-lived enrollment tokens; install-command generator |
 
 ---
 
@@ -283,17 +299,21 @@ Tracks active TCP connections keyed by `(src_ip, dst_ip, src_port, dst_port)`. B
 
 | Package | Responsibility |
 |---|---|
-| `handlers/flows.go` | `POST /ingest`, `GET /flows`, `GET /flows/stream` (SSE); Kafka or direct ClickHouse write |
+| `handlers/flows.go` | `POST /ingest`, `GET /flows`, `GET /flows/stream` (SSE); Hub interface injected — no package globals |
 | `handlers/analytics.go` | `GET /analytics/endpoints` — per-endpoint latency percentiles and error rates |
+| `handlers/metrics.go` | `GET /metrics/timeseries` (per-minute counts), `GET /metrics/protocols` (per-protocol breakdown) |
+| `handlers/agents.go` | Agent registration (`POST /agents/register`) and heartbeat (`POST /agents/heartbeat`) |
 | `handlers/certs.go` | `GET /certs` — TLS cert fleet listing with expiry summary |
 | `handlers/services.go` | `GET /services` — service dependency graph data |
-| `handlers/alerts.go` | CRUD for alert rules; `GET /alert-events` |
+| `handlers/alerts.go` | CRUD for alert rules; generates `webhook_secret` on create; `GET /alert-events` |
 | `handlers/compliance.go` | PCI-DSS, HIPAA, CIS report generation |
-| `handlers/fleet.go` | Agent registration and heartbeat |
-| `alerting/evaluator.go` | Background rule evaluator; metric computation; webhook firing |
+| `handlers/audit.go` | `GET /audit` — queryable audit log (admin only); filter by token, status, limit |
+| `alerting/evaluator.go` | Background rule evaluator; metric computation; dispatches to `FireAlert` with SMTP config |
+| `alerting/delivery.go` | Multi-channel delivery: webhook (HMAC-signed), Slack, PagerDuty, OpsGenie, Teams, Email; exponential back-off |
+| `alerting/smtp.go` | stdlib `net/smtp` email delivery; HTML template with org branding and deep-link to hub |
+| `pubsub/hub.go` | `Hub` interface + `InMemoryHub`; swap for `RedisHub` to support multi-pod deployments |
 | `middleware/auth.go` | `TokenAuth` — API key validation against ClickHouse `api_tokens`; stores `role` + `token_id` in context; `RequireAdmin` role gate |
 | `middleware/audit.go` | `AuditLog` — fires after every authenticated handler; writes `audit_events` row asynchronously |
-| `handlers/audit.go` | `GET /audit` — queryable audit log (admin only); filter by token, status, limit |
 | `geoip/` | MaxMind GeoLite2 reader for hub-side enrichment |
 | `threat/` | Threat scorer for hub-side enrichment on ingest |
 | `kafka/` | Franz-go producer; `Publish` method with fallback to direct write |
@@ -375,9 +395,12 @@ netscope/
 └── hub/
     ├── api/                        # Go/Fiber REST API
     │   ├── main.go
-    │   ├── config/
-    │   ├── handlers/               # HTTP handlers (flows, analytics, certs, alerts…)
-    │   ├── alerting/               # Rule evaluator + webhook delivery
+    │   ├── config/                 # Env-var config (incl. SMTP, AppURL, OrgName)
+    │   ├── pubsub/hub.go           # Hub interface + InMemoryHub (Redis-ready SSE fan-out)
+    │   ├── handlers/               # HTTP handlers (flows, analytics, certs, alerts, metrics…)
+    │   │   └── metrics.go          # Timeseries + protocol breakdown endpoints
+    │   ├── alerting/               # Rule evaluator + multi-channel delivery
+    │   │   └── smtp.go             # stdlib net/smtp email delivery
     │   ├── middleware/             # Auth (TokenAuth, RequireAdmin), rate limit, audit log
     │   ├── models/                 # Go structs: Flow, AlertRule, TlsCert…
     │   ├── clickhouse/             # ClickHouse client + async batch writer
@@ -385,11 +408,20 @@ netscope/
     │   ├── geoip/                  # Hub-side MaxMind reader
     │   ├── threat/                 # Hub-side threat scorer
     │   ├── metrics/                # Prometheus counters
-    │   └── k8s/                    # Kubernetes manifests + Helm chart
-    └── web/                        # Next.js 14 dashboard
-        ├── app/                    # App Router pages
-        ├── components/
-        └── lib/
+    │   └── util/                   # SSRF validation, error sanitisation
+    ├── web/                        # Next.js 14 dashboard
+    │   ├── app/
+    │   │   ├── page.tsx            # Dashboard: KPI cards + FlowsChart + ProtocolChart + LiveFeed
+    │   │   ├── flows/page.tsx      # Flow Explorer: filters, pagination, CSV export
+    │   │   ├── alerts/page.tsx     # Alert rule CRUD + firing history
+    │   │   ├── agents/page.tsx     # Agent fleet with heartbeat status
+    │   │   └── settings/page.tsx   # API tokens, enrollment tokens, audit log viewer
+    │   ├── components/
+    │   │   ├── FlowsChart.tsx      # Recharts LineChart — flows/min with time-range toggle
+    │   │   ├── ProtocolChart.tsx   # Recharts PieChart donut — protocol breakdown
+    │   │   └── LiveFeed.tsx        # SSE-driven real-time flow table
+    │   └── lib/api.ts              # Typed proxy client for all hub API endpoints
+    └── docker-compose.yml          # Local dev: hub-api + hub-web + ClickHouse + Redpanda
 ```
 
 ---
@@ -720,6 +752,31 @@ Switch to the **Service Map** tab to see a force-directed graph of all IP-to-IP 
 
 Node positions are stable — the graph layout only runs when new IPs appear, so the map doesn't jump on every new packet.
 
+### Hub Dashboard
+
+Open `http://localhost:3000` (or your deployed URL) after starting the hub.
+
+**Dashboard (home page)**
+- **KPI cards** — total flows, active agents, alert rules, flows/min at a glance
+- **Flow rate chart** — click `1h / 6h / 24h` to change the window; auto-refreshes every 30 s
+- **Protocol chart** — donut showing the traffic split for the last hour
+- **Live feed** — real-time SSE stream of flows as they arrive
+
+**Flow Explorer (`/flows`)**
+- Filter by protocol, source IP, destination IP, and time range (preset or custom)
+- **Export CSV** — downloads the current page as a `.csv` file
+- Protocol dropdown includes: HTTP, DNS, TCP, UDP, TLS, HTTPS, HTTP/2, gRPC, ICMP, ARP
+
+**Alerts (`/alerts`)**
+- Create rules with any of 6 delivery channels — including **email**
+- After creating a webhook rule, the **secret is shown once** — copy it to verify `X-NetScope-Signature` in your receiver
+- Toggle rules on/off without deleting them; view recent firing history
+
+**Settings (`/settings`)**
+- Create scoped API tokens (admin or viewer role)
+- Generate enrollment tokens and get the one-line install command
+- **Audit log** — scrollable table of the last 100 authenticated API calls with status colour-coding
+
 ### Saving and Loading Sessions
 
 - **Save:** Click 💾 in the toolbar → choose a `.nscope` filename.
@@ -813,7 +870,8 @@ All four bundles are uploaded as GitHub Release assets via `tauri-apps/tauri-act
 - [x] **Desktop upgrade** — GeoIP enrichment, threat badges, Hub Connect Mode, cert sidebar, HTTP analytics, service mini-map; full bug audit
 - [x] **Production hardening** — API key proxy (no browser exposure), SSRF prevention, security headers, startup production gate, error sanitisation
 - [x] **Phase 9** — Production foundation: HTTP/2 + gRPC decoder, per-agent scoped tokens, audit log, alert delivery retry, SSE rate limit, hub URL fix
-- [ ] **Phase 10** — K8s metadata enrichment (pod/namespace/labels from eBPF), WASM plugin SDK for custom protocol parsers, OTel trace → packet drill-down
+- [x] **Phase 10** — Hub customer readiness: FlowsChart (line) + ProtocolChart (donut), SMTP email alerts, HMAC webhook signatures, agent heartbeat, pubsub.Hub interface, Flow Explorer CSV export + dst_ip filter, audit log viewer in Settings, 6-protocol alert delivery
+- [ ] **Phase 11** — Desktop customer readiness: code signing + notarization (macOS), auto-update (Tauri updater plugin), pcap file import, TLS-decrypted HTTP/2, one-click GeoIP download, bounded session memory
 
 ---
 
