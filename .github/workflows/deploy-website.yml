@@ -22,13 +22,13 @@ jobs:
 
       - name: Create Pages project if it doesn't exist
         run: |
-          wrangler pages project create netscope --production-branch=main 2>/dev/null || true
+          wrangler pages project create netscope-801 --production-branch=main 2>/dev/null || true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Deploy to Cloudflare Pages
-        run: wrangler pages deploy website --project-name=netscope --branch=main --commit-dirty=true
+        run: wrangler pages deploy website --project-name=netscope-801 --branch=main --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
