@@ -41,6 +41,8 @@ pub fn run() {
             get_hub_config,
             test_hub_connection,
             query_hub_flows,
+            // Export
+            export_pcap,
         ])
         .run(tauri::generate_context!())
         .expect("error while running NetScope desktop");

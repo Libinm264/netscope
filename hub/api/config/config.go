@@ -51,6 +51,12 @@ type Config struct {
 	AppURL string
 	// OrgName is a display name for the organisation (used in alert emails/UI).
 	OrgName string
+
+	// Scheduled report settings.
+	// ReportEmail is the recipient of daily/weekly summaries; empty disables reports.
+	ReportEmail    string
+	// ReportSchedule is "daily" (default) or "weekly".
+	ReportSchedule string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -79,6 +85,8 @@ func Load() *Config {
 		SMTPFrom:        getEnv("SMTP_FROM", "noreply@netscope.local"),
 		AppURL:          getEnv("APP_URL", "http://localhost:8080"),
 		OrgName:         getEnv("ORG_NAME", "NetScope"),
+		ReportEmail:     getEnv("REPORT_EMAIL", ""),
+		ReportSchedule:  getEnv("REPORT_SCHEDULE", "daily"),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")

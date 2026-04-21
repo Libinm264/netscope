@@ -16,6 +16,7 @@ import { HubConnectModal } from "@/components/HubConnectModal";
 import { CertSidebar } from "@/components/CertSidebar";
 import { AnalyticsPane } from "@/components/AnalyticsPane";
 import { ServiceMapPane } from "@/components/ServiceMapPane";
+import { OnboardingWizard, ONBOARDING_KEY } from "@/components/OnboardingWizard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { FlowDto } from "@/types/flow";
@@ -32,6 +33,7 @@ import {
   Binary,
   BarChart2,
   Network,
+  FileDown,
 } from "lucide-react";
 
 // Resizable pane heights (top %, middle %, bottom %)
@@ -65,6 +67,10 @@ export default function App() {
   const [bottomTab, setBottomTab] = useState<BottomTab>("hex");
   const [split, setSplit] = useState(DEFAULT_SPLIT);
   const draggingRef = useRef<{ divider: number; startY: number; startSplit: number[] } | null>(null);
+
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try { return !localStorage.getItem(ONBOARDING_KEY); } catch { return false; }
+  });
 
   // Check privileges + GeoIP status on mount
   useEffect(() => {
@@ -121,6 +127,15 @@ export default function App() {
     setFlows(flows);
     setSessionPath(path);
   }, [setFlows, setSessionPath]);
+
+  const handleExportPcap = useCallback(async () => {
+    const path = await saveDialog({
+      defaultPath: `${sessionName}.pcap`,
+      filters: [{ name: "PCAP Capture", extensions: ["pcap"] }],
+    });
+    if (!path) return;
+    await invoke<number>("export_pcap", { path });
+  }, [sessionName]);
 
   // ── Resizable dividers ────────────────────────────────────────────────────
   const onMouseDown = useCallback(
@@ -230,6 +245,9 @@ export default function App() {
         <Button size="sm" variant="ghost" onClick={handleOpen} title="Open session">
           <FolderOpen className="h-3.5 w-3.5" />
         </Button>
+        <Button size="sm" variant="ghost" onClick={handleExportPcap} title="Export as PCAP">
+          <FileDown className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
       {/* ── GeoIP banner ─────────────────────────────────────────────────────── */}
@@ -314,6 +332,9 @@ export default function App() {
       <StatusBar />
 
       {/* ── Modals ───────────────────────────────────────────────────────────── */}
+      {showOnboarding && (
+        <OnboardingWizard onDone={() => setShowOnboarding(false)} />
+      )}
       {showPrivModal && (
         <PrivilegeModal
           interface_={interface_}

@@ -280,6 +280,107 @@ pub async fn test_hub_connection(state: State<'_, SharedState>) -> Result<(), St
     HubClient::new(config).test_connection().await
 }
 
+// ── PCAP export ───────────────────────────────────────────────────────────────
+
+/// Export captured flows as a libpcap (.pcap) file with synthetic IP packets.
+/// Each flow record becomes one minimal Ethernet + IP + TCP/UDP packet so the
+/// file opens in Wireshark and other packet-analysis tools.
+#[tauri::command]
+pub async fn export_pcap(
+    path: String,
+    state: State<'_, SharedState>,
+) -> Result<usize, String> {
+    let flows = state.lock().unwrap().flows.clone();
+    let count = flows.len();
+    write_pcap(&path, &flows).map_err(|e| e.to_string())?;
+    Ok(count)
+}
+
+fn write_pcap(path: &str, flows: &[FlowDto]) -> std::io::Result<()> {
+    use std::io::Write;
+    let mut f = std::io::BufWriter::new(std::fs::File::create(path)?);
+
+    // Global pcap header (little-endian, LINKTYPE_ETHERNET = 1)
+    f.write_all(&0xa1b2c3d4_u32.to_le_bytes())?;
+    f.write_all(&2_u16.to_le_bytes())?;
+    f.write_all(&4_u16.to_le_bytes())?;
+    f.write_all(&0_i32.to_le_bytes())?;
+    f.write_all(&0_u32.to_le_bytes())?;
+    f.write_all(&65535_u32.to_le_bytes())?;
+    f.write_all(&1_u32.to_le_bytes())?;
+
+    for flow in flows {
+        let ip_proto: u8 = match flow.protocol.as_str() {
+            "UDP" | "DNS" => 17,
+            "ICMP"        =>  1,
+            _             =>  6,
+        };
+
+        // Payload: flow summary as UTF-8 text
+        let payload = format!(
+            "{} {}:{} -> {}:{} len={} dur_ms={}",
+            flow.protocol, flow.src_ip, flow.src_port,
+            flow.dst_ip, flow.dst_port, flow.length, flow.duration_ms,
+        );
+        let payload = payload.as_bytes();
+
+        let transport_len: usize = match ip_proto { 17 => 8, 6 => 20, _ => 8 };
+        let ip_total = 20 + transport_len + payload.len();
+
+        // Ethernet header (14 bytes, zero MACs, ethertype 0x0800)
+        let mut eth = [0u8; 14];
+        eth[12] = 0x08;
+
+        // IPv4 header (20 bytes)
+        let mut ip = [0u8; 20];
+        ip[0]  = 0x45;
+        ip[2]  = ((ip_total >> 8) & 0xFF) as u8;
+        ip[3]  = (ip_total & 0xFF) as u8;
+        ip[5]  = 1;
+        ip[6]  = 0x40;
+        ip[8]  = 64;
+        ip[9]  = ip_proto;
+        if let Some(a) = parse_ipv4(&flow.src_ip) { ip[12..16].copy_from_slice(&a); }
+        if let Some(a) = parse_ipv4(&flow.dst_ip) { ip[16..20].copy_from_slice(&a); }
+
+        // Transport header
+        let mut transport = vec![0u8; transport_len];
+        transport[0] = ((flow.src_port >> 8) & 0xFF) as u8;
+        transport[1] = (flow.src_port & 0xFF) as u8;
+        transport[2] = ((flow.dst_port >> 8) & 0xFF) as u8;
+        transport[3] = (flow.dst_port & 0xFF) as u8;
+        if ip_proto == 17 {
+            let udp_len = (8 + payload.len()) as u16;
+            transport[4] = (udp_len >> 8) as u8;
+            transport[5] = (udp_len & 0xFF) as u8;
+        } else if ip_proto == 6 {
+            transport[12] = 0x50;
+            transport[13] = 0x02;
+            transport[14] = 0xFF;
+            transport[15] = 0xFF;
+        }
+
+        let pkt_len = (14 + 20 + transport_len + payload.len()) as u32;
+        let ts_sec  = flow.timestamp.timestamp() as u32;
+        let ts_usec = flow.timestamp.timestamp_subsec_micros();
+
+        f.write_all(&ts_sec.to_le_bytes())?;
+        f.write_all(&ts_usec.to_le_bytes())?;
+        f.write_all(&pkt_len.to_le_bytes())?;
+        f.write_all(&pkt_len.to_le_bytes())?;
+        f.write_all(&eth)?;
+        f.write_all(&ip)?;
+        f.write_all(&transport)?;
+        f.write_all(payload)?;
+    }
+    f.flush()
+}
+
+fn parse_ipv4(s: &str) -> Option<[u8; 4]> {
+    let parts: Vec<u8> = s.split('.').filter_map(|p| p.parse().ok()).collect();
+    if parts.len() == 4 { Some([parts[0], parts[1], parts[2], parts[3]]) } else { None }
+}
+
 /// Query flows from the hub and merge them into local state.
 #[tauri::command]
 pub async fn query_hub_flows(

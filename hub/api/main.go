@@ -144,6 +144,27 @@ func main() {
 		evaluator.Start()
 		defer evaluator.Stop()
 		slog.Info("alert evaluator started")
+
+		if cfg.ReportEmail != "" && cfg.SMTPHost != "" {
+			reporter := alerting.NewReporter(chClient, alerting.ReportConfig{
+				SMTP: alerting.SMTPConfig{
+					Host:     cfg.SMTPHost,
+					Port:     cfg.SMTPPort,
+					User:     cfg.SMTPUser,
+					Password: cfg.SMTPPassword,
+					From:     cfg.SMTPFrom,
+					OrgName:  cfg.OrgName,
+					AppURL:   cfg.AppURL,
+				},
+				Email:    cfg.ReportEmail,
+				Schedule: cfg.ReportSchedule,
+			})
+			reporter.Start()
+			defer reporter.Stop()
+			slog.Info("report scheduler started",
+				"schedule", cfg.ReportSchedule,
+				"recipient", cfg.ReportEmail)
+		}
 	}
 
 	// ── Fiber ─────────────────────────────────────────────────────────────────
