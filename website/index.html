@@ -7,7 +7,10 @@
   <meta name="description" content="Real-time packet capture, deep protocol inspection, GeoIP & threat intelligence, and a SaaS hub for fleet-wide visibility. Built with Rust, Go, and React." />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" /></noscript>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -45,6 +48,8 @@
       inset: 0;
       z-index: 0;
       opacity: 0.45;
+      will-change: transform;
+      contain: strict;
     }
 
     /* ── NAV ── */
@@ -2639,7 +2644,12 @@
   // ── Network particle canvas ──
   const canvas = document.getElementById('canvas-bg');
   const ctx = canvas.getContext('2d');
-  let W, H, nodes, animId;
+  let W, H, nodes, animId, lastFrame = 0;
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const NODE_COUNT = isMobile ? 25 : 42;
+  const CONNECT_DIST = isMobile ? 100 : 140;
+  const TARGET_FPS = isMobile ? 20 : 30;
+  const FRAME_MS = 1000 / TARGET_FPS;
 
   function resize() {
     W = canvas.width  = window.innerWidth;
@@ -2647,18 +2657,23 @@
   }
 
   function initNodes() {
-    nodes = Array.from({ length: 65 }, () => ({
+    nodes = Array.from({ length: NODE_COUNT }, () => ({
       x: Math.random() * W,
       y: Math.random() * H,
       vx: (Math.random() - .5) * .35,
       vy: (Math.random() - .5) * .35,
       r: Math.random() * 2 + 1,
+      color: Math.random() > .7 ? 'rgba(124,58,237,0.7)' : 'rgba(0,212,255,0.7)',
     }));
   }
 
-  function draw() {
+  function draw(ts) {
+    animId = requestAnimationFrame(draw);
+    if (document.hidden) return;
+    if (ts - lastFrame < FRAME_MS) return;
+    lastFrame = ts;
+
     ctx.clearRect(0, 0, W, H);
-    const D = 160;
 
     for (let i = 0; i < nodes.length; i++) {
       const a = nodes[i];
@@ -2669,13 +2684,13 @@
       for (let j = i + 1; j < nodes.length; j++) {
         const b = nodes[j];
         const dx = a.x - b.x, dy = a.y - b.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < D) {
-          const alpha = (1 - dist / D) * 0.5;
+        const dist2 = dx * dx + dy * dy;
+        if (dist2 < CONNECT_DIST * CONNECT_DIST) {
+          const alpha = (1 - Math.sqrt(dist2) / CONNECT_DIST) * 0.3;
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
-          ctx.strokeStyle = `rgba(0,212,255,${alpha * 0.6})`;
+          ctx.strokeStyle = `rgba(0,212,255,${alpha})`;
           ctx.lineWidth = .5;
           ctx.stroke();
         }
@@ -2683,15 +2698,17 @@
 
       ctx.beginPath();
       ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
-      ctx.fillStyle = Math.random() > .7 ? 'rgba(124,58,237,0.7)' : 'rgba(0,212,255,0.7)';
+      ctx.fillStyle = a.color;
       ctx.fill();
     }
-
-    animId = requestAnimationFrame(draw);
   }
 
-  window.addEventListener('resize', () => { resize(); initNodes(); });
-  resize(); initNodes(); draw();
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { resize(); initNodes(); }, 150);
+  });
+  resize(); initNodes(); requestAnimationFrame(draw);
 
   // ── Tab switching ──
   function switchTab(id, btn) {
