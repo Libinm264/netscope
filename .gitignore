@@ -55,4 +55,4 @@ hub/web/next-env.d.ts
 *.mmdb
 
 # ── Misc generated lockfiles ─────────────────────────────────────────────────
-hub/web/package-lock.json
+# hub/web/package-lock.json — committed so CI can cache npm dependencies
