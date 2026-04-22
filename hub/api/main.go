@@ -344,7 +344,7 @@ func runMigrations(ch *clickhouse.Client) error {
 		) ENGINE = MergeTree()
 		PARTITION BY toYYYYMM(fired_at)
 		ORDER BY fired_at
-		TTL fired_at + INTERVAL 30 DAY`,
+		TTL toDateTime(fired_at) + INTERVAL 30 DAY`,
 
 		`CREATE TABLE IF NOT EXISTS flows (
 			id          UUID              DEFAULT generateUUIDv4(),
@@ -368,7 +368,7 @@ func runMigrations(ch *clickhouse.Client) error {
 		) ENGINE = MergeTree()
 		PARTITION BY toYYYYMM(ts)
 		ORDER BY (ts, agent_id, protocol)
-		TTL ts + INTERVAL 90 DAY
+		TTL toDateTime(ts) + INTERVAL 90 DAY
 		SETTINGS index_granularity = 8192`,
 
 		`CREATE TABLE IF NOT EXISTS agents (
@@ -451,7 +451,7 @@ func runMigrations(ch *clickhouse.Client) error {
 		) ENGINE = MergeTree()
 		PARTITION BY toYYYYMM(ts)
 		ORDER BY (ts, token_id)
-		TTL ts + INTERVAL 90 DAY`,
+		TTL toDateTime(ts) + INTERVAL 90 DAY`,
 	}
 
 	for _, q := range ddl {
