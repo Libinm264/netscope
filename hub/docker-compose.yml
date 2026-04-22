@@ -1,7 +1,18 @@
-version: "3.9"
+# NetScope Hub — Docker Compose
+# ──────────────────────────────────────────────────────────────────────────────
+# Quick start (no config required for local dev):
+#
+#   cp .env.example .env          # then set API_KEY to a random string
+#   docker compose up -d
+#   open http://localhost          # dashboard via Caddy
+#
+# Or use the one-liner installer:
+#   curl -sSL https://netscope.ie/hub-quickstart.sh | sh
+# ──────────────────────────────────────────────────────────────────────────────
 
 services:
-  # ── Redpanda (Kafka-compatible, no Zookeeper) ───────────────────────────────
+
+  # ── Redpanda (Kafka-compatible, no Zookeeper) ─────────────────────────────
   redpanda:
     image: redpandadata/redpanda:v24.1.1
     command:
@@ -15,16 +26,14 @@ services:
       - --check=false
       - --kafka-addr PLAINTEXT://0.0.0.0:9092
       - --advertise-kafka-addr PLAINTEXT://redpanda:9092
-    ports:
-      - "9092:9092"
-      - "9644:9644"   # Admin API
     healthcheck:
       test: ["CMD", "rpk", "cluster", "info"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
 
-  # ── Topic initialisation ────────────────────────────────────────────────────
+  # ── Create Kafka topic ────────────────────────────────────────────────────
   redpanda-init:
     image: redpandadata/redpanda:v24.1.1
     depends_on:
@@ -34,86 +43,114 @@ services:
     command:
       - |
         rpk topic create netscope.flows --brokers redpanda:9092 --partitions 4 || true
-        echo "Topics ready."
+        echo "Topic ready."
+    restart: "no"
 
-  # ── ClickHouse ──────────────────────────────────────────────────────────────
+  # ── ClickHouse ────────────────────────────────────────────────────────────
   clickhouse:
     image: clickhouse/clickhouse-server:24.3
     ports:
-      - "8123:8123"   # HTTP interface
-      - "9000:9000"   # Native protocol
+      - "127.0.0.1:8123:8123"   # HTTP (localhost only — not exposed to LAN)
+      - "127.0.0.1:9000:9000"   # Native
     environment:
-      CLICKHOUSE_DB: netscope
-      CLICKHOUSE_USER: netscope
-      CLICKHOUSE_PASSWORD: netscope_pass
+      CLICKHOUSE_DB:       netscope
+      CLICKHOUSE_USER:     netscope
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-netscope_pass}
     volumes:
       - clickhouse_data:/var/lib/clickhouse
     ulimits:
-      nofile:
-        soft: 262144
-        hard: 262144
+      nofile: { soft: 262144, hard: 262144 }
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+    restart: unless-stopped
 
-  # ── Go / Fiber API ──────────────────────────────────────────────────────────
+  # ── Go / Fiber API ────────────────────────────────────────────────────────
   api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    # Not exposed directly — Caddy handles all ingress
-    env_file: .env
+    image: ghcr.io/libinm264/netscope-hub-api:latest
+    # Uncomment to build locally instead of pulling from GHCR:
+    # build:
+    #   context: ./api
+    #   dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:8080:8080"   # Direct access (localhost only)
     environment:
-      CLICKHOUSE_DSN: clickhouse://netscope:netscope_pass@clickhouse:9000/netscope
-      KAFKA_BROKERS: redpanda:9092
+      PORT:            8080
+      CLICKHOUSE_DSN:  clickhouse://netscope:${CLICKHOUSE_PASSWORD:-netscope_pass}@clickhouse:9000/netscope
+      KAFKA_BROKERS:   redpanda:9092
+      KAFKA_TOPIC:     ${KAFKA_TOPIC:-netscope.flows}
+      API_KEY:         ${API_KEY:?API_KEY must be set in .env}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      APP_URL:         ${APP_URL:-http://localhost}
+      ORG_NAME:        ${ORG_NAME:-NetScope}
+      # GeoIP (optional — omit to skip geo enrichment)
+      GEOIP_CITY_DB:   ${GEOIP_CITY_DB:-}
+      GEOIP_ASN_DB:    ${GEOIP_ASN_DB:-}
+      # Threat intel (optional)
+      ABUSEIPDB_KEY:   ${ABUSEIPDB_KEY:-}
+      # Email alerts (optional)
+      SMTP_HOST:       ${SMTP_HOST:-}
+      SMTP_PORT:       ${SMTP_PORT:-587}
+      SMTP_USER:       ${SMTP_USER:-}
+      SMTP_PASSWORD:   ${SMTP_PASSWORD:-}
+      SMTP_FROM:       ${SMTP_FROM:-}
+      # Prometheus metrics (optional)
+      METRICS_TOKEN:   ${METRICS_TOKEN:-}
     depends_on:
       clickhouse:
         condition: service_healthy
       redpanda:
         condition: service_healthy
-    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  # ── Next.js Web Dashboard ───────────────────────────────────────────────────
+  # ── Next.js Web Dashboard ─────────────────────────────────────────────────
   web:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-    # Not exposed directly — Caddy handles all ingress
+    image: ghcr.io/libinm264/netscope-hub-web:latest
+    # Uncomment to build locally instead of pulling from GHCR:
+    # build:
+    #   context: ./web
+    #   dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:3000:3000"   # Direct access (localhost only)
     environment:
+      # Browser-side: URL used by the user's browser to reach the API
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
-      NEXT_PUBLIC_API_KEY: ${API_KEY:-changeme}
-      # Auth0 (optional — leave blank for local dev without auth)
-      AUTH0_SECRET: ${AUTH0_SECRET:-}
-      AUTH0_BASE_URL: ${AUTH0_BASE_URL:-http://localhost}
-      AUTH0_ISSUER_BASE_URL: ${AUTH0_ISSUER_BASE_URL:-}
-      AUTH0_CLIENT_ID: ${AUTH0_CLIENT_ID:-}
-      AUTH0_CLIENT_SECRET: ${AUTH0_CLIENT_SECRET:-}
+      NEXT_PUBLIC_API_KEY: ${API_KEY:?API_KEY must be set in .env}
+      # Server-side: internal Docker network URL for SSR / API routes
+      HUB_API_URL:  http://api:8080
+      HUB_API_KEY:  ${API_KEY:?API_KEY must be set in .env}
+      # Auth0 (optional — leave blank to run without authentication)
+      AUTH0_SECRET:           ${AUTH0_SECRET:-}
+      AUTH0_BASE_URL:         ${AUTH0_BASE_URL:-http://localhost}
+      AUTH0_ISSUER_BASE_URL:  ${AUTH0_ISSUER_BASE_URL:-}
+      AUTH0_CLIENT_ID:        ${AUTH0_CLIENT_ID:-}
+      AUTH0_CLIENT_SECRET:    ${AUTH0_CLIENT_SECRET:-}
     depends_on:
       api:
         condition: service_healthy
     restart: unless-stopped
 
-  # ── Caddy (reverse proxy + automatic HTTPS) ─────────────────────────────────
+  # ── Caddy (reverse proxy — serves dashboard on :80 / :443) ───────────────
   caddy:
     image: caddy:2.8-alpine
     ports:
       - "80:80"
       - "443:443"
+      - "443:443/udp"   # HTTP/3
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
     environment:
       CADDY_HOSTNAME: ${CADDY_HOSTNAME:-:80}
-      CADDY_EMAIL: ${CADDY_EMAIL:-}
+      CADDY_EMAIL:    ${CADDY_EMAIL:-}
     depends_on:
       - api
       - web
