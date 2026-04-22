@@ -899,6 +899,27 @@
     /* ── QUICK INSTALL ── */
     #quickinstall { padding: 5rem 0; background: rgba(12,17,32,0.6); }
 
+    .qs-tab {
+      padding: .6rem 1.4rem;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      font-size: .875rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      transition: all .2s;
+      margin-bottom: -1px;
+    }
+    .qs-tab:hover { color: var(--text); }
+    .qs-tab-active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+    }
+
     .qi-inner {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -2105,16 +2126,104 @@
 <!-- ── QUICK INSTALL ── -->
 <section id="quickinstall">
   <div class="container">
-    <div class="qi-inner">
-      <div class="qi-copy reveal">
-        <span class="section-tag">Get Started</span>
-        <h2>Up and running<br><span class="grad">in under 2 minutes</span></h2>
-        <p>Deploy the headless capture agent on any Linux server or container with a single command. No configuration files, no daemons to manage — the agent self-registers with your Hub automatically.</p>
+
+    <div class="section-header reveal" style="text-align:center;">
+      <span class="section-tag">Get Started</span>
+      <h2 class="section-title">Up and running<br><span class="gradient-text">in under 2 minutes</span></h2>
+      <p class="section-sub" style="margin:0 auto;">One command to spin up the hub. One command to connect an agent. That's it.</p>
+    </div>
+
+    <!-- Step tabs -->
+    <div class="reveal" style="display:flex; gap:.5rem; margin-bottom:2rem; border-bottom:1px solid var(--border); padding-bottom:0;">
+      <button id="qs-tab-hub"   class="qs-tab qs-tab-active"  onclick="qsSwitch('hub')">
+        <span style="font-size:1rem;">🖥</span> Step 1 · Self-host the Hub
+      </button>
+      <button id="qs-tab-agent" class="qs-tab"                onclick="qsSwitch('agent')">
+        <span style="font-size:1rem;">🤖</span> Step 2 · Connect an Agent
+      </button>
+    </div>
+
+    <!-- ── Panel: Hub ────────────────────────────────────────────────────── -->
+    <div id="qs-panel-hub" class="qi-inner reveal">
+      <div class="qi-copy">
+        <h3 style="font-size:1.4rem;font-weight:800;margin-bottom:.75rem;">Self-host the Hub</h3>
+        <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.7;">
+          One command pulls pre-built Docker images for ClickHouse, Kafka, the Go API, and the Next.js dashboard — and starts everything. Only Docker required.
+        </p>
+
+        <div class="qi-cmd-box" id="hub-install-box">
+          <div class="qi-cmd-bar">
+            <span class="qi-cmd-label">Linux / macOS — requires Docker</span>
+            <button class="qi-copy-btn" onclick="copyCmd('hub-cmd','hub-copy-btn')" id="hub-copy-btn">Copy</button>
+          </div>
+          <div class="qi-cmd-body">
+            <span class="qi-prompt">$</span>
+            <code class="qi-cmd" id="hub-cmd">curl -sSL https://netscope.ie/hub-quickstart.sh | sh</code>
+          </div>
+        </div>
+
+        <div class="qi-steps" style="margin-top:1.25rem;">
+          <div class="qi-step">
+            <div class="qi-step-num">1</div>
+            <div class="qi-step-text"><strong>Generates a random API key</strong> — no manual config needed.</div>
+          </div>
+          <div class="qi-step">
+            <div class="qi-step-num">2</div>
+            <div class="qi-step-text"><strong>Pulls images from GHCR</strong> — ClickHouse, Kafka, API, and dashboard. No build step.</div>
+          </div>
+          <div class="qi-step">
+            <div class="qi-step-num">3</div>
+            <div class="qi-step-text"><strong>Dashboard is live at <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px;">http://localhost</code></strong> — connect agents and see flows instantly.</div>
+          </div>
+        </div>
+
+        <div style="margin-top:1.5rem; padding:.9rem 1.1rem; background:rgba(124,58,237,0.06); border:1px solid rgba(124,58,237,0.2); border-radius:10px; font-size:.82rem; color:var(--muted);">
+          <strong style="color:var(--text);">Want a custom domain + HTTPS?</strong>
+          Add <code style="font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px;">DOMAIN=hub.example.com</code> before the command — Caddy handles the Let's Encrypt cert automatically.
+        </div>
+      </div>
+
+      <div class="reveal" style="position:relative;">
+        <div class="terminal-window" style="border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(124,58,237,0.12)">
+          <div class="t-bar">
+            <span class="t-dot t-red"></span><span class="t-dot t-yellow"></span><span class="t-dot t-green"></span>
+            <span style="flex:1;text-align:center;font-size:.75rem;color:var(--muted)">hub-quickstart — bash</span>
+          </div>
+          <div class="t-body" style="font-size:.78rem;padding:1.25rem 1.5rem">
+            <div class="t-line" style="margin-bottom:.5rem"><span class="t-prompt">$</span> <span class="t-cmd">curl -sSL https://netscope.ie/hub-quickstart.sh | sh</span></div>
+            <div class="t-line" style="color:var(--cyan); font-weight:700; margin:.4rem 0;">NetScope Hub Quickstart</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  Docker 27.3.1</div>
+            <div class="t-line"><span style="color:var(--cyan)">→</span>  Downloading compose files…</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  Files downloaded</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  API key generated</div>
+            <div class="t-line"><span style="color:var(--cyan)">→</span>  Pulling latest Docker images…</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  Images ready</div>
+            <div class="t-line"><span style="color:var(--cyan)">→</span>  Starting NetScope Hub…</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  Stack started</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  API is healthy</div>
+            <div class="t-line" style="margin-top:.75rem; color:var(--green); font-weight:700;">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+            <div class="t-line" style="color:var(--text); font-weight:700;">  NetScope Hub is running!</div>
+            <div class="t-line" style="color:var(--green); font-weight:700;">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
+            <div class="t-line" style="margin-top:.4rem;">  Dashboard  <span style="color:var(--cyan)">http://localhost</span></div>
+            <div class="t-line">  API Key    <span style="color:var(--yellow)">a3f9c2e1…</span></div>
+            <div class="t-line" style="margin-top:1rem"><span class="t-prompt">$</span> <span class="t-cursor">▋</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Panel: Agent ──────────────────────────────────────────────────── -->
+    <div id="qs-panel-agent" class="qi-inner reveal" style="display:none;">
+      <div class="qi-copy">
+        <h3 style="font-size:1.4rem;font-weight:800;margin-bottom:.75rem;">Connect an Agent</h3>
+        <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.7;">
+          Deploy the headless capture agent on any Linux or macOS server. It auto-registers with your Hub and starts streaming flows within seconds.
+        </p>
 
         <div class="qi-cmd-box" id="install-box">
           <div class="qi-cmd-bar">
             <span class="qi-cmd-label">Linux / macOS</span>
-            <button class="qi-copy-btn" onclick="copyInstall()">Copy</button>
+            <button class="qi-copy-btn" onclick="copyCmd('install-cmd','agent-copy-btn')" id="agent-copy-btn">Copy</button>
           </div>
           <div class="qi-cmd-body">
             <span class="qi-prompt">$</span>
@@ -2122,10 +2231,10 @@
           </div>
         </div>
 
-        <div class="qi-steps">
+        <div class="qi-steps" style="margin-top:1.25rem;">
           <div class="qi-step">
             <div class="qi-step-num">1</div>
-            <div class="qi-step-text"><strong>Install &amp; enroll</strong> — the script downloads the binary, sets up a systemd service, and uses your enrollment token to register the agent with the Hub.</div>
+            <div class="qi-step-text"><strong>Install &amp; enroll</strong> — downloads the binary, sets up a systemd service, and registers with your Hub.</div>
           </div>
           <div class="qi-step">
             <div class="qi-step-num">2</div>
@@ -2133,7 +2242,7 @@
           </div>
           <div class="qi-step">
             <div class="qi-step-num">3</div>
-            <div class="qi-step-text"><strong>Configure alerts &amp; compliance</strong> — set thresholds, Slack/PagerDuty integrations, and TLS cert monitoring from the web UI.</div>
+            <div class="qi-step-text"><strong>Configure alerts &amp; compliance</strong> — set thresholds, webhooks, and TLS cert monitoring from the web UI.</div>
           </div>
         </div>
       </div>
@@ -2141,33 +2250,25 @@
       <div class="reveal" style="position:relative;">
         <div class="terminal-window" style="border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(0,212,255,0.1)">
           <div class="t-bar">
-            <span class="t-dot t-red"></span>
-            <span class="t-dot t-yellow"></span>
-            <span class="t-dot t-green"></span>
+            <span class="t-dot t-red"></span><span class="t-dot t-yellow"></span><span class="t-dot t-green"></span>
             <span style="flex:1;text-align:center;font-size:.75rem;color:var(--muted)">netscope-agent — bash</span>
           </div>
-          <div class="t-body" style="min-height:300px;font-size:.78rem;padding:1.25rem 1.5rem">
-            <div class="t-line" style="margin-bottom:.5rem">
-              <span class="t-prompt">$</span>
-              <span class="t-cmd">curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=https://hub.acme.com sh</span>
-            </div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span> Downloading netscope-agent v0.1.0 (linux-x86_64)…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span> Binary verified (SHA-256 OK)</div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span> Enrolling with hub at hub.acme.com…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span> Agent registered — ID: <span style="color:var(--cyan)">4a2b1c9d</span></div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span> Installing systemd service…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span> netscope-agent.service enabled &amp; started</div>
-            <div class="t-line" style="margin-top:.5rem;color:var(--muted)">Agent started on interface <span style="color:#f0abfc">eth0</span></div>
-            <div class="t-line" style="color:var(--muted)">Listening for HTTP, TLS, DNS, TCP flows…</div>
+          <div class="t-body" style="font-size:.78rem;padding:1.25rem 1.5rem">
+            <div class="t-line" style="margin-bottom:.5rem"><span class="t-prompt">$</span> <span class="t-cmd">curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=https://hub.acme.com sh</span></div>
+            <div class="t-line"><span style="color:var(--cyan)">→</span>  Downloading netscope-agent v0.1.0 (linux-x86_64)…</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  Installed: /usr/local/bin/netscope-agent</div>
+            <div class="t-line"><span style="color:var(--cyan)">→</span>  Enrolling with hub at hub.acme.com…</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  Agent registered — ID: <span style="color:var(--cyan)">4a2b1c9d</span></div>
+            <div class="t-line"><span style="color:var(--cyan)">→</span>  Installing systemd service…</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  netscope-agent.service enabled &amp; started</div>
+            <div class="t-line" style="margin-top:.5rem;color:var(--muted)">Listening on <span style="color:#f0abfc">eth0</span> · HTTP · TLS · DNS · TCP</div>
             <div class="t-line" style="color:var(--muted)">Reporting to hub every <span style="color:var(--yellow)">5 seconds</span></div>
-            <div class="t-line" style="margin-top:1rem">
-              <span class="t-prompt">$</span>
-              <span class="t-cursor">▋</span>
-            </div>
+            <div class="t-line" style="margin-top:1rem"><span class="t-prompt">$</span> <span class="t-cursor">▋</span></div>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </section>
 
@@ -2790,11 +2891,11 @@
     event.target.classList.add('active');
   }
 
-  // ── Quick-install copy button ──
-  function copyInstall() {
-    const cmd = document.getElementById('install-cmd').textContent;
+  // ── Quick-install copy buttons ──
+  function copyCmd(cmdId, btnId) {
+    const cmd = document.getElementById(cmdId).textContent;
+    const btn = document.getElementById(btnId);
     navigator.clipboard.writeText(cmd).then(() => {
-      const btn = document.querySelector('#install-box .qi-copy-btn');
       btn.textContent = 'Copied!';
       btn.style.color = 'var(--green)';
       btn.style.borderColor = 'var(--green)';
@@ -2803,6 +2904,14 @@
         btn.style.color = '';
         btn.style.borderColor = '';
       }, 2000);
+    });
+  }
+
+  // ── Quick Start tab switcher ──
+  function qsSwitch(tab) {
+    ['hub', 'agent'].forEach(t => {
+      document.getElementById('qs-panel-' + t).style.display = t === tab ? '' : 'none';
+      document.getElementById('qs-tab-' + t).classList.toggle('qs-tab-active', t === tab);
     });
   }
 </script>
