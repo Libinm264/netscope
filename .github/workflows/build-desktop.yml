@@ -6,6 +6,9 @@ on:
       - "v*"           # trigger on version tags, e.g. git tag v0.1.0
   workflow_dispatch:   # allow manual trigger from GitHub UI
 
+permissions:
+  contents: write   # needed to create GitHub Releases and upload assets
+
 jobs:
   build:
     strategy:
@@ -66,7 +69,9 @@ jobs:
           $out = "$env:TEMP\npcap-sdk.zip"
           Invoke-WebRequest $url -OutFile $out
           Expand-Archive $out -DestinationPath "C:\npcap-sdk"
-          echo "LIB=C:\npcap-sdk\Lib\x64" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "LIB=C:\npcap-sdk\Lib\x64"      | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "LIBPCAP_LIBDIR=C:\npcap-sdk\Lib\x64" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "LIBPCAP_INCDIR=C:\npcap-sdk\Include" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # ── npm install ─────────────────────────────────────────────────────────
       - name: Install frontend dependencies
