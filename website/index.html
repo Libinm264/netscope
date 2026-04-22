@@ -2441,104 +2441,109 @@
       <p class="section-sub">Pre-built binaries for every major platform. No account. No subscription.</p>
     </div>
 
-    <!-- Coming soon banner -->
-    <div class="reveal" style="
-      background: linear-gradient(135deg, rgba(0,212,255,0.06), rgba(124,58,237,0.06));
-      border: 1px solid rgba(0,212,255,0.2);
-      border-radius: 16px;
-      padding: 2rem 2.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-    ">
-      <div style="display:flex; align-items:center; gap:1rem;">
-        <div style="
-          width:44px; height:44px; border-radius:12px;
-          background: linear-gradient(135deg, var(--cyan), var(--purple));
-          display:flex; align-items:center; justify-content:center;
-          font-size:1.3rem; flex-shrink:0;
-        ">🚀</div>
-        <div>
-          <div style="font-weight:700; font-size:1rem; margin-bottom:.25rem;">v1.0 release is building now</div>
-          <div style="color:var(--muted); font-size:.875rem;">Star the repo to get notified the moment binaries are ready — usually within a few hours of each tag.</div>
-        </div>
+    <!-- Version badge -->
+    <div class="reveal" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:2rem;">
+      <div style="display:flex; align-items:center; gap:.75rem;">
+        <span style="
+          background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
+          color: var(--green); border-radius:999px; padding:.3rem .9rem;
+          font-size:.8rem; font-weight:700; letter-spacing:.05em;
+        ">✦ v0.1.0 — Latest Release</span>
+        <span style="color:var(--muted); font-size:.82rem;">MIT License · No telemetry · No account required</span>
       </div>
-      <a href="https://github.com/Libinm264/netscope" target="_blank" class="btn btn-primary" style="white-space:nowrap; flex-shrink:0;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-        Star on GitHub
+      <a href="https://github.com/Libinm264/netscope/releases" target="_blank"
+         style="color:var(--cyan); font-size:.82rem; text-decoration:none; display:flex; align-items:center; gap:.35rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+        All releases &amp; changelogs →
       </a>
     </div>
 
     <div class="download-platforms reveal">
 
       <!-- macOS Apple Silicon -->
-      <div class="dl-card" style="opacity:.6; pointer-events:none;">
+      <div class="dl-card">
         <div class="dl-card-head">
           <div class="dl-os-icon">🍎</div>
           <div>
             <div class="dl-os-name">macOS</div>
-            <div class="dl-os-sub">Apple Silicon (M1/M2/M3/M4)</div>
+            <div class="dl-os-sub">Apple Silicon · M1 / M2 / M3 / M4</div>
           </div>
         </div>
         <div class="dl-variants">
-          <div class="dl-btn" style="justify-content:center; color:var(--muted);">
-            <span>Coming soon</span>
+          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_aarch64.dmg"
+             class="dl-btn" target="_blank">
+            <span>NetScope (ARM64)</span>
             <span class="dl-btn-ext">.dmg</span>
-          </div>
+          </a>
         </div>
       </div>
 
       <!-- macOS Intel -->
-      <div class="dl-card" style="opacity:.6; pointer-events:none;">
+      <div class="dl-card">
         <div class="dl-card-head">
           <div class="dl-os-icon">🍎</div>
           <div>
             <div class="dl-os-name">macOS</div>
-            <div class="dl-os-sub">Intel (x86_64)</div>
+            <div class="dl-os-sub">Intel · x86_64</div>
           </div>
         </div>
         <div class="dl-variants">
-          <div class="dl-btn" style="justify-content:center; color:var(--muted);">
-            <span>Coming soon</span>
+          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_x64.dmg"
+             class="dl-btn" target="_blank">
+            <span>NetScope (x64)</span>
             <span class="dl-btn-ext">.dmg</span>
-          </div>
+          </a>
         </div>
       </div>
 
       <!-- Windows -->
-      <div class="dl-card" style="opacity:.6; pointer-events:none;">
+      <div class="dl-card">
         <div class="dl-card-head">
           <div class="dl-os-icon">🪟</div>
           <div>
             <div class="dl-os-name">Windows</div>
-            <div class="dl-os-sub">Windows 10/11 (x64) · Requires Npcap</div>
+            <div class="dl-os-sub">Windows 10 / 11 · x64 · Requires Npcap</div>
           </div>
         </div>
         <div class="dl-variants">
-          <div class="dl-btn" style="justify-content:center; color:var(--muted);">
-            <span>Coming soon</span>
+          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_x64-setup.exe"
+             class="dl-btn" target="_blank">
+            <span>Installer (NSIS)</span>
+            <span class="dl-btn-ext">.exe</span>
+          </a>
+          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_x64_en-US.msi"
+             class="dl-btn" target="_blank">
+            <span>MSI Package</span>
             <span class="dl-btn-ext">.msi</span>
-          </div>
+          </a>
         </div>
       </div>
 
       <!-- Linux -->
-      <div class="dl-card" style="opacity:.6; pointer-events:none;">
+      <div class="dl-card">
         <div class="dl-card-head">
           <div class="dl-os-icon">🐧</div>
           <div>
             <div class="dl-os-name">Linux</div>
-            <div class="dl-os-sub">Any distro (x86_64) · Portable</div>
+            <div class="dl-os-sub">x86_64 · Ubuntu / Debian / Fedora / Any distro</div>
           </div>
         </div>
         <div class="dl-variants">
-          <div class="dl-btn" style="justify-content:center; color:var(--muted);">
-            <span>Coming soon</span>
-            <span class="dl-btn-ext">.AppImage / .deb</span>
-          </div>
+          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_amd64.AppImage"
+             class="dl-btn" target="_blank">
+            <span>AppImage (portable)</span>
+            <span class="dl-btn-ext">.AppImage</span>
+          </a>
+          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_amd64.deb"
+             class="dl-btn" target="_blank">
+            <span>Debian / Ubuntu</span>
+            <span class="dl-btn-ext">.deb</span>
+          </a>
+          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope-0.1.0-1.x86_64.rpm"
+             class="dl-btn" target="_blank">
+            <span>Fedora / RHEL</span>
+            <span class="dl-btn-ext">.rpm</span>
+          </a>
         </div>
       </div>
 
