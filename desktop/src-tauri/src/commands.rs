@@ -318,9 +318,9 @@ fn write_pcap(path: &str, flows: &[FlowDto]) -> std::io::Result<()> {
 
         // Payload: flow summary as UTF-8 text
         let payload = format!(
-            "{} {}:{} -> {}:{} len={} dur_ms={}",
+            "{} {}:{} -> {}:{} len={}",
             flow.protocol, flow.src_ip, flow.src_port,
-            flow.dst_ip, flow.dst_port, flow.length, flow.duration_ms,
+            flow.dst_ip, flow.dst_port, flow.length,
         );
         let payload = payload.as_bytes();
 
