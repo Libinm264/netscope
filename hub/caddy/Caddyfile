@@ -36,11 +36,16 @@
         # Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     }
 
-    # ── API & health ───────────────────────────────────────────────────────────
-    handle /api/* {
+    # ── Go API routes ──────────────────────────────────────────────────────────
+    # Only /api/v1/*, /health, /install, and /metrics go to the Go API.
+    # /api/proxy/* and all other /api/* paths belong to the Next.js app.
+    handle /api/v1/* {
         reverse_proxy api:8080
     }
     handle /health {
+        reverse_proxy api:8080
+    }
+    handle /install {
         reverse_proxy api:8080
     }
     handle /metrics {
@@ -54,7 +59,7 @@
         respond "Forbidden" 403
     }
 
-    # ── Next.js web dashboard ──────────────────────────────────────────────────
+    # ── Next.js web dashboard (catches /api/proxy/* and all UI routes) ─────────
     handle {
         reverse_proxy web:3000
     }
