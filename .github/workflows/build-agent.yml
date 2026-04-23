@@ -1,0 +1,100 @@
+name: Build & Publish Agent
+
+# Triggers:
+#   - Automatically on new GitHub release (adds binaries as assets)
+#   - Manually via workflow_dispatch (e.g. to backfill assets on v0.1.0)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to upload assets to (e.g. v0.1.0)"
+        required: true
+        default: "v0.1.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ── macOS ─────────────────────────────────────────────────────────────
+          - target: x86_64-apple-darwin
+            os: macos-13          # GitHub Intel macOS runner
+          - target: aarch64-apple-darwin
+            os: macos-latest      # GitHub Apple Silicon runner (macOS 14+)
+
+          # ── Linux ─────────────────────────────────────────────────────────────
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm  # GitHub native ARM64 runner (free for public repos)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Resolve which tag/version we're building for ─────────────────────────
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "value=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "value=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Rust toolchain ───────────────────────────────────────────────────────
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('agent/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.target }}-cargo-
+
+      # ── Platform dependencies ────────────────────────────────────────────────
+      # macOS: libpcap is part of the macOS SDK — no extra install needed.
+      # Linux: install libpcap-dev from apt (works on both x86_64 and arm64 runners).
+
+      - name: Install libpcap (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends libpcap-dev
+
+      # ── Build ────────────────────────────────────────────────────────────────
+      - name: Build release binary
+        working-directory: agent
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # ── Package as tar.gz ────────────────────────────────────────────────────
+      - name: Package
+        shell: bash
+        run: |
+          VERSION="${{ steps.tag.outputs.value }}"
+          TARGET="${{ matrix.target }}"
+          BINARY="agent/target/${TARGET}/release/netscope-agent"
+          FILENAME="netscope-agent-${VERSION}-${TARGET}.tar.gz"
+          tar -czf "${FILENAME}" -C "$(dirname ${BINARY})" "$(basename ${BINARY})"
+          echo "ASSET_NAME=${FILENAME}" >> $GITHUB_ENV
+
+      # ── Upload to GitHub release ─────────────────────────────────────────────
+      - name: Upload asset to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.value }}
+          files: ${{ env.ASSET_NAME }}

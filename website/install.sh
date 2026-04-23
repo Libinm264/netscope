@@ -43,8 +43,8 @@ detect_platform() {
       ;;
     Linux)
       case "$ARCH" in
-        x86_64)  PLATFORM="x86_64-unknown-linux-musl";  EXT="tar.gz" ;;
-        aarch64) PLATFORM="aarch64-unknown-linux-musl"; EXT="tar.gz" ;;
+        x86_64)  PLATFORM="x86_64-unknown-linux-gnu";  EXT="tar.gz" ;;
+        aarch64) PLATFORM="aarch64-unknown-linux-gnu"; EXT="tar.gz" ;;
         *) fatal "Unsupported Linux architecture: $ARCH" ;;
       esac
       ;;
