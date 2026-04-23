@@ -439,6 +439,26 @@ fn print_flow(flow: &proto::Flow, n: u64) {
             );
         }
 
+        Some(FlowPayload::Http2(h2)) => {
+            let method  = h2.request.as_ref().map(|r| r.method.as_str()).unwrap_or("-");
+            let path    = h2.request.as_ref().map(|r| r.path.as_str()).unwrap_or("-");
+            let status  = h2.response.as_ref().map(|r| r.status_code.to_string())
+                           .unwrap_or_else(|| "-".to_string());
+            let latency = h2.latency_ms.map(|ms| format!("{}ms", ms))
+                           .unwrap_or_else(|| "-".to_string());
+            let addr = format!("{}:{} → {}:{}", flow.src_ip, flow.src_port, flow.dst_ip, flow.dst_port);
+            match (&h2.grpc_service, &h2.grpc_method) {
+                (Some(svc), Some(meth)) => println!(
+                    "[{}] \x1b[34mgRPC\x1b[0m   #{} {}/{} → {} ({}) {}",
+                    ts, n, svc, meth, status, latency, addr
+                ),
+                _ => println!(
+                    "[{}] \x1b[34mHTTP/2\x1b[0m #{} {} {} → {} ({}) {}",
+                    ts, n, method, path, status, latency, addr
+                ),
+            }
+        }
+
         None => {
             // Raw TCP/UDP flow with no decoded payload — only shown in verbose mode
             if std::env::var("NETSCOPE_VERBOSE").is_ok() {

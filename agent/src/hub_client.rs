@@ -6,7 +6,7 @@
 use anyhow::{Context, Result};
 use chrono::SecondsFormat;
 use gethostname::gethostname;
-use proto::{Flow, FlowPayload, TcpStats};
+use proto::{Flow, FlowPayload};
 use reqwest::blocking::Client;
 use serde::Serialize;
 use std::time::Duration;
@@ -314,6 +314,20 @@ fn flow_to_wire(flow: &Flow, agent_id: &str, hostname: &str) -> HubFlow {
                 target_ip:  a.target_ip.clone(),
                 target_mac: a.target_mac.clone(),
             });
+            info
+        }
+
+        Some(FlowPayload::Http2(h2)) => {
+            let method  = h2.request.as_ref().map(|r| r.method.clone()).unwrap_or_default();
+            let path    = h2.request.as_ref().map(|r| r.path.clone()).unwrap_or_default();
+            let status  = h2.response.as_ref().map(|r| r.status_code as u32).unwrap_or(0);
+            let latency = h2.latency_ms.unwrap_or(0);
+            duration_ms = latency as u32;
+            let info = match (&h2.grpc_service, &h2.grpc_method) {
+                (Some(svc), Some(meth)) => format!("gRPC {}/{}", svc, meth),
+                _ => format!("{} {}", method, path),
+            };
+            http = Some(HubHttpFlow { method, path, status, latency_ms: latency });
             info
         }
 
