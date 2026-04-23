@@ -2234,15 +2234,15 @@
         <div class="qi-steps" style="margin-top:1.25rem;">
           <div class="qi-step">
             <div class="qi-step-num">1</div>
-            <div class="qi-step-text"><strong>Install &amp; enroll</strong> — downloads the binary, sets up a systemd service, and registers with your Hub.</div>
+            <div class="qi-step-text"><strong>Downloads &amp; installs the binary</strong> — auto-detects your OS and architecture (macOS Intel/ARM, Linux x86_64/ARM64).</div>
           </div>
           <div class="qi-step">
             <div class="qi-step-num">2</div>
-            <div class="qi-step-text"><strong>Capture starts immediately</strong> — flows appear in the Hub dashboard within seconds. No reboot, no manual config.</div>
+            <div class="qi-step-text"><strong>Writes config</strong> — saves <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px;">~/.config/netscope/agent.env</code> with your hub URL and API key. On Linux, also installs and starts a systemd service automatically.</div>
           </div>
           <div class="qi-step">
             <div class="qi-step-num">3</div>
-            <div class="qi-step-text"><strong>Configure alerts &amp; compliance</strong> — set thresholds, webhooks, and TLS cert monitoring from the web UI.</div>
+            <div class="qi-step-text"><strong>Start capturing</strong> — on macOS run <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px;">sudo netscope-agent capture --interface en0 --output hub --hub-url … --api-key …</code> and flows appear in the dashboard instantly.</div>
           </div>
         </div>
       </div>
@@ -2254,15 +2254,17 @@
             <span style="flex:1;text-align:center;font-size:.75rem;color:var(--muted)">netscope-agent — bash</span>
           </div>
           <div class="t-body" style="font-size:.78rem;padding:1.25rem 1.5rem">
-            <div class="t-line" style="margin-bottom:.5rem"><span class="t-prompt">$</span> <span class="t-cmd">curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=https://hub.acme.com sh</span></div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span>  Downloading netscope-agent v0.1.0 (linux-x86_64)…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  Installed: /usr/local/bin/netscope-agent</div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span>  Enrolling with hub at hub.acme.com…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  Agent registered — ID: <span style="color:var(--cyan)">4a2b1c9d</span></div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span>  Installing systemd service…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  netscope-agent.service enabled &amp; started</div>
-            <div class="t-line" style="margin-top:.5rem;color:var(--muted)">Listening on <span style="color:#f0abfc">eth0</span> · HTTP · TLS · DNS · TCP</div>
-            <div class="t-line" style="color:var(--muted)">Reporting to hub every <span style="color:var(--yellow)">5 seconds</span></div>
+            <div class="t-line" style="margin-bottom:.5rem"><span class="t-prompt">$</span> <span class="t-cmd">curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=http://localhost HUB_API_KEY=a3f9… sh</span></div>
+            <div class="t-line"><span style="color:var(--cyan)">→</span>  Fetching latest release version…</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  Version: v0.1.0</div>
+            <div class="t-line"><span style="color:var(--cyan)">→</span>  Downloading netscope-agent-v0.1.0-x86_64-apple-darwin.tar.gz…</div>
+            <div class="t-line"><span style="color:var(--cyan)">→</span>  Extracting…</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  Installed: /usr/local/bin/netscope-agent 0.1.0</div>
+            <div class="t-line"><span style="color:var(--green)">✓</span>  Config written: ~/.config/netscope/agent.env</div>
+            <div class="t-line" style="margin-top:.75rem; color:var(--muted); font-size:.75rem;">Done! Run: netscope-agent list-interfaces</div>
+            <div class="t-line" style="margin-top:.75rem;"><span class="t-prompt">$</span> <span class="t-cmd">sudo netscope-agent capture --interface en0 --output hub --hub-url http://localhost:8080 --api-key a3f9…</span></div>
+            <div class="t-line"><span style="color:var(--green)">INFO</span> Starting capture on <span style="color:#f0abfc">en0</span></div>
+            <div class="t-line"><span style="color:var(--green)">INFO</span> Hub client initialised · streaming flows…</div>
             <div class="t-line" style="margin-top:1rem"><span class="t-prompt">$</span> <span class="t-cursor">▋</span></div>
           </div>
         </div>

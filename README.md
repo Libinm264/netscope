@@ -66,6 +66,85 @@ It ships as three complementary pieces:
 
 ---
 
+## Quick Start
+
+> **Requirements:** Docker (for the hub) · macOS or Linux (for the agent)
+
+### 1 — Self-host the Hub
+
+```bash
+curl -sSL https://netscope.ie/hub-quickstart.sh | sh
+```
+
+This pulls pre-built images from GHCR (ClickHouse, Redpanda/Kafka, Go API, Next.js dashboard), generates a random API key, starts everything, and waits for the API health check.
+
+When it finishes, the terminal prints:
+```
+  Dashboard  http://localhost
+  API Key    <your-generated-key>
+
+  Connect an agent:
+  curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=http://localhost HUB_API_KEY=<key> sh
+```
+
+**Open `http://localhost`** — the hub dashboard is live.
+
+---
+
+### 2 — Install the CLI Agent
+
+Copy the `Connect an agent` command printed by the quickstart, or run:
+
+```bash
+curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=http://<your-hub> HUB_API_KEY=<your-key> sh
+```
+
+This downloads the pre-built `netscope-agent` binary for your OS/arch, installs it to `/usr/local/bin`, and writes a config to `~/.config/netscope/agent.env`.
+
+---
+
+### 3 — Start Capturing
+
+```bash
+# List available interfaces
+netscope-agent list-interfaces
+
+# Start capture and stream flows to the hub
+sudo netscope-agent capture \
+  --interface en0 \
+  --output hub \
+  --hub-url http://localhost:8080 \
+  --api-key <your-key>
+```
+
+> **Linux (systemd):** if you passed `HUB_URL` and `HUB_API_KEY` to the installer, a `netscope-agent.service` unit is created and started automatically — no manual step needed.
+>
+> **macOS:** run the `capture` command above manually. There is no launchd integration yet.
+
+Open `http://localhost` — flows from every connected agent appear in the Live Feed within seconds.
+
+---
+
+### Updating / Managing the Hub
+
+```bash
+cd ~/.netscope-hub
+
+# Pull latest images and restart
+docker compose pull && docker compose up -d
+
+# View logs
+docker compose logs -f api
+
+# Stop everything
+docker compose down
+
+# Stop and wipe all data
+docker compose down -v
+```
+
+---
+
 ## Features
 
 ### Capture & Decoding
