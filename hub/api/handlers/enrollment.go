@@ -130,7 +130,9 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 	var tokenID string
 	var expiresAt time.Time
 	var revokedInt uint8
-	rows.Scan(&tokenID, &expiresAt, &revokedInt)
+	if err := rows.Scan(&tokenID, &expiresAt, &revokedInt); err != nil {
+		return util.InternalError(c, err)
+	}
 	rows.Close()
 
 	if revokedInt == 1 {

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"strings"
 	"time"
@@ -48,19 +49,23 @@ func (h *ComplianceHandler) Summary(c *fiber.Ctx) error {
 
 	var totalConns, externalConns uint64
 	if rows.Next() {
-		rows.Scan(&totalConns, &externalConns)
+		if err := rows.Scan(&totalConns, &externalConns); err != nil {
+			return util.InternalError(c, err)
+		}
 	}
 	rows.Close()
 
-	// TLS issues count
+	// TLS issues: only count certs that are actually expired
 	certRows, err := h.CH.Query(c.Context(), `
 		SELECT count() FROM tls_certs FINAL
-		WHERE expired = 1 OR expiry != ''
+		WHERE expired = 1
 	`)
 	tlsIssues := 0
 	if err == nil {
 		if certRows.Next() {
-			certRows.Scan(&tlsIssues)
+			if err := certRows.Scan(&tlsIssues); err != nil {
+				slog.Warn("compliance: tls_issues scan", "err", err)
+			}
 		}
 		certRows.Close()
 	}
