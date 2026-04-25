@@ -2,7 +2,7 @@
 
 import { type Flow } from "@/lib/api";
 import { clsx } from "clsx";
-import { Info } from "lucide-react";
+import { Info, AlertTriangle } from "lucide-react";
 
 const PROTOCOL_COLORS: Record<string, string> = {
   HTTP:  "bg-blue-500/15 text-blue-400 border-blue-500/30",
@@ -118,11 +118,20 @@ export function FlowTable({ flows, loading }: Props) {
               <span className="w-20 shrink-0">
                 <ProtoBadge protocol={f.protocol} />
               </span>
-              <span className="w-32 shrink-0 truncate" title={f.process_name ? `${f.process_name} (PID ${f.pid})` : "pcap mode"}>
+              <span className="w-32 shrink-0 truncate" title={
+                f.process_name
+                  ? `${f.process_name} (PID ${f.pid})${f.pod_name ? ` · pod: ${f.pod_name}` : ""}`
+                  : "pcap mode — run eBPF agent to see process info"
+              }>
                 {f.process_name ? (
-                  <span className="inline-flex items-center gap-1">
-                    <span className="text-emerald-400/80">{f.process_name}</span>
-                    <span className="text-slate-600 text-[10px]">{f.pid}</span>
+                  <span className="inline-flex flex-col gap-0">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="text-emerald-400/80">{f.process_name}</span>
+                      <span className="text-slate-600 text-[10px]">{f.pid}</span>
+                    </span>
+                    {f.pod_name && (
+                      <span className="text-indigo-400/60 text-[10px] truncate">{f.pod_name}</span>
+                    )}
                   </span>
                 ) : (
                   <span className="text-slate-700">—</span>
@@ -146,8 +155,19 @@ export function FlowTable({ flows, loading }: Props) {
               <span className="w-16 shrink-0 text-right tabular-nums text-slate-500">
                 {f.bytes_in + f.bytes_out}
               </span>
-              <span className="flex-1 min-w-0 ml-4 truncate text-slate-400">
-                {f.info}
+              <span className="flex-1 min-w-0 ml-4 truncate text-slate-400 flex items-center gap-2">
+                {f.threat_level && f.threat_level !== "" && (
+                  <span className={clsx(
+                    "inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-semibold border shrink-0",
+                    f.threat_level === "high"   ? "bg-red-500/10 text-red-400 border-red-500/25" :
+                    f.threat_level === "medium" ? "bg-amber-500/10 text-amber-400 border-amber-500/25" :
+                                                   "bg-yellow-500/10 text-yellow-400 border-yellow-500/25",
+                  )} title={`Threat score: ${f.threat_score}`}>
+                    <AlertTriangle size={8} />
+                    {f.threat_level.toUpperCase()}
+                  </span>
+                )}
+                <span className="truncate">{f.info}</span>
               </span>
             </div>
           ))}

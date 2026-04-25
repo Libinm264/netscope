@@ -109,8 +109,9 @@ func (w *Writer) insertFlows(flows []models.Flow) error {
 		  http_method, http_path, http_status,
 		  dns_query, dns_type,
 		  process_name, pid,
+		  pod_name, k8s_namespace,
 		  country_code, country_name, as_org, threat_score, threat_level)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	)
 	if err != nil {
 		return err
@@ -155,6 +156,8 @@ func (w *Writer) insertFlows(flows []models.Flow) error {
 			dnsType,
 			f.ProcessName,
 			f.PID,
+			f.PodName,
+			f.K8sNamespace,
 			f.CountryCode,
 			f.CountryName,
 			f.ASOrg,

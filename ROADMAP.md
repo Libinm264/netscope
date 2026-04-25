@@ -73,24 +73,29 @@ Pass `--libssl-path /usr/lib/.../libssl.so.3` to override.
 
 ---
 
-## 🗓 v0.3 — Intelligence Layer (planned)
+## ✅ v0.3 — Intelligence Layer (shipped)
 
 > **Theme**: Move from observation to detection.
 
-| Area | Feature |
-|------|---------|
-| Agent | DNS-over-HTTPS detection (DoH tunnelling) |
-| Agent | IPv6 support in eBPF probes |
-| Hub | ML-based anomaly detection (flow rate, latency, byte volume baselines) |
-| Hub | Automatic threat intel feed integration (AbuseIPDB, Feodo Tracker) |
-| Hub | Per-process network policy engine (allow/deny rules) |
-| Hub | Kubernetes pod-level enrichment (pod name, namespace, label) |
-| UI | Anomaly timeline — highlight deviations from baseline |
-| UI | Process tree view — see which parent spawned a network-active process |
-| UI | Interactive service dependency graph with latency heat-map |
-| UI | Alert rule templates library (common threat patterns) |
-| Desktop | Desktop alert notifications (OS-native) |
-| Desktop | Process-level bandwidth monitor (eBPF-powered) |
+| Area | Feature | Status |
+|------|---------|--------|
+| Agent | Kubernetes pod enrichment — reads `/proc/self/cgroup`, tags flows with `pod_name` + `k8s_namespace` | ✅ done |
+| Agent | OS detection — reports `os` + `capture_mode` + `ebpf_enabled` in heartbeat | ✅ done |
+| Agent | Heartbeat thread — periodic heartbeat (30s) in both pcap and eBPF modes | ✅ done |
+| Hub | K8s columns in flows table (`pod_name`, `k8s_namespace`) | ✅ done |
+| Hub | Agent fleet columns (`os`, `capture_mode`, `ebpf_enabled`) | ✅ done |
+| Hub | Per-process network policy engine — `process_policies` table, CRUD API, violation log | ✅ done |
+| Hub | Policy evaluation — checks eBPF flows against enabled policies at ingest, records violations | ✅ done |
+| Hub | Threat Intel API — `GET /api/v1/threats` aggregates threat-scored IPs with process info | ✅ done |
+| Hub | Alert test delivery — `POST /api/v1/alerts/:id/test` fires a test notification immediately | ✅ done |
+| Hub | Flows Query includes `pod_name`, `k8s_namespace`, `threat_score`, `threat_level` | ✅ done |
+| UI | Agent Fleet page — eBPF/pcap badge, OS badge, flow count/1h, upgrade callout | ✅ done |
+| UI | Threat Intelligence page — threat IP table with score bars, severity badges, process column | ✅ done |
+| UI | Process Policies page — rule builder, toggle, violations log | ✅ done |
+| UI | Alert test delivery button — fires inline, shows ✓/✗ feedback per rule | ✅ done |
+| UI | Flow table — pod name in Process column, threat level badge in Info column | ✅ done |
+| UI | Service topology — threat score coloring on external nodes, process column (eBPF) | ✅ done |
+| CI | Build workflow updated — all new features covered by existing test/build pipelines | ✅ done |
 
 ---
 

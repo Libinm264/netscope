@@ -55,6 +55,10 @@ pub struct Flow {
     pub tcp_stats: Option<TcpStats>,
     /// OS process that owns this connection (eBPF mode only).
     pub process: Option<ProcessInfo>,
+    /// Kubernetes pod name (populated when running inside a K8s pod).
+    pub pod_name: Option<String>,
+    /// Kubernetes namespace (populated when running inside a K8s pod).
+    pub k8s_namespace: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

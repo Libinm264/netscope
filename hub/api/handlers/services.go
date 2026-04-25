@@ -109,11 +109,15 @@ func windowToInterval(w string) string {
 	switch w {
 	case "15m":
 		return "15 MINUTE"
+	case "1h":
+		return "1 HOUR"
 	case "6h":
 		return "6 HOUR"
-	case "24h":
+	case "7d":
+		return "7 DAY"
+	case "30d":
+		return "30 DAY"
+	default: // "24h"
 		return "24 HOUR"
-	default: // "1h"
-		return "1 HOUR"
 	}
 }

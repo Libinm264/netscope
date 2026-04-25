@@ -94,6 +94,8 @@ impl SessionManager {
                 payload: Some(FlowPayload::Dns(dns_flow)),
                 tcp_stats: None,
                 process: None,
+                pod_name: None,
+                k8s_namespace: None,
             }];
         }
         vec![]
@@ -157,6 +159,8 @@ impl SessionManager {
             })),
             tcp_stats: None,
             process: None,
+            pod_name: None,
+            k8s_namespace: None,
         }]
     }
 
@@ -181,6 +185,8 @@ impl SessionManager {
             payload: Some(FlowPayload::Arp(arp)),
             tcp_stats: None,
             process: None,
+            pod_name: None,
+            k8s_namespace: None,
         }]
     }
 
@@ -222,6 +228,8 @@ impl SessionManager {
                         payload: Some(FlowPayload::Tls(tls_hs)),
                         tcp_stats: Some(stats.clone()),
                         process: None,
+                        pod_name: None,
+                        k8s_namespace: None,
                     });
                 }
                 if tcp_data.fin {
@@ -261,6 +269,8 @@ impl SessionManager {
                         payload: Some(FlowPayload::Http2(h2f)),
                         tcp_stats: Some(stats.clone()),
                         process: None,
+                        pod_name: None,
+                        k8s_namespace: None,
                     });
                 }
                 if tcp_data.fin {
@@ -334,6 +344,8 @@ impl SessionManager {
                                     })),
                                     tcp_stats: Some(stats.clone()),
                                     process: None,
+                                    pod_name: None,
+                                    k8s_namespace: None,
                                 });
 
                                 session.server_buf.drain(..consumed);

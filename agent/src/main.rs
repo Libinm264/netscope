@@ -148,6 +148,48 @@ fn run(cli: Cli) -> Result<()> {
     Ok(())
 }
 
+/// Read /proc/self/cgroup to extract Kubernetes pod name and namespace.
+/// Returns (pod_name, namespace) or ("", "") if not running in a K8s pod.
+fn k8s_info_from_cgroup() -> (String, String) {
+    let cgroup = match std::fs::read_to_string("/proc/self/cgroup") {
+        Ok(c) => c,
+        Err(_) => return (String::new(), String::new()),
+    };
+    // K8s cgroup line pattern:
+    //   12:cpuset:/kubepods/burstable/pod<uid>/<container-id>
+    //   or newer format: 0::/kubepods.slice/kubepods-pod<uid>.slice/...
+    for line in cgroup.lines() {
+        let parts: Vec<&str> = line.splitn(3, ':').collect();
+        if parts.len() < 3 { continue; }
+        let path = parts[2];
+        if !path.contains("kubepods") { continue; }
+        // Extract pod UID — appears as "pod<uid>" or "kubepods-pod<uid>.slice"
+        let pod_uid = if let Some(start) = path.find("/pod") {
+            let after = &path[start + 4..];
+            after.split('/').next().unwrap_or("").to_string()
+        } else if let Some(start) = path.find("kubepods-pod") {
+            let after = &path[start + 12..];
+            after.trim_end_matches(".slice").split('/').next().unwrap_or("").to_string()
+        } else {
+            continue;
+        };
+        if !pod_uid.is_empty() {
+            // Try to read namespace from /etc/podinfo/namespace (downward API)
+            let ns = std::fs::read_to_string("/etc/podinfo/namespace")
+                .unwrap_or_default()
+                .trim()
+                .to_string();
+            // Try to read pod name from /etc/podinfo/name
+            let pod_name = std::fs::read_to_string("/etc/podinfo/name")
+                .unwrap_or(format!("pod-{}", &pod_uid[..8.min(pod_uid.len())]))
+                .trim()
+                .to_string();
+            return (pod_name, ns);
+        }
+    }
+    (String::new(), String::new())
+}
+
 fn run_capture(cfg: AgentConfig) -> Result<()> {
     let (tx, rx) = mpsc::channel();
 
@@ -181,6 +223,12 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
         }
     });
 
+    // Detect Kubernetes environment once at startup
+    let (k8s_pod_name, k8s_namespace) = k8s_info_from_cgroup();
+    if !k8s_pod_name.is_empty() {
+        info!(pod = %k8s_pod_name, namespace = %k8s_namespace, "Running inside Kubernetes pod");
+    }
+
     // Build hub client if hub output is requested
     let hub_output = matches!(cfg.output, OutputMode::Hub);
     let mut hub: Option<HubClient> = if hub_output {
@@ -211,6 +259,27 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
         None
     };
 
+    // Spawn a heartbeat thread when hub output is active
+    if hub_output {
+        if let (Some(url), Some(key)) = (cfg.hub_url.as_ref(), cfg.api_key.as_ref()) {
+            match HubClient::new(url, key) {
+                Ok(hb_client) => {
+                    thread::spawn(move || {
+                        loop {
+                            if let Err(e) = hb_client.send_heartbeat("pcap", false) {
+                                tracing::warn!("heartbeat failed: {}", e);
+                            }
+                            std::thread::sleep(std::time::Duration::from_secs(30));
+                        }
+                    });
+                }
+                Err(e) => {
+                    warn!("Failed to create heartbeat client: {:#}", e);
+                }
+            }
+        }
+    }
+
     let mut session_mgr = SessionManager::new();
     let mut flow_count = 0u64;
 
@@ -218,8 +287,14 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
     for packet_event in &rx {
         let flows = session_mgr.process(&packet_event);
 
-        for flow in flows {
+        for mut flow in flows {
             flow_count += 1;
+
+            // Populate K8s metadata if running in a pod
+            if !k8s_pod_name.is_empty() {
+                flow.pod_name = Some(k8s_pod_name.clone());
+                flow.k8s_namespace = Some(k8s_namespace.clone());
+            }
 
             if let Some(ref mut client) = hub {
                 if let Err(e) = client.send_flow(&flow) {
@@ -263,6 +338,12 @@ fn run_ebpf(
 
     #[cfg(feature = "ebpf")]
     {
+        // Detect Kubernetes environment once at startup
+        let (k8s_pod_name, k8s_namespace) = k8s_info_from_cgroup();
+        if !k8s_pod_name.is_empty() {
+            info!(pod = %k8s_pod_name, namespace = %k8s_namespace, "Running inside Kubernetes pod");
+        }
+
         // Spin up a dedicated hub-sender thread that owns the blocking HubClient.
         // The async eBPF loop converts events to flows and enqueues via this channel,
         // avoiding calling reqwest::blocking inside an async runtime context.
@@ -301,6 +382,25 @@ fn run_ebpf(
                 }
             };
 
+        // Spawn heartbeat thread for eBPF mode
+        if let (Some(url), Some(key)) = (hub_url.as_ref(), api_key.as_ref()) {
+            match HubClient::new(url, key) {
+                Ok(hb_client) => {
+                    thread::spawn(move || {
+                        loop {
+                            if let Err(e) = hb_client.send_heartbeat("ebpf", true) {
+                                tracing::warn!("heartbeat failed: {}", e);
+                            }
+                            std::thread::sleep(std::time::Duration::from_secs(30));
+                        }
+                    });
+                }
+                Err(e) => {
+                    warn!("Failed to create heartbeat client: {:#}", e);
+                }
+            }
+        }
+
         let rt = tokio::runtime::Runtime::new()?;
         rt.block_on(async move {
             let cfg = EbpfConfig {
@@ -320,11 +420,21 @@ fn run_ebpf(
                         // Convert SSL plaintext event → Flow.
                         // Both Read (inbound) and Write (outbound) carry useful data;
                         // we parse application-layer protocol from either direction.
-                        Some(ssl_event_to_flow(e))
+                        let mut flow = ssl_event_to_flow(e);
+                        if !k8s_pod_name.is_empty() {
+                            flow.pod_name = Some(k8s_pod_name.clone());
+                            flow.k8s_namespace = Some(k8s_namespace.clone());
+                        }
+                        Some(flow)
                     }
                     EbpfEvent::TcpConnect(e) if e.success => {
                         // Successful TCP connect → lightweight connection-tracking flow
-                        Some(tcp_connect_to_flow(e))
+                        let mut flow = tcp_connect_to_flow(e);
+                        if !k8s_pod_name.is_empty() {
+                            flow.pod_name = Some(k8s_pod_name.clone());
+                            flow.k8s_namespace = Some(k8s_namespace.clone());
+                        }
+                        Some(flow)
                     }
                     EbpfEvent::TcpConnect(_) => None, // failed connect, skip
                 };
@@ -472,6 +582,8 @@ fn ssl_event_to_flow(e: &ebpf_loader::SslFlowEvent) -> proto::Flow {
             pid:  e.pid,
             name: e.comm.clone(),
         }),
+        pod_name: None,
+        k8s_namespace: None,
     }
 }
 
@@ -495,6 +607,8 @@ fn tcp_connect_to_flow(e: &ebpf_loader::TcpFlowEvent) -> proto::Flow {
             pid:  e.pid,
             name: e.comm.clone(),
         }),
+        pod_name: None,
+        k8s_namespace: None,
     }
 }
 

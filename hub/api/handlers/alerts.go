@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
+	"github.com/netscope/hub-api/alerting"
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/models"
 	"github.com/netscope/hub-api/util"
@@ -14,7 +15,8 @@ import (
 
 // AlertHandler manages alert rule CRUD and recent event queries.
 type AlertHandler struct {
-	CH *clickhouse.Client
+	CH        *clickhouse.Client
+	Evaluator *alerting.Evaluator
 }
 
 // ListRules handles GET /api/v1/alerts.
@@ -227,4 +229,53 @@ func (h *AlertHandler) ListEvents(c *fiber.Ctx) error {
 		events = append(events, e)
 	}
 	return c.JSON(fiber.Map{"events": events})
+}
+
+// TestDelivery handles POST /api/v1/alerts/:id/test
+// Sends a test payload to the rule's configured delivery channel immediately.
+func (h *AlertHandler) TestDelivery(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if h.CH == nil {
+		return c.Status(503).JSON(fiber.Map{"error": "ClickHouse not available"})
+	}
+
+	// Fetch the rule
+	rows, err := h.CH.Query(c.Context(),
+		`SELECT id, name, metric, condition, threshold, window_minutes,
+		        integration_type, webhook_url, webhook_secret, email_to, enabled, cooldown_minutes, created_at
+		 FROM alert_rules WHERE id = ? LIMIT 1`, id)
+	if err != nil {
+		return util.InternalError(c, err)
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return c.Status(404).JSON(fiber.Map{"error": "rule not found"})
+	}
+	var r models.AlertRule
+	var enabledInt uint8
+	if err := rows.Scan(
+		&r.ID, &r.Name, &r.Metric, &r.Condition,
+		&r.Threshold, &r.WindowMinutes,
+		&r.IntegrationType, &r.WebhookURL, &r.WebhookSecret, &r.EmailTo, &enabledInt, &r.CooldownMinutes, &r.CreatedAt,
+	); err != nil {
+		return util.InternalError(c, err)
+	}
+
+	payload := models.WebhookPayload{
+		AlertID:   r.ID,
+		RuleName:  r.Name,
+		Metric:    r.Metric,
+		Value:     0,
+		Threshold: r.Threshold,
+		Condition: r.Condition,
+		FiredAt:   time.Now().UTC(),
+		Message:   "[TEST] " + r.Name + ": this is a test delivery from NetScope",
+	}
+
+	smtpCfg := alerting.SMTPConfig{} // TODO: wire from evaluator if set
+	ok := alerting.FireAlert(c.Context(), r, payload, smtpCfg)
+	if !ok {
+		return c.Status(502).JSON(fiber.Map{"error": "delivery failed — check webhook URL or integration settings"})
+	}
+	return c.JSON(fiber.Map{"ok": true, "message": "test alert delivered"})
 }

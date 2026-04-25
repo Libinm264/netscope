@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { RefreshCw, GitFork, Info } from "lucide-react";
+import { RefreshCw, GitFork, Info, AlertTriangle, Cpu } from "lucide-react";
 import { clsx } from "clsx";
-import { fetchServiceGraph } from "@/lib/api";
-import type { ServiceGraph } from "@/lib/api";
+import { fetchServiceGraph, fetchThreats } from "@/lib/api";
+import type { ServiceGraph, ThreatIP } from "@/lib/api";
 import { ServiceGraphViz } from "@/components/ServiceGraph";
 
 const WINDOWS = [
@@ -15,18 +15,26 @@ const WINDOWS = [
 ];
 
 export default function ServicesPage() {
-  const [window, setWindow] = useState("1h");
-  const [graph, setGraph] = useState<ServiceGraph | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [window, setWindow]     = useState("1h");
+  const [graph, setGraph]       = useState<ServiceGraph | null>(null);
+  const [threats, setThreats]   = useState<Map<string, ThreatIP>>(new Map());
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const load = useCallback(async (w: string) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchServiceGraph(w);
+      const [data, threatRes] = await Promise.all([
+        fetchServiceGraph(w),
+        fetchThreats({ window: w, limit: 200 }).catch(() => ({ threats: [] as ThreatIP[], summary: { total: 0, high: 0, medium: 0, low: 0 }, window: w })),
+      ]);
       setGraph(data);
+      // Index threats by IP for O(1) lookup in the node table
+      const tmap = new Map<string, ThreatIP>();
+      for (const t of threatRes.threats) tmap.set(t.dst_ip, t);
+      setThreats(tmap);
       setLastRefresh(new Date());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load service graph");
@@ -152,46 +160,56 @@ export default function ServicesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/[0.04]">
-                  {["IP / Host", "Hostname", "Total Flows", "Type"].map((h) => (
-                    <th
-                      key={h}
-                      className="text-left px-4 py-2.5 text-xs font-medium text-slate-500"
-                    >
-                      {h}
-                    </th>
+                  {["IP / Host", "Hostname", "Total Flows", "Type", "Threat", "Processes (eBPF)"].map((h) => (
+                    <th key={h} className="text-left px-4 py-2.5 text-xs font-medium text-slate-500">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {[...graph.nodes]
                   .sort((a, b) => b.flow_count - a.flow_count)
-                  .map((node) => (
-                    <tr
-                      key={node.id}
-                      className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
-                    >
-                      <td className="px-4 py-2.5 font-mono text-xs text-slate-200">
-                        {node.ip}
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-slate-400">
-                        {node.hostname || "—"}
-                      </td>
-                      <td className="px-4 py-2.5 text-xs text-slate-300">
-                        {node.flow_count.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        {node.is_known ? (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400">
-                            Agent
-                          </span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-700/50 text-slate-400">
-                            External
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                  .map((node) => {
+                    const threat = threats.get(node.ip);
+                    return (
+                      <tr key={node.id}
+                        className={clsx(
+                          "border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors",
+                          threat?.threat_level === "high" && "bg-red-500/[0.03]",
+                        )}>
+                        <td className="px-4 py-2.5 font-mono text-xs text-slate-200">{node.ip}</td>
+                        <td className="px-4 py-2.5 text-xs text-slate-400">{node.hostname || "—"}</td>
+                        <td className="px-4 py-2.5 text-xs text-slate-300 tabular-nums">{node.flow_count.toLocaleString()}</td>
+                        <td className="px-4 py-2.5">
+                          {node.is_known ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400">Agent</span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-700/50 text-slate-400">External</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          {threat ? (
+                            <span className={clsx(
+                              "inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border",
+                              threat.threat_level === "high"   ? "bg-red-500/10 text-red-400 border-red-500/25" :
+                              threat.threat_level === "medium" ? "bg-amber-500/10 text-amber-400 border-amber-500/25" :
+                                                                  "bg-yellow-500/10 text-yellow-400 border-yellow-500/25",
+                            )} title={`Score: ${threat.threat_score} · ${threat.as_org}`}>
+                              <AlertTriangle size={8} />
+                              {threat.threat_level.toUpperCase()} · {threat.threat_score}
+                            </span>
+                          ) : (
+                            <span className="text-slate-700 text-xs">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-emerald-400/70">
+                          {threat?.processes?.length
+                            ? <span className="flex items-center gap-1"><Cpu size={10} />{threat.processes.slice(0,3).join(", ")}</span>
+                            : <span className="text-slate-700">—</span>
+                          }
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>

@@ -7,6 +7,7 @@ import {
   createAlertRule,
   updateAlertRule,
   deleteAlertRule,
+  testAlertDelivery,
   type AlertRule,
   type AlertEvent,
   type CreateAlertRuleRequest,
@@ -25,6 +26,7 @@ import {
   CheckCircle2,
   XCircle,
   Copy,
+  Send,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -307,8 +309,10 @@ function RuleRow({
   onToggle: (id: string, enabled: boolean) => void;
   onDelete: (id: string) => void;
 }) {
-  const [toggling, setToggling] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+  const [toggling, setToggling]   = useState(false);
+  const [deleting, setDeleting]   = useState(false);
+  const [testing,  setTesting]    = useState(false);
+  const [testMsg,  setTestMsg]    = useState<{ ok: boolean; text: string } | null>(null);
 
   async function toggle() {
     setToggling(true);
@@ -331,6 +335,20 @@ function RuleRow({
     }
   }
 
+  async function sendTest() {
+    setTesting(true);
+    setTestMsg(null);
+    try {
+      const res = await testAlertDelivery(rule.id);
+      setTestMsg({ ok: res.ok, text: res.message ?? (res.ok ? "Test delivered ✓" : "Delivery failed") });
+    } catch (e) {
+      setTestMsg({ ok: false, text: String(e) });
+    } finally {
+      setTesting(false);
+      setTimeout(() => setTestMsg(null), 4000);
+    }
+  }
+
   const enabled = Boolean(rule.enabled);
 
   return (
@@ -347,6 +365,14 @@ function RuleRow({
             <p className="text-xs text-slate-600 truncate max-w-[160px]">
               {rule.webhook_url}
             </p>
+          )}
+          {testMsg && (
+            <span className={clsx(
+              "text-[10px] px-1.5 py-0.5 rounded",
+              testMsg.ok ? "text-emerald-400 bg-emerald-500/10" : "text-red-400 bg-red-500/10",
+            )}>
+              {testMsg.text}
+            </span>
           )}
         </div>
       </td>
@@ -384,6 +410,16 @@ function RuleRow({
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1.5">
+          {/* Test delivery */}
+          <button
+            onClick={sendTest}
+            disabled={testing}
+            title="Send a test notification to verify delivery is configured"
+            className="p-1.5 rounded-md text-slate-500 hover:text-indigo-400
+                       hover:bg-indigo-500/10 transition-colors disabled:opacity-40"
+          >
+            <Send size={13} className={testing ? "animate-pulse" : ""} />
+          </button>
           <button
             onClick={toggle}
             disabled={toggling}

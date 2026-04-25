@@ -101,6 +101,14 @@ export interface Flow {
   /** eBPF process attribution — only present for flows captured in eBPF mode */
   process_name?: string;
   pid?: number;
+  /** Kubernetes pod name — populated when agent runs inside a K8s pod */
+  pod_name?: string;
+  /** Kubernetes namespace — populated when agent runs inside a K8s pod */
+  k8s_namespace?: string;
+  /** Threat intelligence score 0–100 from AbuseIPDB / blocklists (0 = clean/unscored) */
+  threat_score?: number;
+  /** Threat level: "high" | "medium" | "low" | "" */
+  threat_level?: string;
 }
 
 export interface StatsResponse {
@@ -118,6 +126,10 @@ export interface Agent {
   interface: string;
   last_seen: string;
   registered_at: string;
+  os?: string;
+  capture_mode?: string;    // "pcap" | "ebpf"
+  ebpf_enabled?: boolean;
+  flow_count_1h?: number;
 }
 
 // ── Proxy client ──────────────────────────────────────────────────────────────
@@ -549,4 +561,89 @@ export function createFlowStream(
   };
 
   return () => es.close();
+}
+
+// ── Process policies ──────────────────────────────────────────────────────────
+
+export interface ProcessPolicy {
+  id: string;
+  name: string;
+  process_name: string;
+  action: "alert" | "deny";
+  dst_ip_cidr: string;
+  dst_port: number;
+  description: string;
+  enabled: boolean;
+  created_at: string;
+}
+
+export interface PolicyViolation {
+  id: string;
+  policy_id: string;
+  policy_name: string;
+  process_name: string;
+  pid: number;
+  src_ip: string;
+  dst_ip: string;
+  dst_port: number;
+  protocol: string;
+  agent_id: string;
+  hostname: string;
+  violated_at: string;
+}
+
+export interface CreatePolicyRequest {
+  name: string;
+  process_name: string;
+  action: "alert" | "deny";
+  dst_ip_cidr?: string;
+  dst_port?: number;
+  description?: string;
+}
+
+export async function fetchPolicies(): Promise<{ policies: ProcessPolicy[] }> {
+  return get("/policies");
+}
+export async function createPolicy(req: CreatePolicyRequest): Promise<{ id: string }> {
+  return api("POST", "/policies", req);
+}
+export async function updatePolicy(id: string, patch: { enabled?: boolean; action?: string }): Promise<void> {
+  await api("PATCH", `/policies/${id}`, patch);
+}
+export async function deletePolicy(id: string): Promise<void> {
+  await api("DELETE", `/policies/${id}`);
+}
+export async function fetchPolicyViolations(params?: { window?: string; limit?: number }): Promise<{ violations: PolicyViolation[]; window: string }> {
+  return get("/policies/violations", params as Record<string, string | number>);
+}
+
+// ── Threat intelligence ───────────────────────────────────────────────────────
+
+export interface ThreatIP {
+  dst_ip: string;
+  threat_score: number;
+  threat_level: string;
+  country_code: string;
+  country_name: string;
+  as_org: string;
+  flow_count: number;
+  last_seen: string;
+  processes: string[];
+}
+
+export interface ThreatSummary {
+  total: number;
+  high: number;
+  medium: number;
+  low: number;
+}
+
+export async function fetchThreats(params?: { window?: string; limit?: number }): Promise<{ threats: ThreatIP[]; summary: ThreatSummary; window: string }> {
+  return get("/threats", params as Record<string, string | number>);
+}
+
+// ── Alert test delivery ───────────────────────────────────────────────────────
+
+export async function testAlertDelivery(id: string): Promise<{ ok: boolean; message: string }> {
+  return api("POST", `/alerts/${id}/test`);
 }

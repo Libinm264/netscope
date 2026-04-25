@@ -119,6 +119,10 @@ struct HubFlow {
     process_name: String,
     /// Process PID from eBPF attribution (0 when unavailable).
     pid:          u32,
+    /// Kubernetes pod name (empty string when not running in a K8s pod).
+    pod_name:     String,
+    /// Kubernetes namespace (empty string when not running in a K8s pod).
+    k8s_namespace: String,
 }
 
 #[derive(Serialize)]
@@ -132,6 +136,7 @@ struct IngestRequest<'a> {
 
 pub struct HubClient {
     client:   Client,
+    hub_url:  String,
     ingest_url: String,
     api_key:  String,
     agent_id: String,
@@ -150,13 +155,12 @@ impl HubClient {
             .to_string_lossy()
             .into_owned();
 
-        let ingest_url = format!(
-            "{}/api/v1/ingest",
-            hub_url.trim_end_matches('/')
-        );
+        let base = hub_url.trim_end_matches('/').to_string();
+        let ingest_url = format!("{}/api/v1/ingest", base);
 
         Ok(Self {
             client,
+            hub_url: base,
             ingest_url,
             api_key: api_key.to_string(),
             agent_id: Uuid::new_v4().to_string(),
@@ -210,6 +214,32 @@ impl HubClient {
 
     pub fn hostname(&self) -> &str {
         &self.hostname
+    }
+
+    /// POST a heartbeat to /api/v1/agents/heartbeat.
+    /// Reports OS, capture mode, and eBPF status to the Hub.
+    pub fn send_heartbeat(&self, capture_mode: &str, ebpf_enabled: bool) -> anyhow::Result<()> {
+        let os = std::env::consts::OS.to_string();
+        let body = serde_json::json!({
+            "agent_id": self.agent_id,
+            "hostname": self.hostname,
+            "version": env!("CARGO_PKG_VERSION"),
+            "interface": "",
+            "os": os,
+            "capture_mode": capture_mode,
+            "ebpf_enabled": ebpf_enabled,
+        });
+        let url = format!("{}/api/v1/agents/heartbeat", self.hub_url);
+        let resp = self.client
+            .post(&url)
+            .header("X-Api-Key", &self.api_key)
+            .json(&body)
+            .send()?;
+        if !resp.status().is_success() {
+            let txt = resp.text().unwrap_or_default();
+            anyhow::bail!("heartbeat failed: {}", txt);
+        }
+        Ok(())
     }
 }
 
@@ -348,6 +378,9 @@ fn flow_to_wire(flow: &Flow, agent_id: &str, hostname: &str) -> HubFlow {
         .map(|p| (p.name.clone(), p.pid))
         .unwrap_or_else(|| (String::new(), 0));
 
+    let pod_name      = flow.pod_name.clone().unwrap_or_default();
+    let k8s_namespace = flow.k8s_namespace.clone().unwrap_or_default();
+
     HubFlow {
         id:          flow.id.clone(),
         agent_id:    agent_id.to_string(),
@@ -370,6 +403,8 @@ fn flow_to_wire(flow: &Flow, agent_id: &str, hostname: &str) -> HubFlow {
         tcp_stats,
         process_name,
         pid,
+        pod_name,
+        k8s_namespace,
     }
 }
 

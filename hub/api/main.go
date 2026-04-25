@@ -240,7 +240,9 @@ func main() {
 	agentH     := &handlers.AgentHandler{CH: chClient}
 	metricsH   := &handlers.MetricsHandler{CH: chClient}
 	statsH     := &handlers.StatsHandler{CH: chClient}
-	alertH     := &handlers.AlertHandler{CH: chClient}
+	alertH     := &handlers.AlertHandler{CH: chClient, Evaluator: evaluator}
+	policyH    := &handlers.PolicyHandler{CH: chClient}
+	threatH    := &handlers.ThreatHandler{CH: chClient}
 	servicesH  := &handlers.ServicesHandler{CH: chClient}
 	analyticsH := &handlers.AnalyticsHandler{CH: chClient}
 	otelH      := &handlers.OtelHandler{CH: chClient}
@@ -291,6 +293,18 @@ func main() {
 	// Phase 10 — metrics timeseries
 	v1.Get("/metrics/timeseries",         apiLimit,                            metricsH.Timeseries)
 	v1.Get("/metrics/protocols",          apiLimit,                            metricsH.ProtocolBreakdown)
+	// Phase 11 — process policies
+	v1.Get("/policies",                   apiLimit,                            policyH.List)
+	v1.Post("/policies",                  apiLimit, middleware.RequireAdmin(), policyH.Create)
+	v1.Patch("/policies/:id",             apiLimit, middleware.RequireAdmin(), policyH.Update)
+	v1.Delete("/policies/:id",            apiLimit, middleware.RequireAdmin(), policyH.Delete)
+	v1.Get("/policies/violations",        apiLimit,                            policyH.ListViolations)
+	// Phase 11 — threat intel
+	v1.Get("/threats",                    apiLimit,                            threatH.Summary)
+	// Phase 11 — alert test delivery
+	v1.Post("/alerts/:id/test",           apiLimit, middleware.RequireAdmin(), alertH.TestDelivery)
+	// Phase 11 — agent flow count
+	v1.Get("/agents/stats",               apiLimit,                            agentH.Stats)
 
 	// ── Graceful shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
@@ -440,6 +454,47 @@ func runMigrations(ch *clickhouse.Client) error {
 		// Phase 10: new alert_rules columns (idempotent)
 		`ALTER TABLE alert_rules ADD COLUMN IF NOT EXISTS webhook_secret String DEFAULT ''`,
 		`ALTER TABLE alert_rules ADD COLUMN IF NOT EXISTS email_to String DEFAULT ''`,
+
+		// Phase 11a: agent fleet enrichment (idempotent ALTER TABLE)
+		`ALTER TABLE agents ADD COLUMN IF NOT EXISTS os LowCardinality(String) DEFAULT ''`,
+		`ALTER TABLE agents ADD COLUMN IF NOT EXISTS capture_mode LowCardinality(String) DEFAULT 'pcap'`,
+		`ALTER TABLE agents ADD COLUMN IF NOT EXISTS ebpf_enabled UInt8 DEFAULT 0`,
+
+		// Phase 11b: K8s pod enrichment on flows (idempotent)
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS pod_name LowCardinality(String) DEFAULT ''`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS k8s_namespace LowCardinality(String) DEFAULT ''`,
+
+		// Phase 11c: Process policies table
+		`CREATE TABLE IF NOT EXISTS process_policies (
+			id          UUID DEFAULT generateUUIDv4(),
+			name        String,
+			process_name String,
+			action      LowCardinality(String) DEFAULT 'alert',
+			dst_ip_cidr String DEFAULT '',
+			dst_port    UInt16 DEFAULT 0,
+			description String DEFAULT '',
+			enabled     UInt8  DEFAULT 1,
+			created_at  DateTime64(3, 'UTC') DEFAULT now64()
+		) ENGINE = MergeTree() ORDER BY (created_at, id)`,
+
+		// Phase 11d: Policy violations log
+		`CREATE TABLE IF NOT EXISTS policy_violations (
+			id          UUID DEFAULT generateUUIDv4(),
+			policy_id   String,
+			policy_name String,
+			process_name String DEFAULT '',
+			pid         UInt32 DEFAULT 0,
+			src_ip      String DEFAULT '',
+			dst_ip      String DEFAULT '',
+			dst_port    UInt16 DEFAULT 0,
+			protocol    LowCardinality(String) DEFAULT '',
+			agent_id    String DEFAULT '',
+			hostname    LowCardinality(String) DEFAULT '',
+			violated_at DateTime64(3, 'UTC') DEFAULT now64()
+		) ENGINE = MergeTree()
+		PARTITION BY toYYYYMM(violated_at)
+		ORDER BY (violated_at, policy_id)
+		TTL toDateTime(violated_at) + INTERVAL 30 DAY`,
 
 		// Phase 9: audit log — every authenticated API call
 		`CREATE TABLE IF NOT EXISTS audit_events (
