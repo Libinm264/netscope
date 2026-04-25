@@ -211,7 +211,8 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 		        src_ip, src_port, dst_ip, dst_port,
 		        bytes_in, bytes_out, duration_ms, info,
 		        http_method, http_path, http_status,
-		        dns_query, dns_type
+		        dns_query, dns_type,
+		        process_name, pid
 		 FROM flows
 		 WHERE %s
 		 ORDER BY ts DESC
@@ -238,6 +239,7 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 			&f.BytesIn, &f.BytesOut, &f.DurationMs, &f.Info,
 			&httpMethod, &httpPath, &httpStatus,
 			&dnsQuery, &dnsType,
+			&f.ProcessName, &f.PID,
 		); err != nil {
 			slog.Warn("scan flow row", "err", err)
 			continue

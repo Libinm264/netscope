@@ -10,7 +10,7 @@ name = "netscope-ebpf"
 path = "src/main.rs"
 
 [dependencies]
-aya-bpf  = { version = "0.1", features = ["async"] }
+aya-bpf  = "0.1"
 aya-log-ebpf = "0.1"
 ebpf-common  = { path = "../crates/ebpf-common", default-features = false, features = ["bpf"] }
 

@@ -1,0 +1,123 @@
+name: Build eBPF Agent (Linux)
+
+# Builds the eBPF-enabled Linux agent:
+#   1. Compiles BPF kernel programs to bpfel-unknown-none via cargo xtask
+#   2. Compiles the agent with --features ebpf (embeds the BPF ELF via include_bytes!)
+#   3. Uploads netscope-agent-ebpf-<version>-<target>.tar.gz to the GitHub release
+#
+# This workflow runs ONLY on Linux runners because:
+#   • The BPF target (bpfel-unknown-none) requires the nightly compiler + linux-headers
+#   • eBPF is a Linux-only feature; macOS/Windows builds are covered by build-agent.yml
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to upload assets to (e.g. v0.2.0)"
+        required: true
+        default: "v0.2.0"
+
+permissions:
+  contents: write
+
+jobs:
+  build-ebpf:
+    name: eBPF agent — ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm   # GitHub-hosted native ARM64 runner
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Resolve which tag/version we're building for ─────────────────────────
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "value=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "value=${{ inputs.tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Stable Rust toolchain (for agent crate) ──────────────────────────────
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # ── Nightly Rust + bpf target (for BPF kernel programs) ─────────────────
+      # cargo xtask build-ebpf calls:
+      #   cargo +nightly build --target bpfel-unknown-none -Z build-std=core
+      # so we need both the nightly toolchain and its rust-src component.
+      - name: Install nightly Rust toolchain (BPF)
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+          targets: bpfel-unknown-none
+
+      # ── Cargo cache ──────────────────────────────────────────────────────────
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-${{ matrix.target }}-ebpf-${{ hashFiles('agent/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-${{ matrix.target }}-ebpf-
+
+      # ── System dependencies ──────────────────────────────────────────────────
+      # libpcap-dev   — packet capture (same as non-eBPF build)
+      # linux-headers — needed by some aya-bpf helpers at compile time
+      # llvm + clang  — BPF toolchain (used by aya's bindgen step)
+      # libelf-dev    — ELF parsing for BPF loader
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends \
+            libpcap-dev \
+            linux-headers-$(uname -r) \
+            llvm clang libelf-dev
+
+      # ── Step 1: Build BPF kernel programs ────────────────────────────────────
+      # Produces: agent/ebpf/target/bpfel-unknown-none/release/netscope-ebpf
+      # The agent Cargo.toml then embeds this ELF via include_bytes!
+      - name: Build eBPF kernel programs
+        working-directory: agent
+        run: cargo xtask build-ebpf --release
+
+      # ── Step 2: Build Linux agent with eBPF feature ──────────────────────────
+      # --features ebpf unlocks the BPF loader, uprobe attachment, and
+      # SSL/TCP event processing code in agent/src/main.rs
+      - name: Build eBPF-enabled agent
+        working-directory: agent
+        run: cargo build --release --target ${{ matrix.target }} --features ebpf
+
+      # ── Package as tar.gz ─────────────────────────────────────────────────────
+      # Name format: netscope-agent-ebpf-<version>-<target>.tar.gz
+      # The "ebpf" infix distinguishes this from the plain pcap-only binary.
+      - name: Package
+        shell: bash
+        run: |
+          VERSION="${{ steps.tag.outputs.value }}"
+          TARGET="${{ matrix.target }}"
+          BINARY="agent/target/${TARGET}/release/netscope-agent"
+          FILENAME="netscope-agent-ebpf-${VERSION}-${TARGET}.tar.gz"
+          tar -czf "${FILENAME}" -C "$(dirname ${BINARY})" "$(basename ${BINARY})"
+          echo "ASSET_NAME=${FILENAME}" >> $GITHUB_ENV
+
+      # ── Upload to GitHub release ─────────────────────────────────────────────
+      - name: Upload eBPF asset to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.value }}
+          files: ${{ env.ASSET_NAME }}

@@ -708,6 +708,47 @@ netscope-agent capture --interface en0 \
 | `RUST_LOG` | `info` | Log verbosity (`error`, `warn`, `info`, `debug`, `trace`) |
 | `NETSCOPE_INTERFACE` | — | Default interface (overridden by `--interface`) |
 
+### eBPF Capture Mode (Linux)
+
+The eBPF engine intercepts **plaintext data at the SSL layer** — before OpenSSL encrypts it on `SSL_write` and after it decrypts it on `SSL_read`. This means you see the raw HTTP requests and responses that travel over HTTPS without any certificate manipulation or proxy. Every flow also carries **process attribution**: which process (name + PID) opened the connection.
+
+> **Requirements:** Linux kernel ≥ 5.8 · `CAP_BPF` / root · `libssl` (OpenSSL or BoringSSL)
+
+**Step 1 — compile the BPF kernel programs:**
+
+```bash
+cd agent
+cargo xtask build-ebpf --release
+```
+
+**Step 2 — run the agent in eBPF mode:**
+
+```bash
+sudo netscope-agent ebpf \
+  --hub-url http://your-hub:8080 \
+  --api-key YOUR_API_KEY
+```
+
+The agent auto-detects `libssl.so` via `ldconfig`. Override with:
+
+```bash
+sudo netscope-agent ebpf --libssl-path /usr/lib/x86_64-linux-gnu/libssl.so.3
+```
+
+**What you get vs. pcap mode:**
+
+| Feature | pcap (libpcap) | eBPF |
+|---------|---------------|------|
+| HTTPS plaintext | ❌ (sees ciphertext only) | ✅ (intercepted before encryption) |
+| Per-process attribution | ❌ | ✅ process name + PID on every flow |
+| Root required | ✅ (or `cap_net_raw`) | ✅ (or `CAP_BPF`) |
+| Protocol support | HTTP/1.x, HTTP/2, DNS, TLS, ICMP, ARP | HTTP/1.x (from SSL), TCP connects |
+| OS support | macOS + Linux | Linux only |
+
+Flows captured in eBPF mode show a green process name badge in the hub dashboard.
+
+---
+
 ### Hub API Server
 
 ```bash
@@ -950,7 +991,9 @@ All four bundles are uploaded as GitHub Release assets via `tauri-apps/tauri-act
 - [x] **Production hardening** — API key proxy (no browser exposure), SSRF prevention, security headers, startup production gate, error sanitisation
 - [x] **Phase 9** — Production foundation: HTTP/2 + gRPC decoder, per-agent scoped tokens, audit log, alert delivery retry, SSE rate limit, hub URL fix
 - [x] **Phase 10** — Hub customer readiness: FlowsChart (line) + ProtocolChart (donut), SMTP email alerts, HMAC webhook signatures, agent heartbeat, pubsub.Hub interface, Flow Explorer CSV export + dst_ip filter, audit log viewer in Settings, 6-protocol alert delivery
-- [ ] **Phase 11** — Desktop customer readiness: code signing + notarization (macOS), auto-update (Tauri updater plugin), pcap file import, TLS-decrypted HTTP/2, one-click GeoIP download, bounded session memory
+- [x] **v0.2 (in progress)** — eBPF → Hub bridge: per-process flow attribution (PID + name), SSL plaintext intercept, HTTP parsing from eBPF events, process column in hub dashboard, ClickHouse `process_name`/`pid` columns — see [ROADMAP.md](ROADMAP.md) for the full plan
+- [ ] **v0.3** — Intelligence layer: ML anomaly detection, threat intel feeds, per-process network policy, Kubernetes pod enrichment
+- [ ] **v0.4** — Enterprise readiness: multi-tenant RBAC, SAML/OIDC, OpenTelemetry trace correlation, Windows eBPF
 
 ---
 

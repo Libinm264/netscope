@@ -113,7 +113,8 @@ func (h *ComplianceHandler) Connections(c *fiber.Ctx) error {
 	rows, err := h.CH.Query(c.Context(), fmt.Sprintf(`
 		SELECT id, agent_id, hostname, ts, protocol,
 		       src_ip, src_port, dst_ip, dst_port,
-		       bytes_in, bytes_out, duration_ms, info
+		       bytes_in, bytes_out, duration_ms, info,
+		       process_name, pid
 		FROM flows
 		WHERE %s
 		ORDER BY ts DESC
@@ -131,6 +132,7 @@ func (h *ComplianceHandler) Connections(c *fiber.Ctx) error {
 			&r.ID, &r.AgentID, &r.Hostname, &r.Timestamp, &r.Protocol,
 			&r.SrcIP, &r.SrcPort, &r.DstIP, &r.DstPort,
 			&r.BytesIn, &r.BytesOut, &r.DurationMs, &r.Info,
+			&r.ProcessName, &r.PID,
 		); err != nil {
 			continue
 		}

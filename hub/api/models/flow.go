@@ -84,6 +84,12 @@ type Flow struct {
 	ARP        *ArpFlow  `json:"arp,omitempty"`
 	TCPStats   *TcpStats `json:"tcp_stats,omitempty"`
 
+	// Process attribution — populated by the agent in eBPF mode only.
+	// ProcessName is the OS process name (up to 15 chars on Linux).
+	// PID is 0 for pcap-mode flows where attribution is unavailable.
+	ProcessName string `json:"process_name,omitempty"`
+	PID         uint32 `json:"pid,omitempty"`
+
 	// Geo enrichment — populated by the hub at ingest time, not sent by agents.
 	CountryCode string `json:"country_code,omitempty"`
 	CountryName string `json:"country_name,omitempty"`

@@ -53,6 +53,8 @@ pub struct Flow {
     pub payload: Option<FlowPayload>,
     /// TCP retransmission / out-of-order statistics, present for TCP-based flows.
     pub tcp_stats: Option<TcpStats>,
+    /// OS process that owns this connection (eBPF mode only).
+    pub process: Option<ProcessInfo>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -235,6 +237,18 @@ pub struct ArpFlow {
     /// For "is-at" replies this is the target's MAC; for "who-has" requests it is
     /// typically 00:00:00:00:00:00.
     pub target_mac: String,
+}
+
+// ── Process attribution ───────────────────────────────────────────────────────
+
+/// OS process that owns a network connection.
+/// Only populated when the agent runs in eBPF mode (Linux, CAP_BPF).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProcessInfo {
+    /// OS process ID.
+    pub pid: u32,
+    /// Process name (up to 15 characters on Linux — from `comm`).
+    pub name: String,
 }
 
 // ── TCP stats ─────────────────────────────────────────────────────────────────

@@ -1564,12 +1564,12 @@
     <!-- Capture Tab -->
     <div class="tab-panel" id="tab-capture">
       <div class="feature-grid">
-        <div class="feature-card">
+        <div class="feature-card" style="border-color:rgba(0,212,255,0.25);background:linear-gradient(135deg,rgba(0,212,255,0.06) 0%,rgba(12,17,32,0.9) 100%)">
           <div class="feature-card-head">
             <div class="feature-icon">📡</div>
-            <h4>eBPF Agent (Linux)</h4>
+            <h4>eBPF SSL Intercept <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(0,212,255,0.15);color:var(--cyan);vertical-align:middle;margin-left:4px">v0.2</span></h4>
           </div>
-          <p>Kernel-side eBPF program for high-throughput capture without root at runtime. Complements the libpcap path and scales to cloud-native environments.</p>
+          <p>Uprobes on <code>SSL_write</code>/<code>SSL_read</code> intercept plaintext <em>before</em> encryption — full HTTP visibility through HTTPS with zero certificate changes. Every flow carries the process name and PID that opened the connection.</p>
         </div>
         <div class="feature-card">
           <div class="feature-card-head">
@@ -1981,7 +1981,7 @@
     <div class="section-header reveal">
       <span class="section-tag">Roadmap</span>
       <h2 class="section-title">Built in the open. Growing fast.</h2>
-      <p class="section-sub">10 phases shipped. More depth and integrations on the way.</p>
+      <p class="section-sub">v0.1 shipped. v0.2 eBPF bridge in progress. More depth and integrations on the way.</p>
     </div>
     <div class="roadmap-grid">
       <!-- Done -->
@@ -2061,12 +2061,26 @@
 
       <!-- Coming soon -->
       <div class="reveal">
-        <h3><span style="color:var(--purple)">◈</span> Coming Soon</h3>
+        <h3><span style="color:var(--cyan)">⟳</span> In Progress &amp; Coming</h3>
+        <div class="roadmap-item" style="border-color:rgba(0,212,255,0.3);background:rgba(0,212,255,0.04)">
+          <div class="rm-dot" style="background:var(--cyan);color:#000">⟳</div>
+          <div>
+            <div class="rm-text" style="color:var(--cyan)">v0.2 — eBPF → Hub bridge</div>
+            <div class="rm-sub">SSL plaintext intercept · Per-process attribution (PID + name) · Process column in dashboard · ClickHouse process_name/pid columns</div>
+          </div>
+        </div>
         <div class="roadmap-item coming">
           <div class="rm-dot coming">→</div>
           <div>
-            <div class="rm-text">Phase 11 — Desktop customer readiness</div>
-            <div class="rm-sub">Polished onboarding, license management, auto-update, crash reporting</div>
+            <div class="rm-text">v0.3 — Intelligence layer</div>
+            <div class="rm-sub">ML anomaly detection, threat intel feeds, per-process network policy, K8s pod enrichment</div>
+          </div>
+        </div>
+        <div class="roadmap-item coming">
+          <div class="rm-dot coming">→</div>
+          <div>
+            <div class="rm-text">v0.4 — Enterprise readiness</div>
+            <div class="rm-sub">Multi-tenant RBAC, SAML/OIDC SSO, OpenTelemetry trace correlation, Windows eBPF</div>
           </div>
         </div>
         <div class="roadmap-item coming">

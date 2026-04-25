@@ -1,0 +1,122 @@
+# NetScope Roadmap
+
+This document tracks what has shipped and what is planned for each release.
+The goal is to evolve NetScope from a passive network visibility tool into a
+full-stack security observability platform.
+
+---
+
+## ✅ v0.1 — Foundation (shipped)
+
+| Area | Feature |
+|------|---------|
+| Agent | libpcap-based packet capture (HTTP/1.x, DNS, TLS, ICMP, ARP, HTTP/2, gRPC) |
+| Agent | Hub output — batch ingest over HTTP with API-key auth |
+| Agent | `list-interfaces`, `capture`, `ebpf` CLI subcommands |
+| Hub | ClickHouse storage with 90-day TTL |
+| Hub | REST API: `/api/v1/flows`, `/api/v1/stats`, `/api/v1/ingest` |
+| Hub | Server-Sent Events live feed (`/api/v1/flows/stream`) |
+| Hub | TLS certificate fleet tracking (`tls_certs` table) |
+| Hub | Geo-IP + threat scoring enrichment at ingest |
+| Hub | Compliance endpoints: summary, top-talkers, external connections, geo |
+| Hub | Role-based API tokens (admin / viewer) |
+| Hub | Agent enrollment tokens + one-line install script |
+| UI | Real-time flow table with protocol badges |
+| UI | Dashboard: total flows, flows/min, top protocols, active agents |
+| UI | Flows explorer with filters (protocol, IP, time range) |
+| UI | TLS certificate audit page |
+| UI | Compliance reporting (external connections, geo breakdown) |
+| UI | Alert rules + alert event history |
+| Desktop | Tauri + Rust desktop GUI (macOS / Linux) |
+| CI/CD | GitHub Actions: 4-platform agent binary builds |
+| Docs | Quick-start README, one-line install |
+
+---
+
+## 🔄 v0.2 — eBPF Engine (in progress)
+
+> **Theme**: See through TLS, know which process owns every byte.
+
+The eBPF engine intercepts plaintext data *before* OpenSSL encrypts it and
+*after* it decrypts it, giving you full HTTP visibility without a CA cert or
+a proxy.
+
+| Area | Feature | Status |
+|------|---------|--------|
+| Agent | `ProcessInfo { pid, name }` added to proto `Flow` | ✅ done |
+| Agent | eBPF → Hub bridge: `ssl_event_to_flow`, `tcp_connect_to_flow` | ✅ done |
+| Agent | HTTP-from-SSL parser (`parse_http_plaintext`) | ✅ done |
+| Agent | Per-process terminal output (`[process:pid]` prefix) | ✅ done |
+| Agent | Hub sender thread (avoids blocking inside async eBPF loop) | ✅ done |
+| Hub | `process_name` + `pid` columns in ClickHouse `flows` table | ✅ done |
+| Hub | Ingest, Query, Compliance endpoints surface process fields | ✅ done |
+| UI | Process column in FlowTable (green name + PID, "—" for pcap) | ✅ done |
+| Docs | eBPF section in README | 🔲 todo |
+| Agent | eBPF kernel programs (BPF C): SSL uprobes + TCP kprobes | 🔲 kernel side |
+| Agent | eBPF binary build pipeline (CI) | 🔲 todo |
+
+### Running the eBPF engine
+
+```bash
+# Linux only, requires kernel ≥ 5.8 and CAP_BPF / root
+# Step 1 — compile the BPF C programs
+cargo xtask build-ebpf --release
+
+# Step 2 — run the agent in eBPF mode
+sudo netscope-agent ebpf \
+  --hub-url http://your-hub:8080 \
+  --api-key YOUR_API_KEY
+```
+
+The agent will auto-detect `libssl.so` via `ldconfig`.
+Pass `--libssl-path /usr/lib/.../libssl.so.3` to override.
+
+---
+
+## 🗓 v0.3 — Intelligence Layer (planned)
+
+> **Theme**: Move from observation to detection.
+
+| Area | Feature |
+|------|---------|
+| Agent | DNS-over-HTTPS detection (DoH tunnelling) |
+| Agent | IPv6 support in eBPF probes |
+| Hub | ML-based anomaly detection (flow rate, latency, byte volume baselines) |
+| Hub | Automatic threat intel feed integration (AbuseIPDB, Feodo Tracker) |
+| Hub | Per-process network policy engine (allow/deny rules) |
+| Hub | Kubernetes pod-level enrichment (pod name, namespace, label) |
+| UI | Anomaly timeline — highlight deviations from baseline |
+| UI | Process tree view — see which parent spawned a network-active process |
+| UI | Interactive service dependency graph with latency heat-map |
+| UI | Alert rule templates library (common threat patterns) |
+| Desktop | Desktop alert notifications (OS-native) |
+| Desktop | Process-level bandwidth monitor (eBPF-powered) |
+
+---
+
+## 🗓 v0.4 — Enterprise Readiness (planned)
+
+> **Theme**: Deploy at scale, integrate with your stack.
+
+| Area | Feature |
+|------|---------|
+| Hub | Multi-tenant organisations + team-level RBAC |
+| Hub | SAML / OIDC SSO |
+| Hub | Kafka consumer group scaling (horizontal ingest) |
+| Hub | OpenTelemetry trace correlation (link flows to spans) |
+| Hub | Sigma rule engine for custom detection rules |
+| Hub | Audit log export (CEF / LEEF / JSON) |
+| Hub | S3 / GCS long-term storage tier |
+| Agent | Windows support (pcap mode via Npcap) |
+| Agent | eBPF for Go and Python (native TLS libs) |
+| UI | Multi-cluster fleet overview |
+| UI | Custom dashboard builder |
+| UI | Saved queries + query history |
+| Integrations | Splunk HEC, Elastic Beats, Datadog Logs, Grafana Loki |
+
+---
+
+## Contributing
+
+Bug reports and pull requests are welcome.
+See [CONTRIBUTING.md](CONTRIBUTING.md) if it exists, or open an issue to discuss.

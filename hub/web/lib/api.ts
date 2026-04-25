@@ -98,6 +98,9 @@ export interface Flow {
   icmp?: IcmpFlow;
   arp?: ArpFlow;
   tcp_stats?: TcpStats;
+  /** eBPF process attribution — only present for flows captured in eBPF mode */
+  process_name?: string;
+  pid?: number;
 }
 
 export interface StatsResponse {
@@ -424,6 +427,9 @@ export interface ConnectionRecord {
   duration_ms: number;
   info: string;
   is_external: boolean;
+  /** eBPF process attribution — only present for flows captured in eBPF mode */
+  process_name?: string;
+  pid?: number;
 }
 
 export interface TLSAuditRecord {

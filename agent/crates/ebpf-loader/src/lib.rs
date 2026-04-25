@@ -18,6 +18,7 @@ use aya::{include_loaded_ebpf, Ebpf};
 use tokio::sync::mpsc;
 use tracing::{error, info, warn};
 
+pub use ebpf_common::SslDirection;
 pub use ssl::SslFlowEvent;
 pub use tcp::TcpFlowEvent;
 

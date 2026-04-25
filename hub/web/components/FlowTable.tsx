@@ -2,6 +2,7 @@
 
 import { type Flow } from "@/lib/api";
 import { clsx } from "clsx";
+import { Info } from "lucide-react";
 
 const PROTOCOL_COLORS: Record<string, string> = {
   HTTP:  "bg-blue-500/15 text-blue-400 border-blue-500/30",
@@ -44,9 +45,18 @@ interface Props {
   loading?: boolean;
 }
 
-const COLS = [
+const COLS: Array<{ label: string; cls: string; tooltip?: string }> = [
   { label: "Time",        cls: "w-24 shrink-0" },
   { label: "Protocol",    cls: "w-20 shrink-0" },
+  {
+    label: "Process",
+    cls:   "w-32 shrink-0",
+    tooltip:
+      "Process name and PID captured by eBPF kernel probes (Linux only). " +
+      "Shows the exact process making each TLS/TCP connection — curl, node, python, etc. " +
+      "Use the eBPF-enabled agent binary (netscope-agent-ebpf-…) to populate this column. " +
+      "In pcap-only mode the column shows '—'.",
+  },
   { label: "Source",      cls: "w-44 shrink-0" },
   { label: "",            cls: "w-4  shrink-0 text-center" },
   { label: "Destination", cls: "w-44 shrink-0" },
@@ -61,8 +71,17 @@ export function FlowTable({ flows, loading }: Props) {
       <div className="flex items-center px-4 py-2 border-b border-white/[0.06]
                       text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
         {COLS.map((col, i) => (
-          <span key={i} className={col.cls}>
+          <span key={i} className={clsx(col.cls, "flex items-center gap-1")}>
             {col.label}
+            {col.tooltip && (
+              <span
+                title={col.tooltip}
+                className="text-slate-600 hover:text-indigo-400 transition-colors cursor-help normal-case"
+                aria-label={`About the ${col.label} column`}
+              >
+                <Info size={11} />
+              </span>
+            )}
           </span>
         ))}
       </div>
@@ -98,6 +117,16 @@ export function FlowTable({ flows, loading }: Props) {
               </span>
               <span className="w-20 shrink-0">
                 <ProtoBadge protocol={f.protocol} />
+              </span>
+              <span className="w-32 shrink-0 truncate" title={f.process_name ? `${f.process_name} (PID ${f.pid})` : "pcap mode"}>
+                {f.process_name ? (
+                  <span className="inline-flex items-center gap-1">
+                    <span className="text-emerald-400/80">{f.process_name}</span>
+                    <span className="text-slate-600 text-[10px]">{f.pid}</span>
+                  </span>
+                ) : (
+                  <span className="text-slate-700">—</span>
+                )}
               </span>
               <span
                 className="w-44 shrink-0 truncate text-slate-300"

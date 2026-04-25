@@ -13,7 +13,13 @@ use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 #[cfg(all(target_os = "linux", feature = "ebpf"))]
-use ebpf_loader::{start as ebpf_start, EbpfConfig, EbpfEvent};
+use chrono::{DateTime, Utc};
+#[cfg(all(target_os = "linux", feature = "ebpf"))]
+use proto::ProcessInfo;
+#[cfg(all(target_os = "linux", feature = "ebpf"))]
+use uuid::Uuid;
+#[cfg(all(target_os = "linux", feature = "ebpf"))]
+use ebpf_loader::{start as ebpf_start, EbpfConfig, EbpfEvent, SslDirection};
 
 #[derive(Parser)]
 #[command(
@@ -257,20 +263,32 @@ fn run_ebpf(
 
     #[cfg(feature = "ebpf")]
     {
-        let rt = tokio::runtime::Runtime::new()?;
-        rt.block_on(async move {
-            let cfg = EbpfConfig {
-                libssl_path,
-                channel_capacity: 8192,
-            };
-
-            info!("Starting eBPF capture engine");
-
-            let hub: Option<HubClient> = match (hub_url.as_ref(), api_key.as_ref()) {
+        // Spin up a dedicated hub-sender thread that owns the blocking HubClient.
+        // The async eBPF loop converts events to flows and enqueues via this channel,
+        // avoiding calling reqwest::blocking inside an async runtime context.
+        let hub_tx: Option<mpsc::SyncSender<proto::Flow>> =
+            match (hub_url.as_ref(), api_key.as_ref()) {
                 (Some(url), Some(key)) => match HubClient::new(url, key) {
-                    Ok(c) => {
-                        info!(agent_id = c.agent_id(), "Hub client ready");
-                        Some(c)
+                    Ok(mut client) => {
+                        let (tx, rx) = mpsc::sync_channel::<proto::Flow>(512);
+                        info!(
+                            agent_id = client.agent_id(),
+                            hostname = client.hostname(),
+                            hub_url = %url,
+                            "Hub client ready (eBPF mode)"
+                        );
+                        thread::spawn(move || {
+                            for flow in rx {
+                                if let Err(e) = client.send_flow(&flow) {
+                                    warn!("Hub send error: {:#}", e);
+                                }
+                            }
+                            // Channel closed — flush any remaining buffered flows
+                            if let Err(e) = client.flush() {
+                                warn!("Hub final flush: {:#}", e);
+                            }
+                        });
+                        Some(tx)
                     }
                     Err(e) => {
                         warn!("Hub client failed: {:#} — printing to stdout", e);
@@ -283,42 +301,46 @@ fn run_ebpf(
                 }
             };
 
+        let rt = tokio::runtime::Runtime::new()?;
+        rt.block_on(async move {
+            let cfg = EbpfConfig {
+                libssl_path,
+                channel_capacity: 8192,
+            };
+
+            info!("Starting eBPF capture engine (SSL intercept + TCP attribution)");
+            info!("Flows will include per-process attribution (PID + process name)");
+
             let mut rx = ebpf_start(cfg).await?;
             let mut count = 0u64;
 
             while let Some(event) = rx.recv().await {
-                count += 1;
-                match &event {
+                let flow_opt: Option<proto::Flow> = match &event {
                     EbpfEvent::Ssl(e) => {
-                        let dir = match e.direction {
-                            ebpf_loader::SslDirection::Write => "→",
-                            ebpf_loader::SslDirection::Read  => "←",
-                        };
-                        let preview: String = e.data.chars().take(80).collect();
-                        info!(
-                            pid = e.pid,
-                            comm = %e.comm,
-                            src = %e.src_ip,
-                            dst = %e.dst_ip,
-                            port = e.dst_port,
-                            "{} SSL[{}] {:?}",
-                            dir, count, preview
-                        );
+                        // Convert SSL plaintext event → Flow.
+                        // Both Read (inbound) and Write (outbound) carry useful data;
+                        // we parse application-layer protocol from either direction.
+                        Some(ssl_event_to_flow(e))
                     }
-                    EbpfEvent::TcpConnect(e) => {
-                        info!(
-                            pid = e.pid,
-                            comm = %e.comm,
-                            dst = %e.dst_ip,
-                            port = e.dst_port,
-                            success = e.success,
-                            "[{}] TCP connect",
-                            count
-                        );
+                    EbpfEvent::TcpConnect(e) if e.success => {
+                        // Successful TCP connect → lightweight connection-tracking flow
+                        Some(tcp_connect_to_flow(e))
+                    }
+                    EbpfEvent::TcpConnect(_) => None, // failed connect, skip
+                };
+
+                if let Some(flow) = flow_opt {
+                    count += 1;
+                    print_flow(&flow, count);
+
+                    if let Some(ref tx) = hub_tx {
+                        // try_send: non-blocking; drop flow if channel is full rather
+                        // than blocking the async event loop.
+                        if tx.try_send(flow).is_err() {
+                            warn!("Hub channel full — dropping flow #{}", count);
+                        }
                     }
                 }
-                // TODO: serialize events into FlowPayload and push to hub
-                let _ = &hub;
             }
 
             Ok::<_, anyhow::Error>(())
@@ -327,8 +349,164 @@ fn run_ebpf(
     }
 }
 
+// ── eBPF → Flow conversion helpers ────────────────────────────────────────────
+
+/// Parse raw plaintext (from an SSL uprobe) into an HTTP FlowPayload.
+/// Returns None if the data doesn't look like HTTP/1.x.
+#[cfg(all(target_os = "linux", feature = "ebpf"))]
+fn parse_http_plaintext(data: &str, now: DateTime<Utc>) -> Option<proto::FlowPayload> {
+    let first_line = data.lines().next()?.trim();
+
+    // ── HTTP response: "HTTP/1.x NNN Status Text" ────────────────────────────
+    if first_line.starts_with("HTTP/1.") {
+        let mut parts = first_line.splitn(3, ' ');
+        let version     = parts.next()?.to_string();
+        let status_code: u16 = parts.next()?.parse().ok()?;
+        let status_text = parts.next().unwrap_or("").to_string();
+
+        let (headers, body_preview) = parse_headers_body(data);
+        return Some(proto::FlowPayload::Http(proto::HttpFlow {
+            request: None,
+            response: Some(proto::HttpResponse {
+                status_code,
+                status_text,
+                version,
+                headers,
+                body_preview,
+                timestamp: now,
+            }),
+            latency_ms: None,
+        }));
+    }
+
+    // ── HTTP request: "METHOD path HTTP/1.x" ─────────────────────────────────
+    const METHODS: &[&str] = &[
+        "GET ", "POST ", "PUT ", "DELETE ", "PATCH ",
+        "HEAD ", "OPTIONS ", "CONNECT ", "TRACE ",
+    ];
+    if METHODS.iter().any(|m| first_line.starts_with(m)) {
+        let mut parts = first_line.splitn(3, ' ');
+        let method  = parts.next()?.to_string();
+        let path    = parts.next()?.to_string();
+        let version = parts.next().unwrap_or("HTTP/1.1").to_string();
+
+        let (headers, body_preview) = parse_headers_body(data);
+        return Some(proto::FlowPayload::Http(proto::HttpFlow {
+            request: Some(proto::HttpRequest {
+                method,
+                path,
+                version,
+                headers,
+                body_preview,
+                timestamp: now,
+            }),
+            response: None,
+            latency_ms: None,
+        }));
+    }
+
+    None
+}
+
+/// Parse header lines and optional body preview from raw HTTP text.
+/// Skips the first (request/status) line.
+#[cfg(all(target_os = "linux", feature = "ebpf"))]
+fn parse_headers_body(raw: &str) -> (Vec<(String, String)>, Option<String>) {
+    let mut headers = Vec::new();
+    let mut body_lines: Vec<&str> = Vec::new();
+    let mut in_body = false;
+
+    for line in raw.lines().skip(1) {
+        if in_body {
+            body_lines.push(line);
+            if body_lines.len() >= 5 {
+                break;
+            }
+        } else if line.is_empty() {
+            in_body = true;
+        } else if let Some((k, v)) = line.split_once(": ") {
+            headers.push((k.to_string(), v.to_string()));
+        }
+    }
+
+    let body_preview = if body_lines.is_empty() {
+        None
+    } else {
+        Some(body_lines.join("\n").chars().take(512).collect())
+    };
+
+    (headers, body_preview)
+}
+
+/// Convert a captured SSL plaintext event into a proto::Flow.
+#[cfg(all(target_os = "linux", feature = "ebpf"))]
+fn ssl_event_to_flow(e: &ebpf_loader::SslFlowEvent) -> proto::Flow {
+    let payload = parse_http_plaintext(&e.data, e.timestamp);
+
+    // Bytes direction: Write = we're sending data out, Read = receiving
+    let (bytes_out, bytes_in) = match e.direction {
+        SslDirection::Write => (e.data.len() as u64, 0u64),
+        SslDirection::Read  => (0u64, e.data.len() as u64),
+    };
+
+    // Protocol: HTTPS for well-known TLS ports; otherwise mark as TLS
+    let protocol = match e.dst_port {
+        443 | 8443 | 4433 => proto::Protocol::Https,
+        _ if payload.is_some() => proto::Protocol::Https,
+        _ => proto::Protocol::Tls,
+    };
+
+    proto::Flow {
+        id:        Uuid::new_v4().to_string(),
+        timestamp: e.timestamp,
+        src_ip:    e.src_ip.to_string(),
+        dst_ip:    e.dst_ip.to_string(),
+        src_port:  e.src_port,
+        dst_port:  e.dst_port,
+        protocol,
+        bytes_in,
+        bytes_out,
+        payload,
+        tcp_stats: None,
+        process: Some(ProcessInfo {
+            pid:  e.pid,
+            name: e.comm.clone(),
+        }),
+    }
+}
+
+/// Convert a TCP connection event into a lightweight proto::Flow
+/// (no application-layer payload, just connection attribution).
+#[cfg(all(target_os = "linux", feature = "ebpf"))]
+fn tcp_connect_to_flow(e: &ebpf_loader::TcpFlowEvent) -> proto::Flow {
+    proto::Flow {
+        id:        Uuid::new_v4().to_string(),
+        timestamp: e.timestamp,
+        src_ip:    e.src_ip.to_string(),
+        dst_ip:    e.dst_ip.to_string(),
+        src_port:  e.src_port,
+        dst_port:  e.dst_port,
+        protocol:  proto::Protocol::Tcp,
+        bytes_in:  0,
+        bytes_out: 0,
+        payload:   None,
+        tcp_stats: None,
+        process: Some(ProcessInfo {
+            pid:  e.pid,
+            name: e.comm.clone(),
+        }),
+    }
+}
+
+// ── Terminal output ────────────────────────────────────────────────────────────
+
 fn print_flow(flow: &proto::Flow, n: u64) {
     let ts = flow.timestamp.format("%H:%M:%S%.3f");
+
+    // eBPF flows carry process attribution — show it as a dim prefix
+    let proc_prefix = flow.process.as_ref()
+        .map(|p| format!("\x1b[2m[{}:{}]\x1b[0m ", p.name, p.pid))
+        .unwrap_or_default();
 
     match &flow.payload {
         Some(FlowPayload::Http(http)) => {
@@ -350,12 +528,11 @@ fn print_flow(flow: &proto::Flow, n: u64) {
                 .unwrap_or_else(|| "-".to_string());
 
             println!(
-                "[{}] \x1b[34mHTTP\x1b[0m #{} {} {} {} → {} ({}) {}",
-                ts, n, method, host, path, status, latency,
+                "[{}] {}\x1b[34mHTTP\x1b[0m #{} {} {} {} → {} ({}) {}",
+                ts, proc_prefix, n, method, host, path, status, latency,
                 format!("{}:{} → {}:{}", flow.src_ip, flow.src_port, flow.dst_ip, flow.dst_port)
             );
 
-            // Print request headers at debug verbosity
             if let Some(req) = req {
                 if std::env::var("NETSCOPE_VERBOSE").is_ok() {
                     for (k, v) in &req.headers {
@@ -378,18 +555,14 @@ fn print_flow(flow: &proto::Flow, n: u64) {
 
             if dns.is_response && !dns.answers.is_empty() {
                 println!(
-                    "[{}] \x1b[35mDNS\x1b[0m #{} {} {} {} → [{}]",
-                    ts,
-                    n,
-                    direction,
-                    dns.query_name,
-                    dns.query_type,
+                    "[{}] {}\x1b[35mDNS\x1b[0m #{} {} {} {} → [{}]",
+                    ts, proc_prefix, n, direction, dns.query_name, dns.query_type,
                     answers.join(", ")
                 );
             } else if !dns.is_response {
                 println!(
-                    "[{}] \x1b[35mDNS\x1b[0m #{} {} {} {}",
-                    ts, n, direction, dns.query_name, dns.query_type
+                    "[{}] {}\x1b[35mDNS\x1b[0m #{} {} {} {}",
+                    ts, proc_prefix, n, direction, dns.query_name, dns.query_type
                 );
             }
         }
@@ -415,8 +588,8 @@ fn print_flow(flow: &proto::Flow, n: u64) {
                 other => other.to_string(),
             };
             println!(
-                "[{}] \x1b[36mTLS\x1b[0m #{} {} {} {}:{} → {}:{}",
-                ts, n, tls.record_type, detail,
+                "[{}] {}\x1b[36mTLS\x1b[0m #{} {} {} {}:{} → {}:{}",
+                ts, proc_prefix, n, tls.record_type, detail,
                 flow.src_ip, flow.src_port, flow.dst_ip, flow.dst_port
             );
         }
@@ -427,15 +600,15 @@ fn print_flow(flow: &proto::Flow, n: u64) {
                 .map(|r| format!(" ({:.1}ms)", r))
                 .unwrap_or_default();
             println!(
-                "[{}] \x1b[36mICMP\x1b[0m #{} {}{} {} → {}",
-                ts, n, icmp.type_str, rtt, flow.src_ip, flow.dst_ip
+                "[{}] {}\x1b[36mICMP\x1b[0m #{} {}{} {} → {}",
+                ts, proc_prefix, n, icmp.type_str, rtt, flow.src_ip, flow.dst_ip
             );
         }
 
         Some(FlowPayload::Arp(arp)) => {
             println!(
-                "[{}] \x1b[33mARP\x1b[0m  #{} {} {} → {} ({})",
-                ts, n, arp.operation, arp.sender_ip, arp.target_ip, arp.sender_mac
+                "[{}] {}\x1b[33mARP\x1b[0m  #{} {} {} → {} ({})",
+                ts, proc_prefix, n, arp.operation, arp.sender_ip, arp.target_ip, arp.sender_mac
             );
         }
 
@@ -449,22 +622,22 @@ fn print_flow(flow: &proto::Flow, n: u64) {
             let addr = format!("{}:{} → {}:{}", flow.src_ip, flow.src_port, flow.dst_ip, flow.dst_port);
             match (&h2.grpc_service, &h2.grpc_method) {
                 (Some(svc), Some(meth)) => println!(
-                    "[{}] \x1b[34mgRPC\x1b[0m   #{} {}/{} → {} ({}) {}",
-                    ts, n, svc, meth, status, latency, addr
+                    "[{}] {}\x1b[34mgRPC\x1b[0m   #{} {}/{} → {} ({}) {}",
+                    ts, proc_prefix, n, svc, meth, status, latency, addr
                 ),
                 _ => println!(
-                    "[{}] \x1b[34mHTTP/2\x1b[0m #{} {} {} → {} ({}) {}",
-                    ts, n, method, path, status, latency, addr
+                    "[{}] {}\x1b[34mHTTP/2\x1b[0m #{} {} {} → {} ({}) {}",
+                    ts, proc_prefix, n, method, path, status, latency, addr
                 ),
             }
         }
 
         None => {
-            // Raw TCP/UDP flow with no decoded payload — only shown in verbose mode
-            if std::env::var("NETSCOPE_VERBOSE").is_ok() {
+            // Raw TCP/UDP flow — show in verbose mode or when process-attributed (eBPF)
+            if std::env::var("NETSCOPE_VERBOSE").is_ok() || flow.process.is_some() {
                 println!(
-                    "[{}] {} #{} {}:{} → {}:{}",
-                    ts, flow.protocol, n,
+                    "[{}] {}{} #{} {}:{} → {}:{}",
+                    ts, proc_prefix, flow.protocol, n,
                     flow.src_ip, flow.src_port, flow.dst_ip, flow.dst_port
                 );
             }

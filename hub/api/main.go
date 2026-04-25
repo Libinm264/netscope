@@ -421,6 +421,10 @@ func runMigrations(ch *clickhouse.Client) error {
 		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS threat_score UInt8 DEFAULT 0`,
 		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS threat_level LowCardinality(String) DEFAULT ''`,
 
+		// Phase 9: eBPF process attribution columns on flows (idempotent)
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS process_name LowCardinality(String) DEFAULT ''`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS pid          UInt32 DEFAULT 0`,
+
 		// Phase 6: API tokens (RBAC)
 		`CREATE TABLE IF NOT EXISTS api_tokens (
 			id         String,

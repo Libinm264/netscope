@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchFlows, type Flow } from "@/lib/api";
 import { FlowTable } from "@/components/FlowTable";
-import { RefreshCw, Search, Clock, X, Download } from "lucide-react";
+import { RefreshCw, Search, Clock, X, Download, Cpu, ChevronDown, ChevronUp } from "lucide-react";
 
 const PAGE_SIZE = 100;
 
@@ -56,6 +56,7 @@ export default function FlowsPage() {
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [ebpfInfoOpen, setEbpfInfoOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,7 +98,8 @@ export default function FlowsPage() {
     setPage(0);
   }
 
-  const hasRange = Boolean(from || to);
+  const hasRange    = Boolean(from || to);
+  const hasEbpfData = flows.some((f) => f.process_name);
 
   return (
     <div className="p-6 space-y-4">
@@ -217,6 +219,88 @@ export default function FlowsPage() {
       {error && (
         <div className="rounded bg-red-900/20 border border-red-500/30 px-4 py-3 text-sm text-red-400">
           {error}
+        </div>
+      )}
+
+      {/* ── eBPF mode callout ─────────────────────────────────────────────── */}
+      {hasEbpfData ? (
+        /* eBPF agent is running — show a green "active" badge */
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg
+                        bg-emerald-500/[0.08] border border-emerald-500/20 text-xs text-emerald-400">
+          <Cpu size={13} className="shrink-0" />
+          <span className="font-medium">eBPF mode active</span>
+          <span className="text-emerald-500/60">·</span>
+          <span className="text-emerald-500/80">
+            Process attribution is enabled — each flow shows the exact process name and PID
+            responsible for that connection.
+          </span>
+        </div>
+      ) : (
+        /* pcap-only agent — explain what eBPF mode unlocks */
+        <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/[0.05] overflow-hidden">
+          <button
+            onClick={() => setEbpfInfoOpen((o) => !o)}
+            className="w-full flex items-center gap-2 px-3 py-2 text-left
+                       text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+          >
+            <Cpu size={13} className="shrink-0" />
+            <span className="font-medium">Unlock eBPF mode for process-level visibility</span>
+            <span className="ml-auto text-indigo-500/50">
+              {ebpfInfoOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </span>
+          </button>
+
+          {ebpfInfoOpen && (
+            <div className="px-4 pb-4 pt-1 space-y-3 text-xs text-slate-400 border-t border-indigo-500/10">
+              <p>
+                <span className="text-white font-medium">What is eBPF mode?</span>{" "}
+                NetScope can attach kernel-level probes to intercept TLS/SSL plaintext
+                <em> before</em> it is encrypted and <em>after</em> it is decrypted — with zero
+                code changes to your applications. Each captured flow is tagged with the
+                originating <span className="text-emerald-400">process name</span> and{" "}
+                <span className="text-emerald-400">PID</span>, letting you answer questions like
+                "which service is talking to this IP?" instantly.
+              </p>
+
+              <p>
+                <span className="text-white font-medium">What you get</span>
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-slate-500">
+                <li>Process name + PID on every TLS/HTTPS flow</li>
+                <li>Plaintext HTTP bodies captured from encrypted connections</li>
+                <li>TCP connection events with process attribution</li>
+                <li>Works with any TLS library (OpenSSL, BoringSSL, LibreSSL)</li>
+              </ul>
+
+              <p>
+                <span className="text-white font-medium">How to enable it</span>
+              </p>
+              <ol className="list-decimal list-inside space-y-1 text-slate-500">
+                <li>
+                  Download the{" "}
+                  <span className="text-indigo-400 font-mono">netscope-agent-ebpf-…-linux</span>{" "}
+                  binary from the GitHub Releases page (Linux x86_64 or aarch64).
+                </li>
+                <li>
+                  Run it with root or{" "}
+                  <span className="font-mono text-slate-300">CAP_BPF</span> capability:{" "}
+                  <span className="font-mono text-slate-300">
+                    sudo ./netscope-agent --hub http://&lt;hub&gt;:8080
+                  </span>
+                </li>
+                <li>
+                  Reload this page — the{" "}
+                  <span className="text-emerald-400 font-medium">Process</span> column will
+                  populate with live process names.
+                </li>
+              </ol>
+
+              <p className="text-slate-600">
+                Requires Linux kernel ≥ 5.8. macOS and Windows agents operate in pcap-only mode
+                and show <span className="font-mono">—</span> in the Process column.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

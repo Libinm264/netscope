@@ -16,8 +16,11 @@ type ConnectionRecord struct {
 	BytesIn    uint64    `json:"bytes_in"`
 	BytesOut   uint64    `json:"bytes_out"`
 	DurationMs uint32    `json:"duration_ms"`
-	Info       string    `json:"info"`
-	IsExternal bool      `json:"is_external"`
+	Info        string    `json:"info"`
+	IsExternal  bool      `json:"is_external"`
+	// eBPF process attribution (empty/zero for pcap-mode flows)
+	ProcessName string    `json:"process_name,omitempty"`
+	PID         uint32    `json:"pid,omitempty"`
 }
 
 // TLSAuditRecord represents a connection with a TLS certificate problem.

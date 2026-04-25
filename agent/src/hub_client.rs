@@ -115,6 +115,10 @@ struct HubFlow {
     arp:         Option<HubArpFlow>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tcp_stats:   Option<HubTcpStats>,
+    /// Process name from eBPF attribution (empty string when unavailable).
+    process_name: String,
+    /// Process PID from eBPF attribution (0 when unavailable).
+    pid:          u32,
 }
 
 #[derive(Serialize)]
@@ -339,6 +343,11 @@ fn flow_to_wire(flow: &Flow, agent_id: &str, hostname: &str) -> HubFlow {
         out_of_order:    s.out_of_order,
     });
 
+    let (process_name, pid) = flow.process
+        .as_ref()
+        .map(|p| (p.name.clone(), p.pid))
+        .unwrap_or_else(|| (String::new(), 0));
+
     HubFlow {
         id:          flow.id.clone(),
         agent_id:    agent_id.to_string(),
@@ -359,6 +368,8 @@ fn flow_to_wire(flow: &Flow, agent_id: &str, hostname: &str) -> HubFlow {
         icmp: icmp_w,
         arp:  arp_w,
         tcp_stats,
+        process_name,
+        pid,
     }
 }
 

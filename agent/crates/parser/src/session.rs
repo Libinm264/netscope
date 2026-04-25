@@ -93,6 +93,7 @@ impl SessionManager {
                 bytes_out: 0,
                 payload: Some(FlowPayload::Dns(dns_flow)),
                 tcp_stats: None,
+                process: None,
             }];
         }
         vec![]
@@ -155,6 +156,7 @@ impl SessionManager {
                 rtt_ms,
             })),
             tcp_stats: None,
+            process: None,
         }]
     }
 
@@ -178,6 +180,7 @@ impl SessionManager {
             bytes_out: 0,
             payload: Some(FlowPayload::Arp(arp)),
             tcp_stats: None,
+            process: None,
         }]
     }
 
@@ -218,6 +221,7 @@ impl SessionManager {
                         bytes_out: 0,
                         payload: Some(FlowPayload::Tls(tls_hs)),
                         tcp_stats: Some(stats.clone()),
+                        process: None,
                     });
                 }
                 if tcp_data.fin {
@@ -256,6 +260,7 @@ impl SessionManager {
                         bytes_out: 0,
                         payload: Some(FlowPayload::Http2(h2f)),
                         tcp_stats: Some(stats.clone()),
+                        process: None,
                     });
                 }
                 if tcp_data.fin {
@@ -328,6 +333,7 @@ impl SessionManager {
                                         latency_ms,
                                     })),
                                     tcp_stats: Some(stats.clone()),
+                                    process: None,
                                 });
 
                                 session.server_buf.drain(..consumed);
