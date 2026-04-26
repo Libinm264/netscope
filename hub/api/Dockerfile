@@ -1,14 +1,16 @@
 # ── Stage 1: build ────────────────────────────────────────────────────────────
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /src
 
-# Copy source first, then tidy — handles missing go.sum on fresh builds
+# go.sum is committed — no tidy needed; just build.
+COPY go.mod go.sum ./
+RUN go mod download
+
 COPY . .
-RUN go mod tidy && \
-    CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /hub-api .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /hub-api .
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 FROM alpine:3.19
