@@ -337,6 +337,8 @@ func main() {
 	scimH       := &scim.Handler{CH: chClient, License: lic, BearerToken: cfg.SCIMBearerToken}
 	oidcH       := sso.NewOIDCHandler(chClient, sessionStore, lic,
 		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret)
+	samlH       := sso.NewSAMLHandler(chClient, sessionStore, lic,
+		cfg.AppURL, cfg.FrontendURL)
 
 	// Auth endpoints — no TokenAuth required (session cookie is the credential)
 	app.Get("/api/v1/enterprise/auth/me",              apiLimit, authH.Me)
@@ -347,6 +349,12 @@ func main() {
 	// OIDC SSO — initiate redirects to IdP; callback receives the auth code
 	app.Get("/api/v1/enterprise/auth/oidc/initiate",   apiLimit, oidcH.Initiate)
 	app.Get("/api/v1/enterprise/auth/oidc/callback",   apiLimit, oidcH.Callback)
+	// SAML 2.0 SSO — initiate builds AuthnRequest; callback processes SAMLResponse
+	if samlH != nil {
+		app.Get("/api/v1/enterprise/auth/saml/initiate",  apiLimit, samlH.Initiate)
+		app.Post("/api/v1/enterprise/auth/saml/callback", apiLimit, samlH.Callback)
+		app.Get("/saml/metadata",                         samlH.Metadata)
+	}
 
 	v1.Get("/enterprise/org",                    apiLimit,                            enterpriseH.GetOrg)
 	v1.Put("/enterprise/org",                    apiLimit, middleware.RequireAdmin(),  enterpriseH.UpdateOrg)
