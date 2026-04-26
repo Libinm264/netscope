@@ -1,24 +1,18 @@
 /**
  * Catch-all server-side proxy for all NetScope Hub API calls.
  *
- * WHY THIS EXISTS
- * ───────────────
- * Putting HUB_API_KEY in a NEXT_PUBLIC_* env var bakes the secret into the
- * browser JavaScript bundle, where any visitor can read it.  This proxy keeps
- * the key server-side only: the browser calls /api/proxy/<path> (same origin,
- * no auth header needed), and this route injects the real key before forwarding
- * to the hub backend.
+ * Responsibilities:
+ *  1. Keeps HUB_API_KEY server-side (never exposed to the browser bundle).
+ *  2. Forwards the ns_session cookie from the browser to the Go backend so
+ *     enterprise auth endpoints (/me, /logout, SCIM, SSO config) can resolve
+ *     the current user identity.
+ *  3. Forwards Set-Cookie headers from the Go backend back to the browser so
+ *     the ns_session cookie is set after email/password login.
+ *  4. Transparently streams Server-Sent Events for /flows/stream.
  *
- * REQUIRED ENV VARS (server-side only — NO "NEXT_PUBLIC_" prefix)
- * ───────────────────────────────────────────────────────────────
- *   HUB_API_URL   URL of the hub Go API  (default: http://localhost:8080)
- *   HUB_API_KEY   Bootstrap API key      (required in production)
- *
- * ROUTING
- * ───────
- *   Browser  →  /api/proxy/flows          →  hub :8080/api/v1/flows
- *   Browser  →  /api/proxy/flows/stream   →  hub :8080/api/v1/flows/stream  (SSE)
- *   Browser  →  /api/proxy/alerts/abc     →  hub :8080/api/v1/alerts/abc
+ * ENV VARS (server-side only — no NEXT_PUBLIC_ prefix):
+ *   HUB_API_URL   URL of the hub Go API   (default: http://localhost:8080)
+ *   HUB_API_KEY   Bootstrap API key       (required in production)
  */
 
 import { type NextRequest, NextResponse } from "next/server";
@@ -46,28 +40,31 @@ async function handler(req: NextRequest, context: RouteContext): Promise<NextRes
     return NextResponse.json({ error: "invalid upstream path" }, { status: 400 });
   }
 
-  // Forward all query params from the browser, but never leak or forward any
-  // stale api_key the browser might have cached from older versions.
+  // Forward query params (but strip any stale api_key the browser might have).
   req.nextUrl.searchParams.forEach((value, key) => {
     if (key !== "api_key") upstream.searchParams.set(key, value);
   });
 
   const isBodyMethod =
     req.method === "POST" ||
-    req.method === "PUT" ||
+    req.method === "PUT"  ||
     req.method === "PATCH" ||
     req.method === "DELETE";
+
+  // Forward the ns_session cookie so enterprise endpoints can identify the user.
+  const cookieHeader = req.headers.get("Cookie") ?? "";
 
   let upstreamResp: Response;
   try {
     upstreamResp = await fetch(upstream.toString(), {
       method: req.method,
       headers: {
-        "Content-Type": "application/json",
-        "X-Api-Key": HUB_API_KEY,
+        "Content-Type":  "application/json",
+        "X-Api-Key":     HUB_API_KEY,
+        ...(cookieHeader ? { "Cookie": cookieHeader } : {}),
       },
-      body: isBodyMethod ? req.body : undefined,
-      // Required for streaming request bodies in Node.js runtime
+      body:  isBodyMethod ? req.body : undefined,
+      // Required for streaming request bodies in Node.js runtime.
       // @ts-ignore
       duplex: "half",
       cache: "no-store",
@@ -79,27 +76,36 @@ async function handler(req: NextRequest, context: RouteContext): Promise<NextRes
 
   const ct = upstreamResp.headers.get("content-type") ?? "";
 
-  // Transparently stream SSE connections — the browser EventSource connects to
+  // Transparently stream SSE — browser EventSource connects to
   // /api/proxy/flows/stream and receives the event stream directly.
   if (ct.includes("text/event-stream")) {
     return new NextResponse(upstreamResp.body, {
       status: 200,
       headers: {
-        "Content-Type":    "text/event-stream",
-        "Cache-Control":   "no-cache, no-transform",
+        "Content-Type":      "text/event-stream",
+        "Cache-Control":     "no-cache, no-transform",
         "X-Accel-Buffering": "no",
-        "Connection":      "keep-alive",
+        "Connection":        "keep-alive",
       },
     });
   }
 
-  // Regular JSON / text responses
+  // Regular JSON / text responses.
   const body = await upstreamResp.text();
+
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": ct || "application/json",
+  };
+
+  // Forward Set-Cookie from the Go backend (e.g. after login sets ns_session).
+  const setCookie = upstreamResp.headers.get("set-cookie");
+  if (setCookie) {
+    responseHeaders["Set-Cookie"] = setCookie;
+  }
+
   return new NextResponse(body, {
-    status: upstreamResp.status,
-    headers: {
-      "Content-Type": ct || "application/json",
-    },
+    status:  upstreamResp.status,
+    headers: responseHeaders,
   });
 }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/config"
 	"github.com/netscope/hub-api/enterprise/license"
+	"github.com/netscope/hub-api/enterprise/scim"
 	"github.com/netscope/hub-api/geoip"
 	"github.com/netscope/hub-api/handlers"
 	"github.com/netscope/hub-api/kafka"
@@ -24,6 +25,7 @@ import (
 	"github.com/netscope/hub-api/middleware"
 	"github.com/netscope/hub-api/models"
 	"github.com/netscope/hub-api/pubsub"
+	"github.com/netscope/hub-api/sessions"
 	"github.com/netscope/hub-api/threat"
 )
 
@@ -133,6 +135,9 @@ func main() {
 		"valid", lic.Valid,
 		"agent_quota", lic.AgentQuota,
 	)
+
+	// ── Session store (in-memory, survives until hub restart) ─────────────────
+	sessionStore := sessions.NewStore()
 
 	// ── SSE broadcast hub ─────────────────────────────────────────────────────
 	flowHub := pubsub.NewInMemoryHub()
@@ -317,6 +322,12 @@ func main() {
 
 	// ── Phase 12 — Enterprise: org, members, teams, SSO config, license ──────
 	enterpriseH := &handlers.EnterpriseHandler{CH: chClient, License: lic}
+	authH       := &handlers.AuthHandler{Sessions: sessionStore, FrontendURL: cfg.FrontendURL}
+	scimH       := &scim.Handler{CH: chClient, License: lic, BearerToken: cfg.SCIMBearerToken}
+
+	// Auth endpoints — no TokenAuth required (session cookie is the credential)
+	app.Get("/api/v1/enterprise/auth/me",     apiLimit, authH.Me)
+	app.Post("/api/v1/enterprise/auth/logout", apiLimit, authH.Logout)
 
 	v1.Get("/enterprise/org",                    apiLimit,                            enterpriseH.GetOrg)
 	v1.Put("/enterprise/org",                    apiLimit, middleware.RequireAdmin(),  enterpriseH.UpdateOrg)
@@ -333,6 +344,16 @@ func main() {
 	v1.Get("/enterprise/sso/config",             apiLimit,                            enterpriseH.GetSSOConfig)
 	v1.Put("/enterprise/sso/config",             apiLimit, middleware.RequireAdmin(),  enterpriseH.UpdateSSOConfig)
 	v1.Get("/enterprise/license",                apiLimit,                            enterpriseH.GetLicense)
+
+	// SCIM 2.0 — separate Bearer token auth (set SCIM_BEARER_TOKEN env var)
+	scimGroup := app.Group("/scim/v2", scimH.BearerAuth)
+	scimGroup.Get("/ServiceProviderConfig",  scimH.ServiceProviderConfig)
+	scimGroup.Get("/Users",                  scimH.ListUsers)
+	scimGroup.Post("/Users",                 scimH.CreateUser)
+	scimGroup.Get("/Users/:id",              scimH.GetUser)
+	scimGroup.Put("/Users/:id",              scimH.ReplaceUser)
+	scimGroup.Patch("/Users/:id",            scimH.PatchUser)
+	scimGroup.Delete("/Users/:id",           scimH.DeleteUser)
 
 	// ── Graceful shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)

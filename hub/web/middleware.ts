@@ -1,29 +1,53 @@
 import { NextResponse } from "next/server";
-import type { NextFetchEvent, NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
-// Auth is only enforced when all four Auth0 env vars are present.
-// In local dev (or Docker without Auth0 configured) the middleware is a no-op.
-const AUTH_ENABLED =
-  !!process.env.AUTH0_SECRET &&
-  !!process.env.AUTH0_ISSUER_BASE_URL &&
-  !!process.env.AUTH0_CLIENT_ID &&
-  !!process.env.AUTH0_CLIENT_SECRET;
+// Paths that are always public — no session required.
+const PUBLIC_PREFIXES = [
+  "/login",
+  "/api/",        // Next.js API routes (proxy, auth callbacks)
+  "/_next/",      // Next.js static assets
+  "/favicon",
+  "/icon.svg",
+];
 
-export async function middleware(request: NextRequest, event: NextFetchEvent) {
-  if (!AUTH_ENABLED) {
+/**
+ * Auth middleware — protects all hub pages with an ns_session cookie check.
+ *
+ * The ns_session cookie is issued by the Go backend after a successful
+ * OIDC or SAML login. The cookie is httpOnly so it cannot be read by JS;
+ * this middleware just checks for its presence.
+ *
+ * Actual session validation (expiry, user lookup) happens on the Go side
+ * when the browser makes API calls — the proxy forwards the cookie upstream.
+ *
+ * When no session is present the user is redirected to /login with a
+ * `from` query param so they land back on their intended page after signing in.
+ */
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Always allow public paths through.
+  if (PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
 
-  // Dynamically import so the build doesn't fail when Auth0 vars are absent
-  const { withMiddlewareAuthRequired } = await import(
-    "@auth0/nextjs-auth0/edge"
-  );
-  return withMiddlewareAuthRequired()(request, event);
+  const session = request.cookies.get("ns_session");
+
+  if (!session?.value) {
+    const loginUrl = new URL("/login", request.url);
+    // Preserve the intended destination so the login page can redirect back.
+    if (pathname !== "/") {
+      loginUrl.searchParams.set("from", pathname);
+    }
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {
-  // Protect all pages except auth routes, static assets, and the login page
+  // Run on all routes except static files and Next.js internals.
   matcher: [
-    "/((?!api/auth|_next/static|_next/image|favicon\\.ico|login).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|icon\\.svg).*)",
   ],
 };

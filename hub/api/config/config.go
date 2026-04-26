@@ -72,6 +72,12 @@ type Config struct {
 	// FrontendURL is the base URL of the Next.js UI, used for SSO redirects
 	// after SAML/OIDC callbacks complete (FRONTEND_URL env var).
 	FrontendURL string
+
+	// SCIMBearerToken is the long-lived token that Okta / Azure AD present in
+	// the Authorization: Bearer header when calling SCIM 2.0 endpoints.
+	// Generate a random string (e.g. openssl rand -hex 32) and set both here
+	// and in your IdP's SCIM provisioning configuration.
+	SCIMBearerToken string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -106,6 +112,7 @@ func Load() *Config {
 		EnterpriseLicenseKey:        getEnv("ENTERPRISE_LICENSE_KEY", ""),
 		EnterpriseLicenseSigningKey: getEnv("ENTERPRISE_LICENSE_SIGNING_KEY", ""),
 		FrontendURL:                 getEnv("FRONTEND_URL", "http://localhost:3000"),
+		SCIMBearerToken:             getEnv("SCIM_BEARER_TOKEN", ""),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")
