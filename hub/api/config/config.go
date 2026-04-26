@@ -78,6 +78,11 @@ type Config struct {
 	// Generate a random string (e.g. openssl rand -hex 32) and set both here
 	// and in your IdP's SCIM provisioning configuration.
 	SCIMBearerToken string
+
+	// SSOClientSecret is the OAuth2 / OIDC client secret for the SSO application
+	// registered with the IdP (Okta, Azure AD, Dex, Google, etc.).
+	// Never stored in ClickHouse — only kept in memory at runtime.
+	SSOClientSecret string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -113,6 +118,7 @@ func Load() *Config {
 		EnterpriseLicenseSigningKey: getEnv("ENTERPRISE_LICENSE_SIGNING_KEY", ""),
 		FrontendURL:                 getEnv("FRONTEND_URL", "http://localhost:3000"),
 		SCIMBearerToken:             getEnv("SCIM_BEARER_TOKEN", ""),
+		SSOClientSecret:             getEnv("SSO_CLIENT_SECRET", ""),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")

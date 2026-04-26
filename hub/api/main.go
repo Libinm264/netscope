@@ -18,6 +18,7 @@ import (
 	"github.com/netscope/hub-api/config"
 	"github.com/netscope/hub-api/enterprise/license"
 	"github.com/netscope/hub-api/enterprise/scim"
+	"github.com/netscope/hub-api/enterprise/sso"
 	"github.com/netscope/hub-api/geoip"
 	"github.com/netscope/hub-api/handlers"
 	"github.com/netscope/hub-api/kafka"
@@ -324,10 +325,15 @@ func main() {
 	enterpriseH := &handlers.EnterpriseHandler{CH: chClient, License: lic}
 	authH       := &handlers.AuthHandler{Sessions: sessionStore, FrontendURL: cfg.FrontendURL}
 	scimH       := &scim.Handler{CH: chClient, License: lic, BearerToken: cfg.SCIMBearerToken}
+	oidcH       := sso.NewOIDCHandler(chClient, sessionStore, lic,
+		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret)
 
 	// Auth endpoints — no TokenAuth required (session cookie is the credential)
-	app.Get("/api/v1/enterprise/auth/me",     apiLimit, authH.Me)
-	app.Post("/api/v1/enterprise/auth/logout", apiLimit, authH.Logout)
+	app.Get("/api/v1/enterprise/auth/me",              apiLimit, authH.Me)
+	app.Post("/api/v1/enterprise/auth/logout",          apiLimit, authH.Logout)
+	// OIDC SSO — initiate redirects to IdP; callback receives the auth code
+	app.Get("/api/v1/enterprise/auth/oidc/initiate",   apiLimit, oidcH.Initiate)
+	app.Get("/api/v1/enterprise/auth/oidc/callback",   apiLimit, oidcH.Callback)
 
 	v1.Get("/enterprise/org",                    apiLimit,                            enterpriseH.GetOrg)
 	v1.Put("/enterprise/org",                    apiLimit, middleware.RequireAdmin(),  enterpriseH.UpdateOrg)
