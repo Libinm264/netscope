@@ -128,28 +128,59 @@ Pass `--libssl-path /usr/lib/.../libssl.so.3` to override.
 | UI | Sidebar Settings group — collapsible with Enterprise badges | ✅ done |
 | Docs | BSL-1.1 license file (hub/enterprise/LICENSE) | ✅ done |
 
-> **SSO auth flow**: The SSO configuration UI stores IdP metadata. The actual
-> SAML SP and OIDC callback handlers are pending Anthropic content-filter
-> resolution (see issue tracker). Recommended interim approach: deploy
-> [Dex](https://dexidp.io) as a sidecar — the Helm chart includes it.
-
-### Remaining v0.4 items (planned)
+### Priority 2 — Auth Flows & Session Management (shipped in this release)
 
 | Area | Feature | Status |
 |------|---------|--------|
-| Hub | SAML 2.0 SP handler (ACS, metadata, initiate) | 🔲 pending |
-| Hub | OIDC callback handler (Dex / Okta / Azure AD) | 🔲 pending |
-| Hub | SCIM 2.0 user provisioning | 🔲 planned |
-| Hub | Kafka consumer group scaling (horizontal ingest) | 🔲 planned |
-| Hub | OpenTelemetry trace correlation (link flows to spans) | 🔲 planned |
-| Hub | Sigma rule engine for custom detection rules | 🔲 planned |
-| Hub | Audit log export (CEF / LEEF / JSON) | 🔲 planned |
-| Hub | S3 / GCS long-term storage tier | 🔲 planned |
-| Agent | Windows support (pcap mode via Npcap) | 🔲 planned |
-| Agent | eBPF for Go and Python (native TLS libs) | 🔲 planned |
+| Hub | OIDC authorisation-code flow — Dex / Okta / Azure AD / Google | ✅ done |
+| Hub | SAML 2.0 SP handler — ACS, metadata endpoint, IdP-initiated redirect | ✅ done |
+| Hub | Session store — httpOnly `ns_session` cookie, 24h TTL, in-memory store | ✅ done |
+| Hub | Session-aware RBAC middleware — session role takes priority over API key | ✅ done |
+| Hub | Local email/password login — bcrypt, `POST /enterprise/auth/login` | ✅ done |
+| Hub | SCIM 2.0 user provisioning — full CRUD, filter, deprovision | ✅ done |
+| Hub | Invite token flow — single-use 7-day tokens, `invite_tokens` table | ✅ done |
+| Hub | Password reset flow — single-use 1-hour tokens, anti-enumeration 200 | ✅ done |
+| Hub | Auth event audit logging — login/logout/invite written to `audit_events` | ✅ done |
+| Hub | `GET /enterprise/auth/me` — current session identity endpoint | ✅ done |
+| UI | Login page — OIDC + SAML SSO buttons + email/password form | ✅ done |
+| UI | Accept-invite page — password set on first login | ✅ done |
+| UI | Forgot-password page — request reset link | ✅ done |
+| UI | Reset-password page — set new password via token | ✅ done |
+| UI | UserMenu logout — `POST /enterprise/auth/logout` + redirect to `/login` | ✅ done |
+| UI | Members page — invite link copy (no-SMTP), "you" badge, self-remove guard | ✅ done |
+
+### Priority 3 — Integrations & Export (next)
+
+| Area | Feature | Status |
+|------|---------|--------|
+| Hub | Audit log export — CEF, LEEF, JSON download endpoint | 🔲 next |
+| Hub | Splunk HEC output — batch POST to Splunk HTTP Event Collector | 🔲 next |
+| Hub | Elastic / ECS output — JSON lines to Logstash / Elasticsearch | 🔲 next |
+| Hub | Datadog Logs output — POST to intake API | 🔲 next |
+| Hub | Grafana Loki push — `/loki/api/v1/push` | 🔲 next |
+| Hub | S3 / GCS long-term storage tier — hourly Parquet dumps | 🔲 planned |
+| UI | Integrations settings page — enable/configure each SIEM sink | 🔲 next |
+| UI | Audit log export button — date-range picker + format selector | 🔲 next |
+
+### Priority 4 — Detection & Analytics (after P3)
+
+| Area | Feature | Status |
+|------|---------|--------|
+| Hub | Sigma rule engine — parse YAML Sigma rules, evaluate at ingest | 🔲 planned |
+| Hub | OpenTelemetry trace correlation — link flows to OTel trace IDs | 🔲 planned |
+| Hub | Kafka consumer group scaling — horizontal ingest workers | 🔲 planned |
+| UI | Saved queries + query history | 🔲 planned |
+| UI | Sigma rule manager — upload, edit, trigger history | 🔲 planned |
+| UI | OTel trace links — click flow → open Jaeger/Tempo side panel | 🔲 planned |
+
+### Priority 5 — Platform Expansion (future)
+
+| Area | Feature | Status |
+|------|---------|--------|
 | UI | Multi-cluster fleet overview | 🔲 planned |
 | UI | Custom dashboard builder | 🔲 planned |
-| UI | Saved queries + query history | 🔲 planned |
+| Agent | Windows support — pcap via Npcap | 🔲 planned |
+| Agent | eBPF for Go and Python native TLS libs | 🔲 planned |
 | Integrations | Splunk HEC, Elastic Beats, Datadog Logs, Grafana Loki | 🔲 planned |
 
 ---

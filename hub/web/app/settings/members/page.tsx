@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Users, Plus, Trash2, RefreshCw, Shield, Eye, ChevronDown, Crown, BarChart2,
+  Copy, Check, Link2,
 } from "lucide-react";
 import { clsx } from "clsx";
 import {
-  fetchMembers, inviteMember, updateMemberRole, removeMember, fetchLicense,
+  fetchMembers, inviteMember, updateMemberRole, removeMember, fetchLicense, fetchMe,
 } from "@/lib/api";
 import type { OrgMember } from "@/lib/api";
 import { EnterpriseGate } from "@/components/EnterpriseGate";
@@ -33,21 +34,37 @@ function RoleBadge({ role }: { role: string }) {
   );
 }
 
-function InviteModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [email, setEmail] = useState("");
-  const [name,  setName]  = useState("");
-  const [role,  setRole]  = useState<Role>("viewer");
-  const [loading, setLoading] = useState(false);
-  const [err, setErr]     = useState("");
+// ── Invite modal ──────────────────────────────────────────────────────────────
+
+interface InviteModalProps {
+  onClose: () => void;
+  onDone:  () => void;
+}
+
+function InviteModal({ onClose, onDone }: InviteModalProps) {
+  const [email,     setEmail]     = useState("");
+  const [name,      setName]      = useState("");
+  const [role,      setRole]      = useState<Role>("viewer");
+  const [loading,   setLoading]   = useState(false);
+  const [err,       setErr]       = useState("");
+  // When SMTP is absent the backend returns an invite link to copy manually.
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [copied,    setCopied]    = useState(false);
 
   const submit = async () => {
     if (!email.trim()) { setErr("Email is required"); return; }
     setLoading(true);
     setErr("");
     try {
-      await inviteMember({ email: email.trim(), name: name.trim(), role });
-      onDone();
-      onClose();
+      const res = await inviteMember({ email: email.trim(), name: name.trim(), role });
+      onDone(); // refresh the member list
+      if (res.invite_url) {
+        // No SMTP — surface the link so the admin can copy and share it.
+        setInviteUrl(res.invite_url);
+      } else {
+        // Email delivered — nothing more to do.
+        onClose();
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Failed to invite member");
     } finally {
@@ -55,71 +72,131 @@ function InviteModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     }
   };
 
+  const copyLink = async () => {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: select the text input
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="w-full max-w-sm bg-[#0d0d1a] border border-white/[0.08] rounded-2xl p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Invite member</p>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-lg leading-none">×</button>
-        </div>
 
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Email</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)}
-              placeholder="alice@acme.com"
-              className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2
-                         text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50" />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Display name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)}
-              placeholder="Alice Smith"
-              className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2
-                         text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50" />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Role</label>
-            <select value={role} onChange={(e) => setRole(e.target.value as Role)}
-              className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2
-                         text-xs text-slate-300 focus:outline-none">
-              {ROLES.filter(r => r !== "owner").map(r => (
-                <option key={r} value={r}>{ROLE_META[r].label}</option>
-              ))}
-            </select>
-          </div>
-          {err && <p className="text-xs text-red-400">{err}</p>}
-        </div>
+        {inviteUrl ? (
+          /* ── Step 2: copy invite link ── */
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-white">Share invite link</p>
+              <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-lg leading-none">×</button>
+            </div>
 
-        <div className="flex gap-2 pt-1">
-          <button onClick={onClose}
-            className="flex-1 px-3 py-2 rounded-lg text-xs text-slate-400 border border-white/10
-                       hover:bg-white/[0.04] transition-colors">
-            Cancel
-          </button>
-          <button onClick={submit} disabled={loading}
-            className="flex-1 px-3 py-2 rounded-lg text-xs text-white bg-indigo-600
-                       hover:bg-indigo-500 disabled:opacity-40 transition-colors">
-            {loading ? "Inviting…" : "Send invite"}
-          </button>
-        </div>
+            <p className="text-xs text-slate-400">
+              SMTP is not configured — share this link directly with&nbsp;
+              <span className="text-white">{email}</span>. It expires in 7 days and can only be used once.
+            </p>
+
+            <div className="flex items-center gap-2 bg-white/[0.04] border border-white/10
+                            rounded-lg px-3 py-2">
+              <Link2 size={12} className="text-slate-500 shrink-0" />
+              <span className="flex-1 text-[11px] text-slate-300 truncate">{inviteUrl}</span>
+              <button
+                onClick={copyLink}
+                className="shrink-0 flex items-center gap-1 px-2 py-1 rounded text-[11px]
+                           bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
+              >
+                {copied ? <Check size={11} /> : <Copy size={11} />}
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-full px-3 py-2 rounded-lg text-xs text-slate-300 border border-white/10
+                         hover:bg-white/[0.04] transition-colors"
+            >
+              Done
+            </button>
+          </>
+        ) : (
+          /* ── Step 1: fill in the invite form ── */
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-white">Invite member</p>
+              <button onClick={onClose} className="text-slate-500 hover:text-slate-300 text-lg leading-none">×</button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">Email</label>
+                <input value={email} onChange={(e) => setEmail(e.target.value)}
+                  placeholder="alice@acme.com"
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2
+                             text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">Display name</label>
+                <input value={name} onChange={(e) => setName(e.target.value)}
+                  placeholder="Alice Smith"
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2
+                             text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">Role</label>
+                <select value={role} onChange={(e) => setRole(e.target.value as Role)}
+                  className="w-full bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2
+                             text-xs text-slate-300 focus:outline-none">
+                  {ROLES.filter(r => r !== "owner").map(r => (
+                    <option key={r} value={r}>{ROLE_META[r].label}</option>
+                  ))}
+                </select>
+              </div>
+              {err && <p className="text-xs text-red-400">{err}</p>}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={onClose}
+                className="flex-1 px-3 py-2 rounded-lg text-xs text-slate-400 border border-white/10
+                           hover:bg-white/[0.04] transition-colors">
+                Cancel
+              </button>
+              <button onClick={submit} disabled={loading}
+                className="flex-1 px-3 py-2 rounded-lg text-xs text-white bg-indigo-600
+                           hover:bg-indigo-500 disabled:opacity-40 transition-colors">
+                {loading ? "Inviting…" : "Send invite"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function MembersPage() {
-  const [members, setMembers]   = useState<OrgMember[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [showInvite, setShowInvite] = useState(false);
-  const [locked, setLocked]     = useState(false);
+  const [members,     setMembers]     = useState<OrgMember[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [showInvite,  setShowInvite]  = useState(false);
+  const [locked,      setLocked]      = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, lic] = await Promise.all([fetchMembers(), fetchLicense()]);
+      const [data, lic, me] = await Promise.all([
+        fetchMembers(),
+        fetchLicense(),
+        fetchMe().catch(() => null),
+      ]);
       setMembers(data.members ?? []);
       setLocked(lic.plan === "community");
+      if (me?.authenticated) setCurrentUserId(me.user_id);
     } catch { /* hub offline */ }
     finally { setLoading(false); }
   }, []);
@@ -209,52 +286,73 @@ export default function MembersPage() {
               </tr>
             </thead>
             <tbody>
-              {members.map(m => (
-                <tr key={m.user_id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
-                  <td className="px-4 py-2.5">
-                    <p className="text-xs font-medium text-white">{m.display_name || "—"}</p>
-                    <p className="text-[10px] text-slate-500">{m.email}</p>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="relative group inline-block">
-                      <button className="flex items-center gap-1 hover:opacity-80 transition-opacity">
-                        <RoleBadge role={m.role} />
-                        <ChevronDown size={10} className="text-slate-500" />
-                      </button>
-                      {/* Role dropdown */}
-                      <div className="absolute top-full left-0 mt-1 w-28 bg-[#12121f] border border-white/[0.08]
-                                      rounded-lg shadow-xl z-20 hidden group-hover:block py-1">
-                        {ROLES.filter(r => r !== "owner").map(r => (
-                          <button key={r} onClick={() => handleRoleChange(m.user_id, r)}
-                            className="w-full text-left px-3 py-1.5 text-xs text-slate-300
-                                       hover:bg-white/[0.04] transition-colors">
-                            {ROLE_META[r].label}
-                          </button>
-                        ))}
+              {members.map(m => {
+                const isSelf = m.user_id === currentUserId;
+                return (
+                  <tr key={m.user_id} className="border-b border-white/[0.03] hover:bg-white/[0.02]">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-medium text-white">{m.display_name || "—"}</p>
+                            {isSelf && (
+                              <span className="px-1 py-0.5 rounded text-[9px] font-semibold
+                                               bg-slate-700/60 border border-white/10 text-slate-400
+                                               leading-none">
+                                you
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-500">{m.email}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <span className="text-xs text-slate-500">
-                      {m.sso_provider || "pending"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-xs text-slate-500">
-                    {m.last_seen
-                      ? new Date(m.last_seen).toLocaleDateString()
-                      : "never"}
-                  </td>
-                  <td className="px-4 py-2.5">
-                    {m.role !== "owner" && (
-                      <button onClick={() => handleRemove(m.user_id, m.email)}
-                        className="p-1 rounded hover:bg-red-500/10 text-slate-600
-                                   hover:text-red-400 transition-colors">
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {isSelf ? (
+                        /* Can't change your own role */
+                        <RoleBadge role={m.role} />
+                      ) : (
+                        <div className="relative group inline-block">
+                          <button className="flex items-center gap-1 hover:opacity-80 transition-opacity">
+                            <RoleBadge role={m.role} />
+                            <ChevronDown size={10} className="text-slate-500" />
+                          </button>
+                          <div className="absolute top-full left-0 mt-1 w-28 bg-[#12121f] border border-white/[0.08]
+                                          rounded-lg shadow-xl z-20 hidden group-hover:block py-1">
+                            {ROLES.filter(r => r !== "owner").map(r => (
+                              <button key={r} onClick={() => handleRoleChange(m.user_id, r)}
+                                className="w-full text-left px-3 py-1.5 text-xs text-slate-300
+                                           hover:bg-white/[0.04] transition-colors">
+                                {ROLE_META[r].label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className="text-xs text-slate-500">
+                        {m.sso_provider || "pending"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-slate-500">
+                      {m.last_seen
+                        ? new Date(m.last_seen).toLocaleDateString()
+                        : "never"}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {/* Never show remove on yourself or on the owner row */}
+                      {!isSelf && m.role !== "owner" && (
+                        <button onClick={() => handleRemove(m.user_id, m.email)}
+                          className="p-1 rounded hover:bg-red-500/10 text-slate-600
+                                     hover:text-red-400 transition-colors">
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

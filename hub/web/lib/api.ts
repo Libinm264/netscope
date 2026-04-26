@@ -682,11 +682,33 @@ export interface OrgMember {
   last_seen?: string;
 }
 
+// ── Current-user identity ─────────────────────────────────────────────────────
+
+export interface MeResponse {
+  authenticated: boolean;
+  user_id:       string;
+  email:         string;
+  display_name:  string;
+  role:          string;
+  org_id:        string;
+  sso_provider?: string;
+  expires_at:    string;
+}
+
+/** Returns the identity of the currently authenticated session user. */
+export async function fetchMe(): Promise<MeResponse> {
+  return get("/enterprise/auth/me");
+}
+
+// ── Members ───────────────────────────────────────────────────────────────────
+
 export async function fetchMembers(): Promise<{ members: OrgMember[] }> {
   return get("/enterprise/members");
 }
 
-export async function inviteMember(body: { email: string; name: string; role: string }): Promise<{ user_id: string }> {
+export async function inviteMember(
+  body: { email: string; name: string; role: string },
+): Promise<{ user_id: string; invite_url?: string }> {
   return api("POST", "/enterprise/members", body);
 }
 
