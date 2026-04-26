@@ -1,0 +1,17 @@
+Business Source License 1.1
+
+Licensor:             NetScope Authors
+Licensed Work:        NetScope Hub — Enterprise Edition
+                      (hub/enterprise/ directory and any file marked
+                       "// Enterprise Edition" in its header)
+Additional Use Grant: You may use the Licensed Work for any purpose
+                      EXCEPT offering it as a hosted or managed service
+                      to third parties (i.e. you may not run a competing
+                      "NetScope as a Service" product using this code).
+Change Date:          Four years from the release date of each version.
+Change License:       Apache License 2.0
+
+The community edition of NetScope (hub/api/, agent/, desktop/) is
+separately licensed under the MIT License and is unaffected by this file.
+
+For commercial licensing inquiries contact: hello@netscope.io

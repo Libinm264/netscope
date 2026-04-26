@@ -2,22 +2,35 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Network, LayoutDashboard, List, Server, Bell, GitFork, BarChart3, ShieldCheck, Settings, ClipboardList, Shield, ShieldAlert } from "lucide-react";
+import {
+  Network, LayoutDashboard, List, Server, Bell, GitFork, BarChart3,
+  ShieldCheck, ClipboardList, Shield, ShieldAlert,
+  Settings, Building2, Users, Users2, KeyRound, Zap, ChevronDown,
+} from "lucide-react";
 import { clsx } from "clsx";
+import { useState } from "react";
 import { UserMenu } from "@/components/UserMenu";
 
-const NAV = [
-  { href: "/",          label: "Dashboard",  icon: LayoutDashboard },
-  { href: "/flows",     label: "Flows",      icon: List },
-  { href: "/services",  label: "Services",   icon: GitFork },
-  { href: "/analytics", label: "Analytics",  icon: BarChart3 },
-  { href: "/agents",    label: "Agents",     icon: Server },
-  { href: "/certs",     label: "Certs",      icon: ShieldCheck },
-  { href: "/alerts",     label: "Alerts",      icon: Bell },
-  { href: "/threats",    label: "Threats",     icon: Shield },
-  { href: "/policies",   label: "Policies",    icon: ShieldAlert },
-  { href: "/compliance", label: "Compliance",  icon: ClipboardList },
-  { href: "/settings",   label: "Settings",    icon: Settings },
+const NAV_MAIN = [
+  { href: "/",           label: "Dashboard",  icon: LayoutDashboard },
+  { href: "/flows",      label: "Flows",      icon: List },
+  { href: "/services",   label: "Services",   icon: GitFork },
+  { href: "/analytics",  label: "Analytics",  icon: BarChart3 },
+  { href: "/agents",     label: "Agents",     icon: Server },
+  { href: "/certs",      label: "Certs",      icon: ShieldCheck },
+  { href: "/alerts",     label: "Alerts",     icon: Bell },
+  { href: "/threats",    label: "Threats",    icon: Shield },
+  { href: "/policies",   label: "Policies",   icon: ShieldAlert },
+  { href: "/compliance", label: "Compliance", icon: ClipboardList },
+];
+
+const NAV_SETTINGS = [
+  { href: "/settings",          label: "Tokens & Audit", icon: Settings },
+  { href: "/settings/org",      label: "Organisation",   icon: Building2 },
+  { href: "/settings/members",  label: "Members",        icon: Users,    badge: "Enterprise" },
+  { href: "/settings/teams",    label: "Teams",          icon: Users2,   badge: "Enterprise" },
+  { href: "/settings/sso",      label: "SSO",            icon: KeyRound, badge: "Enterprise" },
+  { href: "/settings/license",  label: "License",        icon: Zap },
 ];
 
 interface SidebarProps {
@@ -30,6 +43,8 @@ interface SidebarProps {
 
 export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
+  const inSettings = pathname.startsWith("/settings");
+  const [settingsOpen, setSettingsOpen] = useState(inSettings);
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-[220px] flex flex-col
@@ -46,10 +61,10 @@ export function Sidebar({ user }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
+      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-0.5">
+        {/* Main nav */}
+        {NAV_MAIN.map(({ href, label, icon: Icon }) => {
+          const active = href === "/" ? pathname === "/" : pathname === href;
           return (
             <Link
               key={href}
@@ -58,7 +73,7 @@ export function Sidebar({ user }: SidebarProps) {
                 "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
                 active
                   ? "bg-indigo-500/10 text-indigo-400"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]",
               )}
             >
               <Icon size={16} />
@@ -66,6 +81,58 @@ export function Sidebar({ user }: SidebarProps) {
             </Link>
           );
         })}
+
+        {/* Settings group */}
+        <div className="pt-2">
+          <button
+            onClick={() => setSettingsOpen(o => !o)}
+            className={clsx(
+              "w-full flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors",
+              inSettings
+                ? "bg-indigo-500/10 text-indigo-400"
+                : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]",
+            )}
+          >
+            <span className="flex items-center gap-3">
+              <Settings size={16} />
+              Settings
+            </span>
+            <ChevronDown
+              size={13}
+              className={clsx("transition-transform", settingsOpen && "rotate-180")}
+            />
+          </button>
+
+          {settingsOpen && (
+            <div className="mt-0.5 ml-3 pl-3 border-l border-white/[0.06] space-y-0.5">
+              {NAV_SETTINGS.map(({ href, label, icon: Icon, badge }) => {
+                const active = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={clsx(
+                      "flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs transition-colors",
+                      active
+                        ? "bg-indigo-500/10 text-indigo-300"
+                        : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]",
+                    )}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Icon size={13} />
+                      {label}
+                    </span>
+                    {badge && (
+                      <span className="text-[9px] px-1 py-0.5 rounded bg-amber-500/10 text-amber-400 font-medium border border-amber-500/20">
+                        {badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </nav>
 
       {/* Footer */}
@@ -77,7 +144,7 @@ export function Sidebar({ user }: SidebarProps) {
             picture={user.picture}
           />
         ) : (
-          <p className="text-[11px] text-slate-600 px-2">NetScope v0.1.0</p>
+          <p className="text-[11px] text-slate-600 px-2">NetScope v0.4.0</p>
         )}
       </div>
     </aside>

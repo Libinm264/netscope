@@ -99,25 +99,58 @@ Pass `--libssl-path /usr/lib/.../libssl.so.3` to override.
 
 ---
 
-## 🗓 v0.4 — Enterprise Readiness (planned)
+## 🔄 v0.4 — Enterprise Readiness (in progress)
 
 > **Theme**: Deploy at scale, integrate with your stack.
+>
+> **Licensing**: Community edition stays MIT. Enterprise features
+> (hub/enterprise/) are licensed under BSL-1.1 — free to self-host,
+> not for resale as a competing managed service.
 
-| Area | Feature |
-|------|---------|
-| Hub | Multi-tenant organisations + team-level RBAC |
-| Hub | SAML / OIDC SSO |
-| Hub | Kafka consumer group scaling (horizontal ingest) |
-| Hub | OpenTelemetry trace correlation (link flows to spans) |
-| Hub | Sigma rule engine for custom detection rules |
-| Hub | Audit log export (CEF / LEEF / JSON) |
-| Hub | S3 / GCS long-term storage tier |
-| Agent | Windows support (pcap mode via Npcap) |
-| Agent | eBPF for Go and Python (native TLS libs) |
-| UI | Multi-cluster fleet overview |
-| UI | Custom dashboard builder |
-| UI | Saved queries + query history |
-| Integrations | Splunk HEC, Elastic Beats, Datadog Logs, Grafana Loki |
+### Priority 1 — Identity & Access (shipped in this release)
+
+| Area | Feature | Status |
+|------|---------|--------|
+| Hub | Multi-tenant `organisations` table + org isolation | ✅ done |
+| Hub | `org_members` table — role assignments (owner/admin/analyst/viewer) | ✅ done |
+| Hub | `teams` table + team membership scoping | ✅ done |
+| Hub | `sso_configs` table — SAML/OIDC IdP metadata storage | ✅ done |
+| Hub | JWT-based license engine — plan/feature/quota gating | ✅ done |
+| Hub | Enterprise API: org, members, teams, SSO config, license endpoints | ✅ done |
+| Hub | Phase 12 ClickHouse migrations (idempotent) | ✅ done |
+| UI | Settings sub-nav layout (Tokens, Org, Members, Teams, SSO, License) | ✅ done |
+| UI | Organisation settings page — name, agent quota, retention | ✅ done |
+| UI | Members & Roles page — invite, role picker, remove | ✅ done |
+| UI | Teams page — create, expand, add/remove members | ✅ done |
+| UI | SSO configuration page — OIDC (Dex) + SAML 2.0 forms | ✅ done |
+| UI | License & Plan page — feature matrix, plan badge, apply key | ✅ done |
+| UI | EnterpriseGate component — upgrade prompt for locked features | ✅ done |
+| UI | Sidebar Settings group — collapsible with Enterprise badges | ✅ done |
+| Docs | BSL-1.1 license file (hub/enterprise/LICENSE) | ✅ done |
+
+> **SSO auth flow**: The SSO configuration UI stores IdP metadata. The actual
+> SAML SP and OIDC callback handlers are pending Anthropic content-filter
+> resolution (see issue tracker). Recommended interim approach: deploy
+> [Dex](https://dexidp.io) as a sidecar — the Helm chart includes it.
+
+### Remaining v0.4 items (planned)
+
+| Area | Feature | Status |
+|------|---------|--------|
+| Hub | SAML 2.0 SP handler (ACS, metadata, initiate) | 🔲 pending |
+| Hub | OIDC callback handler (Dex / Okta / Azure AD) | 🔲 pending |
+| Hub | SCIM 2.0 user provisioning | 🔲 planned |
+| Hub | Kafka consumer group scaling (horizontal ingest) | 🔲 planned |
+| Hub | OpenTelemetry trace correlation (link flows to spans) | 🔲 planned |
+| Hub | Sigma rule engine for custom detection rules | 🔲 planned |
+| Hub | Audit log export (CEF / LEEF / JSON) | 🔲 planned |
+| Hub | S3 / GCS long-term storage tier | 🔲 planned |
+| Agent | Windows support (pcap mode via Npcap) | 🔲 planned |
+| Agent | eBPF for Go and Python (native TLS libs) | 🔲 planned |
+| UI | Multi-cluster fleet overview | 🔲 planned |
+| UI | Custom dashboard builder | 🔲 planned |
+| UI | Saved queries + query history | 🔲 planned |
+| Integrations | Splunk HEC, Elastic Beats, Datadog Logs, Grafana Loki | 🔲 planned |
 
 ---
 

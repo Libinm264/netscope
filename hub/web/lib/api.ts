@@ -647,3 +647,146 @@ export async function fetchThreats(params?: { window?: string; limit?: number })
 export async function testAlertDelivery(id: string): Promise<{ ok: boolean; message: string }> {
   return api("POST", `/alerts/${id}/test`);
 }
+
+// ── Enterprise: Organisation ──────────────────────────────────────────────────
+
+export interface OrgInfo {
+  org_id: string;
+  name: string;
+  slug: string;
+  agent_quota: number;
+  retention_days: number;
+  plan: string;
+  created_at?: string;
+}
+
+export async function fetchOrg(): Promise<OrgInfo> {
+  return get("/enterprise/org");
+}
+
+export async function updateOrg(body: { name: string; agent_quota: number; retention_days: number }): Promise<{ ok: boolean }> {
+  return api("PUT", "/enterprise/org", body);
+}
+
+// ── Enterprise: Members ───────────────────────────────────────────────────────
+
+export interface OrgMember {
+  user_id: string;
+  org_id: string;
+  email: string;
+  display_name: string;
+  role: string;
+  sso_provider?: string;
+  is_active: boolean;
+  created_at: string;
+  last_seen?: string;
+}
+
+export async function fetchMembers(): Promise<{ members: OrgMember[] }> {
+  return get("/enterprise/members");
+}
+
+export async function inviteMember(body: { email: string; name: string; role: string }): Promise<{ user_id: string }> {
+  return api("POST", "/enterprise/members", body);
+}
+
+export async function updateMemberRole(userId: string, role: string): Promise<{ ok: boolean }> {
+  return api("PATCH", `/enterprise/members/${userId}/role`, { role });
+}
+
+export async function removeMember(userId: string): Promise<{ ok: boolean }> {
+  return api("DELETE", `/enterprise/members/${userId}`);
+}
+
+// ── Enterprise: Teams ─────────────────────────────────────────────────────────
+
+export interface Team {
+  team_id: string;
+  org_id: string;
+  name: string;
+  description?: string;
+  member_count: number;
+  created_at: string;
+}
+
+export interface TeamMember {
+  team_id: string;
+  user_id: string;
+  email?: string;
+  display_name?: string;
+  role?: string;
+  added_at: string;
+}
+
+export async function fetchTeams(): Promise<{ teams: Team[] }> {
+  return get("/enterprise/teams");
+}
+
+export async function createTeam(body: { name: string; description: string }): Promise<{ team_id: string }> {
+  return api("POST", "/enterprise/teams", body);
+}
+
+export async function deleteTeam(id: string): Promise<{ ok: boolean }> {
+  return api("DELETE", `/enterprise/teams/${id}`);
+}
+
+export async function fetchTeamMembers(teamId: string): Promise<{ members: TeamMember[] }> {
+  return get(`/enterprise/teams/${teamId}/members`);
+}
+
+export async function addTeamMember(teamId: string, userId: string): Promise<{ ok: boolean }> {
+  return api("POST", `/enterprise/teams/${teamId}/members`, { user_id: userId });
+}
+
+export async function removeTeamMember(teamId: string, userId: string): Promise<{ ok: boolean }> {
+  return api("DELETE", `/enterprise/teams/${teamId}/members/${userId}`);
+}
+
+// ── Enterprise: SSO config ────────────────────────────────────────────────────
+
+export interface SSOConfig {
+  org_id: string;
+  provider?: string;
+  enabled?: boolean;
+  entity_id?: string;
+  sso_url?: string;
+  certificate?: string;
+  issuer_url?: string;
+  client_id?: string;
+  updated_at?: string;
+}
+
+export async function fetchSSOConfig(): Promise<SSOConfig> {
+  return get("/enterprise/sso/config");
+}
+
+export async function updateSSOConfig(body: {
+  provider: string;
+  enabled: boolean;
+  entity_id?: string;
+  sso_url?: string;
+  certificate?: string;
+  issuer_url?: string;
+  client_id?: string;
+  client_secret?: string;
+}): Promise<{ ok: boolean }> {
+  return api("PUT", "/enterprise/sso/config", body);
+}
+
+// ── Enterprise: License ───────────────────────────────────────────────────────
+
+export interface LicenseInfo {
+  valid: boolean;
+  expired: boolean;
+  plan: string;
+  plan_badge: string;
+  org_id: string;
+  org_name: string;
+  agent_quota: number;
+  features: string[];
+  expires_at?: string;
+}
+
+export async function fetchLicense(): Promise<LicenseInfo> {
+  return get("/enterprise/license");
+}

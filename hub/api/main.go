@@ -16,6 +16,7 @@ import (
 	"github.com/netscope/hub-api/alerting"
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/config"
+	"github.com/netscope/hub-api/enterprise/license"
 	"github.com/netscope/hub-api/geoip"
 	"github.com/netscope/hub-api/handlers"
 	"github.com/netscope/hub-api/kafka"
@@ -124,6 +125,14 @@ func main() {
 			slog.Warn("threat blocklist load failed", "path", cfg.ThreatBlocklist, "err", err)
 		}
 	}
+
+	// ── Enterprise license ────────────────────────────────────────────────────
+	lic := license.Parse(cfg.EnterpriseLicenseKey, cfg.EnterpriseLicenseSigningKey)
+	slog.Info("enterprise license loaded",
+		"plan", lic.Plan,
+		"valid", lic.Valid,
+		"agent_quota", lic.AgentQuota,
+	)
 
 	// ── SSE broadcast hub ─────────────────────────────────────────────────────
 	flowHub := pubsub.NewInMemoryHub()
@@ -306,6 +315,25 @@ func main() {
 	// Phase 11 — agent flow count
 	v1.Get("/agents/stats",               apiLimit,                            agentH.Stats)
 
+	// ── Phase 12 — Enterprise: org, members, teams, SSO config, license ──────
+	enterpriseH := &handlers.EnterpriseHandler{CH: chClient, License: lic}
+
+	v1.Get("/enterprise/org",                    apiLimit,                            enterpriseH.GetOrg)
+	v1.Put("/enterprise/org",                    apiLimit, middleware.RequireAdmin(),  enterpriseH.UpdateOrg)
+	v1.Get("/enterprise/members",                apiLimit,                            enterpriseH.ListMembers)
+	v1.Post("/enterprise/members",               apiLimit, middleware.RequireAdmin(),  enterpriseH.InviteMember)
+	v1.Patch("/enterprise/members/:id/role",     apiLimit, middleware.RequireAdmin(),  enterpriseH.UpdateMemberRole)
+	v1.Delete("/enterprise/members/:id",         apiLimit, middleware.RequireAdmin(),  enterpriseH.RemoveMember)
+	v1.Get("/enterprise/teams",                  apiLimit,                            enterpriseH.ListTeams)
+	v1.Post("/enterprise/teams",                 apiLimit, middleware.RequireAdmin(),  enterpriseH.CreateTeam)
+	v1.Delete("/enterprise/teams/:id",           apiLimit, middleware.RequireAdmin(),  enterpriseH.DeleteTeam)
+	v1.Get("/enterprise/teams/:id/members",      apiLimit,                            enterpriseH.ListTeamMembers)
+	v1.Post("/enterprise/teams/:id/members",     apiLimit, middleware.RequireAdmin(),  enterpriseH.AddTeamMember)
+	v1.Delete("/enterprise/teams/:id/members/:uid", apiLimit, middleware.RequireAdmin(), enterpriseH.RemoveTeamMember)
+	v1.Get("/enterprise/sso/config",             apiLimit,                            enterpriseH.GetSSOConfig)
+	v1.Put("/enterprise/sso/config",             apiLimit, middleware.RequireAdmin(),  enterpriseH.UpdateSSOConfig)
+	v1.Get("/enterprise/license",                apiLimit,                            enterpriseH.GetLicense)
+
 	// ── Graceful shutdown ─────────────────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
@@ -476,6 +504,78 @@ func runMigrations(ch *clickhouse.Client) error {
 			enabled     UInt8  DEFAULT 1,
 			created_at  DateTime64(3, 'UTC') DEFAULT now64()
 		) ENGINE = MergeTree() ORDER BY (created_at, id)`,
+
+		// Phase 12a: Multi-tenant organisations table
+		`CREATE TABLE IF NOT EXISTS organisations (
+			org_id         String,
+			name           String,
+			slug           LowCardinality(String),
+			agent_quota    Int32    DEFAULT 10,
+			retention_days Int32    DEFAULT 90,
+			plan           LowCardinality(String) DEFAULT 'community',
+			created_at     DateTime64(3, 'UTC') DEFAULT now64(),
+			version        UInt64   DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY org_id`,
+
+		// Phase 12b: Org members (identity mapping, no credentials stored)
+		`CREATE TABLE IF NOT EXISTS org_members (
+			user_id      String,
+			org_id       LowCardinality(String) DEFAULT 'default',
+			email        String,
+			display_name String  DEFAULT '',
+			role         LowCardinality(String) DEFAULT 'viewer',
+			sso_provider LowCardinality(String) DEFAULT '',
+			sso_subject  String  DEFAULT '',
+			is_active    UInt8   DEFAULT 1,
+			created_at   DateTime64(3, 'UTC') DEFAULT now64(),
+			last_seen    DateTime64(3, 'UTC') DEFAULT now64(),
+			version      UInt64  DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY (org_id, user_id)`,
+
+		// Phase 12c: Teams
+		`CREATE TABLE IF NOT EXISTS teams (
+			team_id     String,
+			org_id      LowCardinality(String) DEFAULT 'default',
+			name        String,
+			description String  DEFAULT '',
+			created_at  DateTime64(3, 'UTC') DEFAULT now64(),
+			version     UInt64  DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY (org_id, team_id)`,
+
+		// Phase 12d: Team membership
+		`CREATE TABLE IF NOT EXISTS team_members (
+			team_id  String,
+			user_id  String,
+			org_id   LowCardinality(String) DEFAULT 'default',
+			added_at DateTime64(3, 'UTC') DEFAULT now64(),
+			version  UInt64 DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY (team_id, user_id)`,
+
+		// Phase 12e: SSO provider configurations (no secrets)
+		`CREATE TABLE IF NOT EXISTS sso_configs (
+			org_id      LowCardinality(String) DEFAULT 'default',
+			provider    LowCardinality(String),
+			enabled     UInt8   DEFAULT 0,
+			entity_id   String  DEFAULT '',
+			sso_url     String  DEFAULT '',
+			certificate String  DEFAULT '',
+			issuer_url  String  DEFAULT '',
+			client_id   String  DEFAULT '',
+			updated_at  DateTime64(3, 'UTC') DEFAULT now64(),
+			version     UInt64  DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY (org_id, provider)`,
+
+		// Phase 12f: seed default organisation (idempotent via ReplacingMergeTree)
+		`INSERT INTO organisations (org_id, name, slug, agent_quota, retention_days, plan)
+		 SELECT 'default', 'Default Organisation', 'default', 10, 90, 'community'
+		 WHERE NOT EXISTS (
+		   SELECT 1 FROM organisations WHERE org_id = 'default'
+		 )`,
 
 		// Phase 11d: Policy violations log
 		`CREATE TABLE IF NOT EXISTS policy_violations (

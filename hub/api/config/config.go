@@ -57,6 +57,21 @@ type Config struct {
 	ReportEmail    string
 	// ReportSchedule is "daily" (default) or "weekly".
 	ReportSchedule string
+
+	// ── Enterprise Edition ────────────────────────────────────────────────────
+
+	// EnterpriseLicenseKey is the JWT license key (ENTERPRISE_LICENSE_KEY env var).
+	// If empty, the hub runs in community mode (10-agent soft cap, no SSO).
+	EnterpriseLicenseKey string
+
+	// EnterpriseLicenseSigningKey is the HMAC-SHA256 secret used to verify
+	// license JWTs (ENTERPRISE_LICENSE_SIGNING_KEY env var).
+	// Defaults to the embedded dev key when unset.
+	EnterpriseLicenseSigningKey string
+
+	// FrontendURL is the base URL of the Next.js UI, used for SSO redirects
+	// after SAML/OIDC callbacks complete (FRONTEND_URL env var).
+	FrontendURL string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -87,6 +102,10 @@ func Load() *Config {
 		OrgName:         getEnv("ORG_NAME", "NetScope"),
 		ReportEmail:     getEnv("REPORT_EMAIL", ""),
 		ReportSchedule:  getEnv("REPORT_SCHEDULE", "daily"),
+
+		EnterpriseLicenseKey:        getEnv("ENTERPRISE_LICENSE_KEY", ""),
+		EnterpriseLicenseSigningKey: getEnv("ENTERPRISE_LICENSE_SIGNING_KEY", ""),
+		FrontendURL:                 getEnv("FRONTEND_URL", "http://localhost:3000"),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")
