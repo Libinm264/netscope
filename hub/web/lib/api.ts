@@ -812,3 +812,62 @@ export interface LicenseInfo {
 export async function fetchLicense(): Promise<LicenseInfo> {
   return get("/enterprise/license");
 }
+
+// ── Enterprise: Integrations (SIEM sinks) ────────────────────────────────────
+
+export type SinkType = "splunk" | "elastic" | "datadog" | "loki";
+
+export interface IntegrationConfig {
+  type:          SinkType;
+  enabled:       boolean;
+  config:        Record<string, string>;   // secrets are redacted to "***" by the API
+  last_shipped?: string;                   // RFC3339, absent if never shipped
+  updated_at?:   string;
+}
+
+export interface TestResult {
+  ok:          boolean;
+  latency_ms?: number;
+  error?:      string;
+}
+
+export async function fetchIntegrations(): Promise<{ integrations: IntegrationConfig[] }> {
+  return get("/enterprise/integrations");
+}
+
+export async function upsertIntegration(
+  type: SinkType,
+  body: { enabled: boolean; config: Record<string, string> },
+): Promise<{ ok: boolean }> {
+  return api("PUT", `/enterprise/integrations/${type}`, body);
+}
+
+export async function deleteIntegration(type: SinkType): Promise<{ ok: boolean }> {
+  return api("DELETE", `/enterprise/integrations/${type}`);
+}
+
+export async function testIntegration(
+  type: SinkType,
+  config: Record<string, string>,
+): Promise<TestResult> {
+  return api("POST", `/enterprise/integrations/${type}/test`, { config });
+}
+
+// ── Enterprise: Audit Export ──────────────────────────────────────────────────
+
+/** Builds a download URL for the audit log export endpoint. */
+export function auditExportURL(params: {
+  format: "json" | "cef" | "leef";
+  from:   string;   // RFC3339
+  to:     string;   // RFC3339
+  limit?: number;
+}): string {
+  const base = "/api/proxy/enterprise/audit/export";
+  const qs = new URLSearchParams({
+    format: params.format,
+    from:   params.from,
+    to:     params.to,
+  });
+  if (params.limit) qs.set("limit", String(params.limit));
+  return `${base}?${qs.toString()}`;
+}

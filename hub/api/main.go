@@ -21,6 +21,7 @@ import (
 	"github.com/netscope/hub-api/config"
 	"github.com/netscope/hub-api/enterprise/license"
 	"github.com/netscope/hub-api/enterprise/scim"
+	"github.com/netscope/hub-api/enterprise/sinks"
 	"github.com/netscope/hub-api/enterprise/sso"
 	"github.com/netscope/hub-api/geoip"
 	"github.com/netscope/hub-api/handlers"
@@ -268,7 +269,7 @@ func main() {
 	certH      := &handlers.CertHandler{CH: chClient}
 	tokenH     := &handlers.TokenHandler{CH: chClient}
 	complianceH := &handlers.ComplianceHandler{CH: chClient}
-	auditH     := &handlers.AuditHandler{CH: chClient}
+	auditH     := &handlers.AuditHandler{CH: chClient, License: lic}
 
 	// ── Public (no auth) ──────────────────────────────────────────────────────
 	app.Post("/api/v1/agents/enroll", apiLimit, enrollH.Enroll)
@@ -352,6 +353,18 @@ func main() {
 	authH    := &handlers.AuthHandler{CH: chClient, Sessions: sessionStore, FrontendURL: cfg.FrontendURL}
 	inviteH  := &handlers.InviteHandler{CH: chClient, Sessions: sessionStore, SMTP: smtpCfg, FrontendURL: cfg.FrontendURL}
 	scimH    := &scim.Handler{CH: chClient, License: lic, BearerToken: cfg.SCIMBearerToken}
+
+	// ── SIEM sink dispatcher ──────────────────────────────────────────────────
+	sinksDispatcher := sinks.New(chClient)
+	if chClient != nil {
+		sinksDispatcher.Start()
+		defer sinksDispatcher.Stop()
+	}
+	integrationsH := &handlers.IntegrationsHandler{
+		CH:      chClient,
+		License: lic,
+		Sinks:   sinksDispatcher,
+	}
 	oidcH    := sso.NewOIDCHandler(chClient, sessionStore, lic,
 		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret)
 	samlH    := sso.NewSAMLHandler(chClient, sessionStore, lic,
@@ -397,6 +410,15 @@ func main() {
 	ent.Get( "/sso/config",                  apiLimit,                enterpriseH.GetSSOConfig)
 	ent.Put( "/sso/config",                  apiLimit, entAdmin,       enterpriseH.UpdateSSOConfig)
 	ent.Get( "/license",                     apiLimit, entOwner,       enterpriseH.GetLicense)
+
+	// Integrations (SIEM sinks)
+	ent.Get(   "/integrations",              apiLimit,           integrationsH.List)
+	ent.Put(   "/integrations/:type",        apiLimit, entAdmin, integrationsH.Upsert)
+	ent.Delete("/integrations/:type",        apiLimit, entAdmin, integrationsH.Delete)
+	ent.Post(  "/integrations/:type/test",   apiLimit, entAdmin, integrationsH.Test)
+
+	// Audit export (authenticated — any session user)
+	ent.Get("/audit/export",                 apiLimit,           auditH.Export)
 
 	// SCIM 2.0 — separate Bearer token auth (set SCIM_BEARER_TOKEN env var)
 	scimGroup := app.Group("/scim/v2", scimH.BearerAuth)
@@ -717,6 +739,17 @@ func runMigrations(ch *clickhouse.Client) error {
 		PARTITION BY toYYYYMM(ts)
 		ORDER BY (ts, token_id)
 		TTL toDateTime(ts) + INTERVAL 90 DAY`,
+
+		// Phase 13: SIEM sink configurations
+		`CREATE TABLE IF NOT EXISTS integrations_config (
+			sink_type    LowCardinality(String),
+			enabled      UInt8            DEFAULT 0,
+			config       String           DEFAULT '{}',
+			last_shipped DateTime64(3, 'UTC') DEFAULT toDateTime64(0, 3),
+			updated_at   DateTime64(3, 'UTC') DEFAULT now64(),
+			version      UInt64           DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY sink_type`,
 	}
 
 	for _, q := range ddl {

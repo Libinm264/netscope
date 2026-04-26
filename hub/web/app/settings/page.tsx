@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Settings, Plus, Trash2, Copy, Check, RefreshCw, Key, Shield, Eye } from "lucide-react";
+import { Settings, Plus, Trash2, Copy, Check, RefreshCw, Key, Shield, Eye, Download } from "lucide-react";
 import { clsx } from "clsx";
 import {
   fetchAPITokens, createAPIToken, revokeAPIToken,
   fetchEnrollmentTokens, createEnrollmentToken, revokeEnrollmentToken,
-  fetchAuditEvents,
+  fetchAuditEvents, auditExportURL,
 } from "@/lib/api";
 import type { APIToken, EnrollmentToken, AuditEvent } from "@/lib/api";
 
@@ -49,9 +49,22 @@ function Section({ title, subtitle, children }: {
 
 // ── Audit Log Section ──────────────────────────────────────────────────────────
 
+// ── Export helpers ─────────────────────────────────────────────────────────────
+
+const QUICK_RANGES = [
+  { label: "Last 24h",  hours: 24 },
+  { label: "Last 7d",   hours: 168 },
+  { label: "Last 30d",  hours: 720 },
+] as const;
+
+type ExportFormat = "json" | "cef" | "leef";
+
 function AuditLogSection() {
-  const [events, setEvents] = useState<AuditEvent[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [events,   setEvents]   = useState<AuditEvent[]>([]);
+  const [loading,  setLoading]  = useState(false);
+  // Export state
+  const [format,   setFormat]   = useState<ExportFormat>("json");
+  const [rangeIdx, setRangeIdx] = useState(0);
 
   useEffect(() => {
     setLoading(true);
@@ -61,15 +74,19 @@ function AuditLogSection() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-16">
-      <RefreshCw size={16} className="animate-spin text-slate-600" />
-    </div>
-  );
-
-  if (events.length === 0) return (
-    <p className="text-xs text-slate-600 text-center py-6">No audit events yet</p>
-  );
+  const handleExport = () => {
+    const hours = QUICK_RANGES[rangeIdx].hours;
+    const now   = new Date();
+    const from  = new Date(now.getTime() - hours * 3600 * 1000);
+    const url   = auditExportURL({
+      format,
+      from:  from.toISOString(),
+      to:    now.toISOString(),
+      limit: 50000,
+    });
+    // Open in same tab — browser treats it as a download due to Content-Disposition.
+    window.location.href = url;
+  };
 
   const statusColor = (s: number) =>
     s >= 500 ? "text-red-400" :
@@ -77,33 +94,81 @@ function AuditLogSection() {
     s >= 200 ? "text-emerald-400" : "text-slate-400";
 
   return (
-    <div className="overflow-x-auto max-h-72 overflow-y-auto">
-      <table className="w-full text-left">
-        <thead className="sticky top-0 bg-[#0d0d1a]">
-          <tr>
-            {["Time", "Method", "Path", "Status", "Role", "IP", "Latency"].map((h) => (
-              <th key={h} className="px-3 py-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {events.map((e) => (
-            <tr key={e.id} className="border-t border-white/[0.04] hover:bg-white/[0.02]">
-              <td className="px-3 py-2 text-[10px] text-slate-500 whitespace-nowrap font-mono">
-                {new Date(e.ts).toLocaleTimeString()}
-              </td>
-              <td className="px-3 py-2 text-[10px] font-mono text-indigo-400">{e.method}</td>
-              <td className="px-3 py-2 text-[10px] text-slate-300 font-mono max-w-[200px] truncate">{e.path}</td>
-              <td className={`px-3 py-2 text-[10px] font-mono font-bold ${statusColor(e.status)}`}>{e.status}</td>
-              <td className="px-3 py-2 text-[10px] text-slate-500">{e.role}</td>
-              <td className="px-3 py-2 text-[10px] text-slate-500 font-mono">{e.client_ip}</td>
-              <td className="px-3 py-2 text-[10px] text-slate-500 text-right">{e.latency_ms}ms</td>
-            </tr>
+    <div className="space-y-3">
+      {/* Export toolbar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Export:</span>
+        <div className="flex rounded-lg border border-white/10 overflow-hidden">
+          {(["json", "cef", "leef"] as ExportFormat[]).map(f => (
+            <button key={f} onClick={() => setFormat(f)}
+              className={clsx(
+                "px-2.5 py-1 text-[10px] font-mono font-medium uppercase transition-colors",
+                format === f
+                  ? "bg-indigo-600 text-white"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]",
+              )}>
+              {f}
+            </button>
           ))}
-        </tbody>
-      </table>
+        </div>
+        <div className="flex rounded-lg border border-white/10 overflow-hidden">
+          {QUICK_RANGES.map((r, i) => (
+            <button key={r.label} onClick={() => setRangeIdx(i)}
+              className={clsx(
+                "px-2.5 py-1 text-[10px] font-medium transition-colors",
+                rangeIdx === i
+                  ? "bg-indigo-600 text-white"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]",
+              )}>
+              {r.label}
+            </button>
+          ))}
+        </div>
+        <button onClick={handleExport}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium
+                     bg-white/[0.05] border border-white/10 text-slate-300
+                     hover:bg-white/[0.09] transition-colors">
+          <Download size={11} /> Download
+        </button>
+      </div>
+
+      {/* Live table */}
+      {loading ? (
+        <div className="flex items-center justify-center h-16">
+          <RefreshCw size={16} className="animate-spin text-slate-600" />
+        </div>
+      ) : events.length === 0 ? (
+        <p className="text-xs text-slate-600 text-center py-6">No audit events yet</p>
+      ) : (
+        <div className="overflow-x-auto max-h-72 overflow-y-auto">
+          <table className="w-full text-left">
+            <thead className="sticky top-0 bg-[#0d0d1a]">
+              <tr>
+                {["Time", "Method", "Path", "Status", "Role", "IP", "Latency"].map((h) => (
+                  <th key={h} className="px-3 py-2 text-[10px] font-medium text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((e) => (
+                <tr key={e.id} className="border-t border-white/[0.04] hover:bg-white/[0.02]">
+                  <td className="px-3 py-2 text-[10px] text-slate-500 whitespace-nowrap font-mono">
+                    {new Date(e.ts).toLocaleTimeString()}
+                  </td>
+                  <td className="px-3 py-2 text-[10px] font-mono text-indigo-400">{e.method}</td>
+                  <td className="px-3 py-2 text-[10px] text-slate-300 font-mono max-w-[200px] truncate">{e.path}</td>
+                  <td className={`px-3 py-2 text-[10px] font-mono font-bold ${statusColor(e.status)}`}>{e.status}</td>
+                  <td className="px-3 py-2 text-[10px] text-slate-500">{e.role}</td>
+                  <td className="px-3 py-2 text-[10px] text-slate-500 font-mono">{e.client_ip}</td>
+                  <td className="px-3 py-2 text-[10px] text-slate-500 text-right">{e.latency_ms}ms</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

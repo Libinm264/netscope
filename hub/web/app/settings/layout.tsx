@@ -5,12 +5,13 @@ import Link from "next/link";
 import { clsx } from "clsx";
 
 const NAV = [
-  { href: "/settings",          label: "Tokens & Audit" },
-  { href: "/settings/org",      label: "Organisation" },
-  { href: "/settings/members",  label: "Members & Roles",  badge: "Enterprise" },
-  { href: "/settings/teams",    label: "Teams",            badge: "Enterprise" },
-  { href: "/settings/sso",      label: "SSO",              badge: "Enterprise" },
-  { href: "/settings/license",  label: "License & Plan" },
+  { href: "/settings",                label: "Tokens & Audit" },
+  { href: "/settings/org",            label: "Organisation" },
+  { href: "/settings/members",        label: "Members & Roles",  badge: "Enterprise" },
+  { href: "/settings/teams",          label: "Teams",            badge: "Enterprise" },
+  { href: "/settings/sso",            label: "SSO",              badge: "Enterprise" },
+  { href: "/settings/integrations",   label: "Integrations",     badge: "Enterprise" },
+  { href: "/settings/license",        label: "License & Plan" },
 ];
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
