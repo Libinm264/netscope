@@ -6,6 +6,7 @@ import {
   Network, LayoutDashboard, List, Server, Bell, GitFork, BarChart3,
   ShieldCheck, ClipboardList, Shield, ShieldAlert,
   Settings, Building2, Users, Users2, KeyRound, Zap, ChevronDown,
+  Plug, Map,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useState } from "react";
@@ -22,15 +23,17 @@ const NAV_MAIN = [
   { href: "/threats",    label: "Threats",    icon: Shield },
   { href: "/policies",   label: "Policies",   icon: ShieldAlert },
   { href: "/compliance", label: "Compliance", icon: ClipboardList },
+  { href: "/roadmap",    label: "Roadmap",    icon: Map },
 ];
 
 const NAV_SETTINGS = [
-  { href: "/settings",          label: "Tokens & Audit", icon: Settings },
-  { href: "/settings/org",      label: "Organisation",   icon: Building2 },
-  { href: "/settings/members",  label: "Members",        icon: Users,    badge: "Enterprise" },
-  { href: "/settings/teams",    label: "Teams",          icon: Users2,   badge: "Enterprise" },
-  { href: "/settings/sso",      label: "SSO",            icon: KeyRound, badge: "Enterprise" },
-  { href: "/settings/license",  label: "License",        icon: Zap },
+  { href: "/settings",                label: "Tokens & Audit", icon: Settings },
+  { href: "/settings/org",            label: "Organisation",   icon: Building2 },
+  { href: "/settings/members",        label: "Members",        icon: Users,    badge: "Enterprise" },
+  { href: "/settings/teams",          label: "Teams",          icon: Users2,   badge: "Enterprise" },
+  { href: "/settings/sso",            label: "SSO",            icon: KeyRound, badge: "Enterprise" },
+  { href: "/settings/integrations",   label: "Integrations",   icon: Plug,     badge: "Enterprise" },
+  { href: "/settings/license",        label: "License",        icon: Zap },
 ];
 
 interface SidebarProps {
