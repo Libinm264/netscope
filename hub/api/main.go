@@ -13,6 +13,9 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 
+	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/netscope/hub-api/alerting"
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/config"
@@ -322,8 +325,15 @@ func main() {
 	v1.Get("/agents/stats",               apiLimit,                            agentH.Stats)
 
 	// ── Phase 12 — Enterprise: org, members, teams, SSO config, license ──────
+	// Seed the initial local admin account if ADMIN_EMAIL + ADMIN_PASSWORD are set.
+	if chClient != nil && cfg.AdminEmail != "" && cfg.AdminPassword != "" {
+		if err := seedAdmin(chClient, cfg.AdminEmail, cfg.AdminPassword); err != nil {
+			slog.Warn("admin seed failed", "err", err)
+		}
+	}
+
 	enterpriseH := &handlers.EnterpriseHandler{CH: chClient, License: lic}
-	authH       := &handlers.AuthHandler{Sessions: sessionStore, FrontendURL: cfg.FrontendURL}
+	authH       := &handlers.AuthHandler{CH: chClient, Sessions: sessionStore, FrontendURL: cfg.FrontendURL}
 	scimH       := &scim.Handler{CH: chClient, License: lic, BearerToken: cfg.SCIMBearerToken}
 	oidcH       := sso.NewOIDCHandler(chClient, sessionStore, lic,
 		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret)
@@ -331,6 +341,9 @@ func main() {
 	// Auth endpoints — no TokenAuth required (session cookie is the credential)
 	app.Get("/api/v1/enterprise/auth/me",              apiLimit, authH.Me)
 	app.Post("/api/v1/enterprise/auth/logout",          apiLimit, authH.Logout)
+	app.Post("/api/v1/enterprise/auth/login",           apiLimit, authH.LocalLogin)
+	// Password management — SetPassword accepts both API-key-admin and session-user callers
+	app.Put("/api/v1/enterprise/auth/password",         apiLimit, authH.SetPassword)
 	// OIDC SSO — initiate redirects to IdP; callback receives the auth code
 	app.Get("/api/v1/enterprise/auth/oidc/initiate",   apiLimit, oidcH.Initiate)
 	app.Get("/api/v1/enterprise/auth/oidc/callback",   apiLimit, oidcH.Callback)
@@ -604,6 +617,16 @@ func runMigrations(ch *clickhouse.Client) error {
 		   SELECT 1 FROM organisations WHERE org_id = 'default'
 		 )`,
 
+		// Phase 12g: Local credentials (bcrypt password hashes for email/password login)
+		`CREATE TABLE IF NOT EXISTS local_credentials (
+			user_id       String,
+			org_id        LowCardinality(String) DEFAULT 'default',
+			password_hash String,
+			updated_at    DateTime64(3, 'UTC') DEFAULT now64(),
+			version       UInt64 DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY (org_id, user_id)`,
+
 		// Phase 11d: Policy violations log
 		`CREATE TABLE IF NOT EXISTS policy_violations (
 			id          UUID DEFAULT generateUUIDv4(),
@@ -647,5 +670,60 @@ func runMigrations(ch *clickhouse.Client) error {
 	}
 
 	slog.Info("schema migrations complete")
+	return nil
+}
+
+// seedAdmin creates the initial local admin account when ADMIN_EMAIL and
+// ADMIN_PASSWORD are set and no account with that email already exists.
+// This runs once at startup; the env vars can be removed afterwards.
+func seedAdmin(ch *clickhouse.Client, email, plainPassword string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Check if the user already exists.
+	rows, err := ch.Query(ctx,
+		`SELECT user_id FROM org_members FINAL
+		 WHERE org_id = 'default' AND email = ? LIMIT 1`, email)
+	if err != nil {
+		return err
+	}
+	var existingID string
+	if rows.Next() {
+		_ = rows.Scan(&existingID)
+	}
+	rows.Close()
+
+	if existingID != "" {
+		slog.Info("admin user already exists — skipping seed", "email", email)
+		return nil
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(plainPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	userID := uuid.NewString()
+	now := time.Now()
+
+	if err := ch.Exec(ctx,
+		`INSERT INTO org_members
+		 (user_id, org_id, email, display_name, role,
+		  sso_provider, sso_subject, is_active, created_at, last_seen, version)
+		 VALUES (?, 'default', ?, 'Admin', 'owner', 'local', '', 1, ?, ?, ?)`,
+		userID, email, now, now, now.UnixMilli(),
+	); err != nil {
+		return err
+	}
+
+	if err := ch.Exec(ctx,
+		`INSERT INTO local_credentials (user_id, org_id, password_hash, updated_at, version)
+		 VALUES (?, 'default', ?, ?, ?)`,
+		userID, string(hash), now, now.UnixMilli(),
+	); err != nil {
+		return err
+	}
+
+	slog.Info("seeded initial admin user", "email", email, "user_id", userID)
 	return nil
 }

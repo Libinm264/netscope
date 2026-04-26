@@ -83,6 +83,12 @@ type Config struct {
 	// registered with the IdP (Okta, Azure AD, Dex, Google, etc.).
 	// Never stored in ClickHouse — only kept in memory at runtime.
 	SSOClientSecret string
+
+	// AdminEmail / AdminPassword seed the initial local admin account on first
+	// startup.  Plaintext password is hashed and stored; these env vars can be
+	// removed afterwards.  Ignored when the account already exists.
+	AdminEmail    string
+	AdminPassword string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -119,6 +125,8 @@ func Load() *Config {
 		FrontendURL:                 getEnv("FRONTEND_URL", "http://localhost:3000"),
 		SCIMBearerToken:             getEnv("SCIM_BEARER_TOKEN", ""),
 		SSOClientSecret:             getEnv("SSO_CLIENT_SECRET", ""),
+		AdminEmail:                  getEnv("ADMIN_EMAIL", ""),
+		AdminPassword:               getEnv("ADMIN_PASSWORD", ""),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")
