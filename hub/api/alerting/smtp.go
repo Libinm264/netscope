@@ -52,6 +52,31 @@ func FireEmail(cfg SMTPConfig, to string, payload models.WebhookPayload) bool {
 	return true
 }
 
+// SendTransactional sends a one-off HTML email (invite link, password reset, etc.).
+// Returns nil on success, an error on failure, or a sentinel error when SMTP is
+// not configured so callers can decide whether to return 503 or just log.
+func SendTransactional(cfg SMTPConfig, to, subject, htmlBody string) error {
+	if cfg.Host == "" {
+		return fmt.Errorf("SMTP not configured")
+	}
+	msg := strings.Join([]string{
+		"From: " + cfg.From,
+		"To: " + to,
+		"Subject: " + subject,
+		"MIME-Version: 1.0",
+		"Content-Type: text/html; charset=UTF-8",
+		"",
+		htmlBody,
+	}, "\r\n")
+
+	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
+	var auth smtp.Auth
+	if cfg.User != "" {
+		auth = smtp.PlainAuth("", cfg.User, cfg.Password, cfg.Host)
+	}
+	return smtp.SendMail(addr, auth, cfg.From, []string{to}, []byte(msg))
+}
+
 func buildEmailBody(cfg SMTPConfig, p models.WebhookPayload) string {
 	condStr := "exceeded"
 	if p.Condition == "lt" {

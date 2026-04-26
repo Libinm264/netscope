@@ -4,8 +4,11 @@ import type { NextRequest } from "next/server";
 // Paths that are always public — no session required.
 const PUBLIC_PREFIXES = [
   "/login",
-  "/api/",        // Next.js API routes (proxy, auth callbacks)
-  "/_next/",      // Next.js static assets
+  "/accept-invite",   // new-user invite acceptance (token in query param)
+  "/forgot-password", // password reset request form
+  "/reset-password",  // password reset confirmation form
+  "/api/",            // Next.js API routes (proxy, auth callbacks)
+  "/_next/",          // Next.js static assets
   "/favicon",
   "/icon.svg",
 ];

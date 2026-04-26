@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/netscope/hub-api/clickhouse"
@@ -20,6 +21,25 @@ type AuthHandler struct {
 }
 
 const sessionCookieName = "ns_session"
+
+// writeAuthEvent records login/logout activity to audit_events.
+// It is fire-and-forget: errors are logged but never returned to the caller.
+func writeAuthEvent(ch *clickhouse.Client, userID, role, event, clientIP string) {
+	if ch == nil {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := ch.Exec(ctx,
+			`INSERT INTO audit_events (id, token_id, role, method, path, status, client_ip, latency_ms, ts)
+			 VALUES (?, ?, ?, 'AUTH', ?, 200, ?, 0, ?)`,
+			uuid.NewString(), "sess:"+userID, role, event, clientIP, time.Now().UTC(),
+		); err != nil {
+			slog.Warn("auth audit write failed", "err", err)
+		}
+	}()
+}
 
 // Me handles GET /api/v1/enterprise/auth/me
 //
@@ -62,6 +82,9 @@ func (h *AuthHandler) Me(c *fiber.Ctx) error {
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	token := c.Cookies(sessionCookieName)
 	if token != "" {
+		if sess, ok := h.Sessions.Get(token); ok {
+			writeAuthEvent(h.CH, sess.UserID, sess.Role, "/auth/logout", c.IP())
+		}
 		h.Sessions.Delete(token)
 		slog.Info("user logged out", "token_prefix", token[:8])
 	}
@@ -174,6 +197,7 @@ func (h *AuthHandler) LocalLogin(c *fiber.Ctx) error {
 		Expires:  expiresAt,
 	})
 
+	writeAuthEvent(h.CH, userID, role, "/auth/login", c.IP())
 	slog.Info("local login successful", "email", req.Email, "role", role)
 	return c.JSON(fiber.Map{
 		"ok":           true,

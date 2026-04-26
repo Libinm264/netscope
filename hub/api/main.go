@@ -332,45 +332,71 @@ func main() {
 		}
 	}
 
-	enterpriseH := &handlers.EnterpriseHandler{CH: chClient, License: lic}
-	authH       := &handlers.AuthHandler{CH: chClient, Sessions: sessionStore, FrontendURL: cfg.FrontendURL}
-	scimH       := &scim.Handler{CH: chClient, License: lic, BearerToken: cfg.SCIMBearerToken}
-	oidcH       := sso.NewOIDCHandler(chClient, sessionStore, lic,
-		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret)
-	samlH       := sso.NewSAMLHandler(chClient, sessionStore, lic,
-		cfg.AppURL, cfg.FrontendURL)
-
-	// Auth endpoints — no TokenAuth required (session cookie is the credential)
-	app.Get("/api/v1/enterprise/auth/me",              apiLimit, authH.Me)
-	app.Post("/api/v1/enterprise/auth/logout",          apiLimit, authH.Logout)
-	app.Post("/api/v1/enterprise/auth/login",           apiLimit, authH.LocalLogin)
-	// Password management — SetPassword accepts both API-key-admin and session-user callers
-	app.Put("/api/v1/enterprise/auth/password",         apiLimit, authH.SetPassword)
-	// OIDC SSO — initiate redirects to IdP; callback receives the auth code
-	app.Get("/api/v1/enterprise/auth/oidc/initiate",   apiLimit, oidcH.Initiate)
-	app.Get("/api/v1/enterprise/auth/oidc/callback",   apiLimit, oidcH.Callback)
-	// SAML 2.0 SSO — initiate builds AuthnRequest; callback processes SAMLResponse
-	if samlH != nil {
-		app.Get("/api/v1/enterprise/auth/saml/initiate",  apiLimit, samlH.Initiate)
-		app.Post("/api/v1/enterprise/auth/saml/callback", apiLimit, samlH.Callback)
-		app.Get("/saml/metadata",                         samlH.Metadata)
+	smtpCfg := alerting.SMTPConfig{
+		Host:     cfg.SMTPHost,
+		Port:     cfg.SMTPPort,
+		User:     cfg.SMTPUser,
+		Password: cfg.SMTPPassword,
+		From:     cfg.SMTPFrom,
+		OrgName:  cfg.OrgName,
+		AppURL:   cfg.AppURL,
 	}
 
-	v1.Get("/enterprise/org",                    apiLimit,                            enterpriseH.GetOrg)
-	v1.Put("/enterprise/org",                    apiLimit, middleware.RequireAdmin(),  enterpriseH.UpdateOrg)
-	v1.Get("/enterprise/members",                apiLimit,                            enterpriseH.ListMembers)
-	v1.Post("/enterprise/members",               apiLimit, middleware.RequireAdmin(),  enterpriseH.InviteMember)
-	v1.Patch("/enterprise/members/:id/role",     apiLimit, middleware.RequireAdmin(),  enterpriseH.UpdateMemberRole)
-	v1.Delete("/enterprise/members/:id",         apiLimit, middleware.RequireAdmin(),  enterpriseH.RemoveMember)
-	v1.Get("/enterprise/teams",                  apiLimit,                            enterpriseH.ListTeams)
-	v1.Post("/enterprise/teams",                 apiLimit, middleware.RequireAdmin(),  enterpriseH.CreateTeam)
-	v1.Delete("/enterprise/teams/:id",           apiLimit, middleware.RequireAdmin(),  enterpriseH.DeleteTeam)
-	v1.Get("/enterprise/teams/:id/members",      apiLimit,                            enterpriseH.ListTeamMembers)
-	v1.Post("/enterprise/teams/:id/members",     apiLimit, middleware.RequireAdmin(),  enterpriseH.AddTeamMember)
-	v1.Delete("/enterprise/teams/:id/members/:uid", apiLimit, middleware.RequireAdmin(), enterpriseH.RemoveTeamMember)
-	v1.Get("/enterprise/sso/config",             apiLimit,                            enterpriseH.GetSSOConfig)
-	v1.Put("/enterprise/sso/config",             apiLimit, middleware.RequireAdmin(),  enterpriseH.UpdateSSOConfig)
-	v1.Get("/enterprise/license",                apiLimit,                            enterpriseH.GetLicense)
+	enterpriseH := &handlers.EnterpriseHandler{
+		CH:          chClient,
+		License:     lic,
+		Sessions:    sessionStore,
+		SMTP:        smtpCfg,
+		FrontendURL: cfg.FrontendURL,
+	}
+	authH    := &handlers.AuthHandler{CH: chClient, Sessions: sessionStore, FrontendURL: cfg.FrontendURL}
+	inviteH  := &handlers.InviteHandler{CH: chClient, Sessions: sessionStore, SMTP: smtpCfg, FrontendURL: cfg.FrontendURL}
+	scimH    := &scim.Handler{CH: chClient, License: lic, BearerToken: cfg.SCIMBearerToken}
+	oidcH    := sso.NewOIDCHandler(chClient, sessionStore, lic,
+		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret)
+	samlH    := sso.NewSAMLHandler(chClient, sessionStore, lic,
+		cfg.AppURL, cfg.FrontendURL)
+
+	// ── Public auth endpoints (no API key required) ───────────────────────────
+	app.Get( "/api/v1/enterprise/auth/me",                   apiLimit, authH.Me)
+	app.Post("/api/v1/enterprise/auth/logout",                apiLimit, authH.Logout)
+	app.Post("/api/v1/enterprise/auth/login",                 apiLimit, authH.LocalLogin)
+	app.Put( "/api/v1/enterprise/auth/password",              apiLimit, authH.SetPassword)
+	app.Post("/api/v1/enterprise/auth/invite/accept",         apiLimit, inviteH.AcceptInvite)
+	app.Post("/api/v1/enterprise/auth/forgot-password",       apiLimit, inviteH.ForgotPassword)
+	app.Post("/api/v1/enterprise/auth/reset-password",        apiLimit, inviteH.ResetPassword)
+	// OIDC SSO
+	app.Get("/api/v1/enterprise/auth/oidc/initiate",          apiLimit, oidcH.Initiate)
+	app.Get("/api/v1/enterprise/auth/oidc/callback",          apiLimit, oidcH.Callback)
+	// SAML 2.0 SSO
+	if samlH != nil {
+		app.Get( "/api/v1/enterprise/auth/saml/initiate",     apiLimit, samlH.Initiate)
+		app.Post("/api/v1/enterprise/auth/saml/callback",     apiLimit, samlH.Callback)
+		app.Get( "/saml/metadata",                            samlH.Metadata)
+	}
+
+	// ── Enterprise data routes (session cookie OR API key, with RBAC) ─────────
+	entAuth  := middleware.EnterpriseAuth(cfg.APIKey, chClient, sessionStore)
+	entAdmin := middleware.RequireAdminOrAbove()
+	entOwner := middleware.RequireOwner()
+
+	ent := app.Group("/api/v1/enterprise", entAuth, auditLog)
+
+	ent.Get( "/org",                         apiLimit,                enterpriseH.GetOrg)
+	ent.Put( "/org",                         apiLimit, entAdmin,      enterpriseH.UpdateOrg)
+	ent.Get( "/members",                     apiLimit,                enterpriseH.ListMembers)
+	ent.Post("/members",                     apiLimit, entAdmin,       enterpriseH.InviteMember)
+	ent.Patch("/members/:id/role",           apiLimit, entAdmin,       enterpriseH.UpdateMemberRole)
+	ent.Delete("/members/:id",               apiLimit, entAdmin,       enterpriseH.RemoveMember)
+	ent.Get( "/teams",                       apiLimit,                enterpriseH.ListTeams)
+	ent.Post("/teams",                       apiLimit, entAdmin,       enterpriseH.CreateTeam)
+	ent.Delete("/teams/:id",                 apiLimit, entAdmin,       enterpriseH.DeleteTeam)
+	ent.Get( "/teams/:id/members",           apiLimit,                enterpriseH.ListTeamMembers)
+	ent.Post("/teams/:id/members",           apiLimit, entAdmin,       enterpriseH.AddTeamMember)
+	ent.Delete("/teams/:id/members/:uid",    apiLimit, entAdmin,       enterpriseH.RemoveTeamMember)
+	ent.Get( "/sso/config",                  apiLimit,                enterpriseH.GetSSOConfig)
+	ent.Put( "/sso/config",                  apiLimit, entAdmin,       enterpriseH.UpdateSSOConfig)
+	ent.Get( "/license",                     apiLimit, entOwner,       enterpriseH.GetLicense)
 
 	// SCIM 2.0 — separate Bearer token auth (set SCIM_BEARER_TOKEN env var)
 	scimGroup := app.Group("/scim/v2", scimH.BearerAuth)
@@ -634,6 +660,28 @@ func runMigrations(ch *clickhouse.Client) error {
 			version       UInt64 DEFAULT 1
 		) ENGINE = ReplacingMergeTree(version)
 		ORDER BY (org_id, user_id)`,
+
+		// Phase 12h: Invite tokens (single-use, 7-day TTL)
+		`CREATE TABLE IF NOT EXISTS invite_tokens (
+			token      String,
+			user_id    String,
+			email      String,
+			expires_at DateTime64(3, 'UTC'),
+			used       UInt8 DEFAULT 0,
+			version    UInt64 DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY token`,
+
+		// Phase 12i: Password reset tokens (single-use, 1-hour TTL)
+		`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+			token      String,
+			user_id    String,
+			email      String,
+			expires_at DateTime64(3, 'UTC'),
+			used       UInt8 DEFAULT 0,
+			version    UInt64 DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY token`,
 
 		// Phase 11d: Policy violations log
 		`CREATE TABLE IF NOT EXISTS policy_violations (

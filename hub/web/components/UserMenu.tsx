@@ -3,6 +3,7 @@
 import { LogOut, User } from "lucide-react";
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Props {
   name?: string | null;
@@ -12,6 +13,15 @@ interface Props {
 
 export function UserMenu({ name, email, picture }: Props) {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/proxy/enterprise/auth/logout", { method: "POST" });
+    } finally {
+      router.push("/login");
+    }
+  };
 
   return (
     <div className="relative">
@@ -58,14 +68,14 @@ export function UserMenu({ name, email, picture }: Props) {
                 <p className="text-[11px] text-slate-500 truncate">{email}</p>
               )}
             </div>
-            <a
-              href="/api/auth/logout"
-              className="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-400
-                         hover:text-white hover:bg-white/[0.04] transition-colors"
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-slate-400
+                         hover:text-white hover:bg-white/[0.04] transition-colors text-left"
             >
               <LogOut size={14} />
               Sign out
-            </a>
+            </button>
           </div>
         </>
       )}

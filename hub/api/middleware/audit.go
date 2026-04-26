@@ -24,9 +24,14 @@ func AuditLog(ch *chclient.Client) fiber.Handler {
 
 		role, _    := c.Locals("role").(string)
 		tokenID, _ := c.Locals("token_id").(string)
+		userID, _  := c.Locals("user_id").(string)
 		if role == "" {
 			// Unauthenticated or public route — skip auditing.
 			return err
+		}
+		// For session-based callers the token_id is the user_id prefixed with "sess:".
+		if tokenID == "" && userID != "" {
+			tokenID = "sess:" + userID
 		}
 
 		status   := c.Response().StatusCode()

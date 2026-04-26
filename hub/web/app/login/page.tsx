@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Network, LogIn, RefreshCw, ArrowRight } from "lucide-react";
 import { clsx } from "clsx";
+import Link from "next/link";
 
 // Build the SSO initiation URL — points directly at the Go backend so the
 // browser follows the IdP redirect without going through the Next.js proxy.
@@ -161,6 +162,11 @@ function LoginInner() {
 
           <p className="text-center text-[11px] text-slate-600">
             Access is restricted to authorised users only.
+          </p>
+          <p className="text-center text-[11px]">
+            <Link href="/forgot-password" className="text-slate-500 hover:text-slate-400 transition-colors">
+              Forgot your password?
+            </Link>
           </p>
         </div>
       </div>

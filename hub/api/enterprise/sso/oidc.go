@@ -262,6 +262,8 @@ func (h *OIDCHandler) Callback(c *fiber.Ctx) error {
 		Expires:  expiresAt,
 	})
 
+	slog.Info("OIDC login successful", "email", claims.Email, "role", role)
+
 	dest := ps.redirectURI
 	if dest == "" {
 		dest = h.FrontendURL + "/"

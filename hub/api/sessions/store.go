@@ -85,6 +85,21 @@ func (s *Store) Delete(token string) {
 	s.mu.Unlock()
 }
 
+// DeleteByUserID revokes all active sessions for the given user.
+// Called when a user's role changes or their account is deactivated.
+func (s *Store) DeleteByUserID(userID string) int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	revoked := 0
+	for token, sess := range s.data {
+		if sess.UserID == userID {
+			delete(s.data, token)
+			revoked++
+		}
+	}
+	return revoked
+}
+
 // runCleanup evicts expired sessions every 15 minutes to prevent
 // unbounded memory growth in long-running deployments.
 func (s *Store) runCleanup() {

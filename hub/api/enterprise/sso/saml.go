@@ -328,6 +328,8 @@ func (h *SAMLHandler) Callback(c *fiber.Ctx) error {
 		Expires:  expiresAt,
 	})
 
+	slog.Info("SAML login successful", "email", email, "role", role)
+
 	dest := ps.redirectURI
 	if dest == "" {
 		dest = h.FrontendURL + "/"

@@ -2,23 +2,30 @@ package handlers
 
 import (
 	"context"
+	"crypto/rand"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
+	"github.com/netscope/hub-api/alerting"
 	chclient "github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/enterprise/license"
 	"github.com/netscope/hub-api/models"
+	"github.com/netscope/hub-api/sessions"
 	"github.com/netscope/hub-api/util"
 )
 
 // EnterpriseHandler handles all org / member / team / SSO / license endpoints.
 // All mutating operations require admin role; reads require any authenticated role.
 type EnterpriseHandler struct {
-	CH      *chclient.Client
-	License *license.License
+	CH       *chclient.Client
+	License  *license.License
+	Sessions *sessions.Store    // for session invalidation on role change
+	SMTP     alerting.SMTPConfig
+	FrontendURL string
 }
 
 // ── Org ───────────────────────────────────────────────────────────────────────
@@ -141,25 +148,81 @@ func (h *EnterpriseHandler) InviteMember(c *fiber.Ctx) error {
 		req.Role = "viewer"
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 
 	userID := uuid.NewString()
+	now := time.Now()
 	if err := h.CH.Exec(ctx,
 		`INSERT INTO org_members
-		 (user_id, org_id, email, display_name, role, sso_provider, sso_subject, is_active, created_at, last_seen)
-		 VALUES (?, 'default', ?, ?, ?, 'pending', '', 1, now64(), now64())`,
-		userID, req.Email, req.Name, req.Role,
+		 (user_id, org_id, email, display_name, role, sso_provider, sso_subject,
+		  is_active, created_at, last_seen, version)
+		 VALUES (?, 'default', ?, ?, ?, 'pending', '', 1, ?, ?, ?)`,
+		userID, req.Email, req.Name, req.Role, now, now, now.UnixMilli(),
 	); err != nil {
 		return util.InternalError(c, err)
 	}
 
+	// Generate invite token (7-day TTL).
+	inviteToken, tokenErr := genRandomHex(32)
+	inviteURL := ""
+	if tokenErr == nil {
+		expiresAt := now.Add(7 * 24 * time.Hour)
+		_ = h.CH.Exec(ctx,
+			`INSERT INTO invite_tokens (token, user_id, email, expires_at, used, version)
+			 VALUES (?, ?, ?, ?, 0, ?)`,
+			inviteToken, userID, req.Email, expiresAt, now.UnixMilli(),
+		)
+		if h.FrontendURL != "" {
+			inviteURL = fmt.Sprintf("%s/accept-invite?token=%s", h.FrontendURL, inviteToken)
+		}
+	}
+
+	// Send invite email if SMTP is configured.
+	inviterName := h.SMTP.OrgName
+	if callerEmail, ok := c.Locals("email").(string); ok && callerEmail != "" {
+		inviterName = callerEmail
+	}
+	if h.SMTP.Host != "" && inviteURL != "" {
+		body := inviteEmailHTML(h.SMTP.OrgName, inviterName, req.Role, inviteURL)
+		if err := alerting.SendTransactional(h.SMTP, req.Email,
+			fmt.Sprintf("You've been invited to %s", h.SMTP.OrgName), body); err != nil {
+			slog.Warn("invite email failed", "email", req.Email, "err", err)
+		}
+	}
+
 	slog.Info("member invited", "email", req.Email, "role", req.Role)
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"user_id": userID,
-		"email":   req.Email,
-		"role":    req.Role,
-	})
+	resp := fiber.Map{
+		"user_id":    userID,
+		"email":      req.Email,
+		"role":       req.Role,
+		"invite_url": inviteURL, // returned for CLI/admin use when SMTP is absent
+	}
+	return c.Status(fiber.StatusCreated).JSON(resp)
+}
+
+// inviteEmailHTML builds the invite email body (defined in invite.go).
+// Declared here to avoid circular imports — both files are in the same package.
+func inviteEmailHTML(orgName, inviterName, role, link string) string {
+	return fmt.Sprintf(`<!DOCTYPE html>
+<html><body style="font-family:sans-serif;background:#0a0a14;color:#e2e8f0;padding:32px">
+<div style="max-width:520px;margin:0 auto;background:#0d0d1a;border:1px solid rgba(255,255,255,0.08);
+            border-radius:16px;padding:32px">
+  <h2 style="color:#fff;margin:0 0 8px">You&apos;ve been invited to %s</h2>
+  <p style="color:#94a3b8;margin:0 0 4px">%s has added you as a <strong style="color:#e2e8f0">%s</strong>.</p>
+  <p style="color:#94a3b8;margin:0 0 24px">Click below to set your password and get started.</p>
+  <a href="%s" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;
+                       padding:12px 24px;border-radius:8px;font-weight:600">Accept invitation</a>
+  <p style="color:#475569;font-size:12px;margin:24px 0 0">This invite link expires in 7 days.</p>
+</div></body></html>`, orgName, inviterName, role, link)
+}
+
+func genRandomHex(n int) (string, error) {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", b), nil
 }
 
 // UpdateMemberRole handles PATCH /api/v1/enterprise/members/:id/role
@@ -197,14 +260,27 @@ func (h *EnterpriseHandler) UpdateMemberRole(c *fiber.Ctx) error {
 	_ = rows.Scan(&email, &displayName, &ssoProvider, &ssoSubject, &createdAt)
 	rows.Close()
 
+	now := time.Now()
 	if err := h.CH.Exec(ctx,
 		`INSERT INTO org_members
-		 (user_id, org_id, email, display_name, role, sso_provider, sso_subject, is_active, created_at, last_seen)
-		 VALUES (?, 'default', ?, ?, ?, ?, ?, 1, ?, now64())`,
-		userID, email, displayName, req.Role, ssoProvider, ssoSubject, createdAt,
+		 (user_id, org_id, email, display_name, role, sso_provider, sso_subject,
+		  is_active, created_at, last_seen, version)
+		 VALUES (?, 'default', ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+		userID, email, displayName, req.Role, ssoProvider, ssoSubject,
+		createdAt, now, now.UnixMilli(),
 	); err != nil {
 		return util.InternalError(c, err)
 	}
+
+	// Invalidate all active sessions for this user — new role takes effect
+	// on next login rather than silently continuing with a stale role.
+	if h.Sessions != nil {
+		if n := h.Sessions.DeleteByUserID(userID); n > 0 {
+			slog.Info("sessions invalidated after role change",
+				"user_id", userID, "new_role", req.Role, "sessions_revoked", n)
+		}
+	}
+
 	return c.JSON(fiber.Map{"ok": true})
 }
 
