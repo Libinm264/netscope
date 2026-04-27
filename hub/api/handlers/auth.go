@@ -13,11 +13,13 @@ import (
 	"github.com/netscope/hub-api/sessions"
 )
 
-// AuthHandler provides the /me, /logout, /login, and /password endpoints.
+// AuthHandler provides the /me, /logout, /login, /password, /demo, and
+// /setup endpoints.
 type AuthHandler struct {
 	CH          *clickhouse.Client
 	Sessions    *sessions.Store
 	FrontendURL string // e.g. "http://localhost:3000"
+	DemoEnabled bool   // true when DEMO_ENABLED=true in env
 }
 
 const sessionCookieName = "ns_session"
@@ -290,4 +292,194 @@ func (h *AuthHandler) SetPassword(c *fiber.Ctx) error {
 
 	slog.Info("password updated", "user_id", targetUserID)
 	return c.JSON(fiber.Map{"ok": true})
+}
+
+// ── Demo session ──────────────────────────────────────────────────────────────
+
+// DemoLogin handles POST /api/v1/auth/demo
+//
+// Creates a short-lived read-only session that requires no credentials.
+// Gated by DemoEnabled — returns 404 when demo mode is off.
+// The session has role "viewer" and IsDemo=true so that the middleware
+// blocks all mutating requests (POST/PUT/PATCH/DELETE) with HTTP 403.
+func (h *AuthHandler) DemoLogin(c *fiber.Ctx) error {
+	if !h.DemoEnabled {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "demo mode is not enabled"})
+	}
+
+	demoTTL := 4 * time.Hour
+	expiresAt := time.Now().Add(demoTTL)
+	sessionToken := h.Sessions.Create(sessions.Session{
+		UserID:      "demo-user",
+		OrgID:       "default",
+		Email:       "demo@netscope.local",
+		DisplayName: "Demo User",
+		Role:        "viewer",
+		SSOProvider: "demo",
+		IsDemo:      true,
+		ExpiresAt:   expiresAt,
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     sessionCookieName,
+		Value:    sessionToken,
+		Path:     "/",
+		HTTPOnly: true,
+		SameSite: "Lax",
+		Expires:  expiresAt,
+	})
+
+	slog.Info("demo session created", "ip", c.IP())
+	return c.JSON(fiber.Map{
+		"ok":           true,
+		"display_name": "Demo User",
+		"role":         "viewer",
+		"is_demo":      true,
+		"expires_at":   expiresAt,
+	})
+}
+
+// ── First-run setup ───────────────────────────────────────────────────────────
+
+// SetupStatus handles GET /api/v1/auth/setup
+//
+// Returns whether a first-run admin account needs to be created.
+// Returns {"needs_setup": true} when the org_members table is empty,
+// {"needs_setup": false} otherwise.  Used by the frontend to decide
+// whether to show the "Create admin account" flow on the login page.
+func (h *AuthHandler) SetupStatus(c *fiber.Ctx) error {
+	if h.CH == nil {
+		return c.JSON(fiber.Map{"needs_setup": false})
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	var count uint64
+	rows, err := h.CH.Query(ctx,
+		`SELECT count() FROM org_members FINAL WHERE org_id = 'default' AND is_active = 1`)
+	if err != nil || !rows.Next() {
+		if rows != nil {
+			rows.Close()
+		}
+		// Table might not exist yet on very first boot — treat as needs_setup.
+		return c.JSON(fiber.Map{"needs_setup": true, "demo_enabled": h.DemoEnabled})
+	}
+	_ = rows.Scan(&count)
+	rows.Close()
+
+	return c.JSON(fiber.Map{
+		"needs_setup":  count == 0,
+		"demo_enabled": h.DemoEnabled,
+	})
+}
+
+type setupRequest struct {
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	DisplayName string `json:"display_name"`
+}
+
+// SetupAdmin handles POST /api/v1/auth/setup
+//
+// One-time endpoint: creates the first admin account when no users exist.
+// Returns 409 if any active member already exists, preventing privilege
+// escalation on running deployments.
+func (h *AuthHandler) SetupAdmin(c *fiber.Ctx) error {
+	if h.CH == nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "database unavailable"})
+	}
+
+	var req setupRequest
+	if err := c.BodyParser(&req); err != nil || req.Email == "" || req.Password == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "email and password are required",
+		})
+	}
+	if len(req.Password) < 12 {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error": "password must be at least 12 characters",
+		})
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Guard: refuse if any active member already exists.
+	var count uint64
+	rows, err := h.CH.Query(ctx,
+		`SELECT count() FROM org_members FINAL WHERE org_id = 'default' AND is_active = 1`)
+	if err == nil && rows.Next() {
+		_ = rows.Scan(&count)
+		rows.Close()
+	}
+	if count > 0 {
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"error": "setup already completed — sign in with your existing account",
+		})
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "password hashing failed"})
+	}
+
+	displayName := req.DisplayName
+	if displayName == "" {
+		displayName = req.Email
+	}
+
+	userID := uuid.NewString()
+	now := time.Now().UTC()
+
+	// Insert into org_members.
+	if err := h.CH.Exec(ctx,
+		`INSERT INTO org_members
+		 (user_id, org_id, email, display_name, role, is_active, joined_at, version)
+		 VALUES (?, 'default', ?, ?, 'owner', 1, ?, ?)`,
+		userID, req.Email, displayName, now, now.UnixMilli(),
+	); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "could not create user"})
+	}
+
+	// Insert local credentials.
+	if err := h.CH.Exec(ctx,
+		`INSERT INTO local_credentials (user_id, org_id, password_hash, updated_at, version)
+		 VALUES (?, 'default', ?, ?, ?)`,
+		userID, string(hash), now, now.UnixMilli(),
+	); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "could not save credentials"})
+	}
+
+	// Create a session so the user is logged in immediately after setup.
+	expiresAt := now.Add(sessions.DefaultTTL)
+	sessionToken := h.Sessions.Create(sessions.Session{
+		UserID:      userID,
+		OrgID:       "default",
+		Email:       req.Email,
+		DisplayName: displayName,
+		Role:        "owner",
+		SSOProvider: "local",
+		CreatedAt:   now,
+		ExpiresAt:   expiresAt,
+	})
+
+	c.Cookie(&fiber.Cookie{
+		Name:     sessionCookieName,
+		Value:    sessionToken,
+		Path:     "/",
+		HTTPOnly: true,
+		SameSite: "Lax",
+		Expires:  expiresAt,
+	})
+
+	writeAuthEvent(h.CH, userID, "owner", "/auth/setup", c.IP())
+	slog.Info("first-run admin account created", "email", req.Email, "user_id", userID)
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"ok":           true,
+		"user_id":      userID,
+		"email":        req.Email,
+		"display_name": displayName,
+		"role":         "owner",
+	})
 }

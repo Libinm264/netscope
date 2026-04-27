@@ -28,9 +28,11 @@ type Session struct {
 	Email       string
 	DisplayName string
 	Role        string    // "owner" | "admin" | "analyst" | "viewer"
-	SSOProvider string    // "oidc" | "saml"
+	SSOProvider string    // "oidc" | "saml" | "local" | "demo"
 	CreatedAt   time.Time
 	ExpiresAt   time.Time
+	// IsDemo marks sandboxed demo sessions — all mutating API calls return 403.
+	IsDemo bool
 }
 
 // Store is a thread-safe in-memory map of token → Session.

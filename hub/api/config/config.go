@@ -93,6 +93,12 @@ type Config struct {
 	// removed afterwards.  Ignored when the account already exists.
 	AdminEmail    string
 	AdminPassword string
+
+	// DemoEnabled, when true, exposes POST /api/v1/auth/demo which creates a
+	// short-lived read-only session so prospects can evaluate the UI without
+	// creating an account.  Set DEMO_ENABLED=true in docker-compose for try-it
+	// deployments; leave unset (default false) for production installs.
+	DemoEnabled bool
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -132,6 +138,7 @@ func Load() *Config {
 		SSOClientSecret:             getEnv("SSO_CLIENT_SECRET", ""),
 		AdminEmail:                  getEnv("ADMIN_EMAIL", ""),
 		AdminPassword:               getEnv("ADMIN_PASSWORD", ""),
+		DemoEnabled:                 os.Getenv("DEMO_ENABLED") == "true",
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")

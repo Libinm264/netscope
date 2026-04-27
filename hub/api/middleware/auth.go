@@ -113,6 +113,7 @@ func EnterpriseAuth(bootstrapKey string, ch *chclient.Client, sess *sessions.Sto
 					c.Locals("email", s.Email)
 					c.Locals("org_id", s.OrgID)
 					c.Locals("auth_method", "session")
+					c.Locals("is_demo", s.IsDemo)
 					return c.Next()
 				}
 			}
@@ -180,6 +181,29 @@ func RequireAdminOrAbove() fiber.Handler {
 		default:
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"error": "forbidden: admin role or above required",
+			})
+		}
+	}
+}
+
+// DemoGuard blocks mutating HTTP methods (POST, PUT, PATCH, DELETE) for demo
+// sessions.  Place after EnterpriseAuth on any route that should be read-only
+// for demo users.  Safe methods (GET, HEAD, OPTIONS) pass through unchanged.
+//
+// Returns HTTP 403 with a JSON body so the frontend can surface a friendly
+// "Demo mode — sign up to make changes" message.
+func DemoGuard() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		isDemo, _ := c.Locals("is_demo").(bool)
+		if !isDemo {
+			return c.Next()
+		}
+		switch c.Method() {
+		case fiber.MethodGet, fiber.MethodHead, fiber.MethodOptions:
+			return c.Next()
+		default:
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "demo mode: this action is not available in the demo — please sign up for a full account",
 			})
 		}
 	}

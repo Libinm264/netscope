@@ -372,7 +372,7 @@ func main() {
 		SMTP:        smtpCfg,
 		FrontendURL: cfg.FrontendURL,
 	}
-	authH    := &handlers.AuthHandler{CH: chClient, Sessions: sessionStore, FrontendURL: cfg.FrontendURL}
+	authH    := &handlers.AuthHandler{CH: chClient, Sessions: sessionStore, FrontendURL: cfg.FrontendURL, DemoEnabled: cfg.DemoEnabled}
 	inviteH  := &handlers.InviteHandler{CH: chClient, Sessions: sessionStore, SMTP: smtpCfg, FrontendURL: cfg.FrontendURL}
 	scimH    := &scim.Handler{CH: chClient, License: lic, BearerToken: cfg.SCIMBearerToken}
 
@@ -436,6 +436,10 @@ func main() {
 	app.Post("/api/v1/enterprise/auth/logout",                apiLimit, authH.Logout)
 	app.Post("/api/v1/enterprise/auth/login",                 apiLimit, authH.LocalLogin)
 	app.Put( "/api/v1/enterprise/auth/password",              apiLimit, authH.SetPassword)
+	// Demo + first-run setup — no auth required, public endpoints.
+	app.Post("/api/v1/auth/demo",                             apiLimit, authH.DemoLogin)
+	app.Get( "/api/v1/auth/setup",                            apiLimit, authH.SetupStatus)
+	app.Post("/api/v1/auth/setup",                            apiLimit, authH.SetupAdmin)
 	app.Post("/api/v1/enterprise/auth/invite/accept",         apiLimit, inviteH.AcceptInvite)
 	app.Post("/api/v1/enterprise/auth/forgot-password",       apiLimit, inviteH.ForgotPassword)
 	app.Post("/api/v1/enterprise/auth/reset-password",        apiLimit, inviteH.ResetPassword)
@@ -450,11 +454,14 @@ func main() {
 	}
 
 	// ── Enterprise data routes (session cookie OR API key, with RBAC) ─────────
-	entAuth  := middleware.EnterpriseAuth(cfg.APIKey, chClient, sessionStore)
-	entAdmin := middleware.RequireAdminOrAbove()
-	entOwner := middleware.RequireOwner()
+	entAuth   := middleware.EnterpriseAuth(cfg.APIKey, chClient, sessionStore)
+	entAdmin  := middleware.RequireAdminOrAbove()
+	entOwner  := middleware.RequireOwner()
+	demoGuard := middleware.DemoGuard()
 
-	ent := app.Group("/api/v1/enterprise", entAuth, auditLog)
+	// demoGuard sits between entAuth and auditLog: sessions marked IsDemo=true
+	// receive HTTP 403 on any non-safe method (POST/PUT/PATCH/DELETE).
+	ent := app.Group("/api/v1/enterprise", entAuth, demoGuard, auditLog)
 
 	ent.Get( "/org",                         apiLimit,                enterpriseH.GetOrg)
 	ent.Put( "/org",                         apiLimit, entAdmin,      enterpriseH.UpdateOrg)

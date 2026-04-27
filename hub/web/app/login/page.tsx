@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Network, LogIn, RefreshCw, ArrowRight } from "lucide-react";
+import { Network, LogIn, RefreshCw, ArrowRight, FlaskConical, ChevronDown, ChevronUp } from "lucide-react";
 import { clsx } from "clsx";
 import Link from "next/link";
 
@@ -15,16 +15,32 @@ function ssoInitURL(provider: "oidc" | "saml", redirectAfter: string): string {
   return `${hubBase}/api/v1/enterprise/auth/${provider}/initiate?redirect_uri=${encoded}`;
 }
 
+interface SetupStatus {
+  needs_setup:   boolean;
+  demo_enabled:  boolean;
+}
+
 function LoginInner() {
   const searchParams  = useSearchParams();
   const from          = searchParams.get("from") ?? "/";
 
-  const [email,    setEmail]    = useState("");
-  const [password, setPassword] = useState("");
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState("");
+  const [email,       setEmail]       = useState("");
+  const [password,    setPassword]    = useState("");
+  const [loading,     setLoading]     = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [error,       setError]       = useState("");
+  const [showSSO,     setShowSSO]     = useState(false);
+  const [setup,       setSetup]       = useState<SetupStatus | null>(null);
 
-  // Email/password submit — active once Pass B (OIDC) and Pass C (local login) land.
+  // Fetch setup status once — determines whether to show demo / setup nudges.
+  useEffect(() => {
+    fetch("/api/proxy/auth/setup")
+      .then((r) => r.json())
+      .then((d: SetupStatus) => setSetup(d))
+      .catch(() => { /* non-fatal; UI degrades gracefully */ });
+  }, []);
+
+  // Email/password submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
@@ -49,6 +65,25 @@ function LoginInner() {
     }
   };
 
+  // Demo login — creates a sandboxed read-only session
+  const handleDemo = async () => {
+    setDemoLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/proxy/auth/demo", { method: "POST" });
+      if (res.ok) {
+        window.location.href = from;
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "Could not start demo session.");
+      }
+    } catch {
+      setError("Unable to reach the hub. Check your connection.");
+    } finally {
+      setDemoLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a14] px-4">
       <div className="w-full max-w-sm space-y-8">
@@ -64,6 +99,26 @@ function LoginInner() {
           </div>
         </div>
 
+        {/* First-run nudge — only shown when no admin account exists yet */}
+        {setup?.needs_setup && (
+          <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-4 py-3 flex items-start gap-3">
+            <span className="text-amber-400 mt-0.5 text-lg">⚙</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-amber-300">First-run setup required</p>
+              <p className="text-xs text-amber-400/70 mt-0.5">
+                No admin account exists yet. Create one to get started.
+              </p>
+              <Link
+                href="/setup"
+                className="inline-flex items-center gap-1 mt-2 text-xs font-medium
+                           text-amber-300 hover:text-amber-200 transition-colors"
+              >
+                Set up your account <ArrowRight size={12} />
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Card */}
         <div className="rounded-2xl bg-[#0d0d1a] border border-white/[0.08] p-8 space-y-5">
           <div>
@@ -73,44 +128,7 @@ function LoginInner() {
             </p>
           </div>
 
-          {/* SSO buttons */}
-          <div className="space-y-2">
-            {/* Primary: OIDC (Okta, Azure AD, Dex, Google) */}
-            <a
-              href={ssoInitURL("oidc", from)}
-              className="flex items-center justify-between w-full px-4 py-2.5 rounded-lg
-                         bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium
-                         transition-colors group"
-            >
-              <span>Continue with SSO (OIDC)</span>
-              <ArrowRight size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
-            </a>
-
-            {/* Secondary: SAML (Okta, Azure AD, ADFS, OneLogin) */}
-            <a
-              href={ssoInitURL("saml", from)}
-              className="flex items-center justify-between w-full px-4 py-2.5 rounded-lg
-                         bg-white/[0.04] border border-white/10 text-slate-300 text-sm font-medium
-                         hover:bg-white/[0.08] transition-colors group"
-            >
-              <span>Continue with SAML 2.0</span>
-              <ArrowRight size={14} className="opacity-40 group-hover:opacity-80 transition-opacity" />
-            </a>
-          </div>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/[0.07]" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-[#0d0d1a] px-3 text-[11px] text-slate-600">
-                or sign in with email
-              </span>
-            </div>
-          </div>
-
-          {/* Email / password form */}
+          {/* Email / password form — primary for community installs */}
           <form onSubmit={handleSubmit} className="space-y-3">
             <input
               type="email"
@@ -149,8 +167,8 @@ function LoginInner() {
               type="submit"
               disabled={loading || !email || !password}
               className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg
-                         bg-white/[0.05] border border-white/10 text-white text-sm font-medium
-                         hover:bg-white/[0.09] disabled:opacity-40 transition-colors"
+                         bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 transition-colors
+                         text-white text-sm font-medium"
             >
               {loading
                 ? <RefreshCw size={14} className="animate-spin" />
@@ -160,14 +178,88 @@ function LoginInner() {
             </button>
           </form>
 
-          <p className="text-center text-[11px] text-slate-600">
-            Access is restricted to authorised users only.
-          </p>
-          <p className="text-center text-[11px]">
+          {/* Demo button — only shown when hub has DEMO_ENABLED=true */}
+          {setup?.demo_enabled && (
+            <>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/[0.07]" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-[#0d0d1a] px-3 text-[11px] text-slate-600">
+                    or explore without an account
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleDemo}
+                disabled={demoLoading}
+                className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg
+                           bg-emerald-600/20 border border-emerald-500/30 text-emerald-300
+                           text-sm font-medium hover:bg-emerald-600/30 disabled:opacity-40
+                           transition-colors"
+              >
+                {demoLoading
+                  ? <RefreshCw size={14} className="animate-spin" />
+                  : <FlaskConical size={14} />
+                }
+                {demoLoading ? "Starting demo…" : "Try live demo"}
+              </button>
+              <p className="text-center text-[11px] text-slate-600">
+                Read-only sandbox · no account required · resets on logout
+              </p>
+            </>
+          )}
+
+          {/* SSO — collapsed by default; enterprise users can expand */}
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setShowSSO((v) => !v)}
+              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-400
+                         transition-colors w-full"
+            >
+              {showSSO ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              Enterprise SSO (OIDC / SAML)
+            </button>
+
+            {showSSO && (
+              <div className="space-y-2 pt-1">
+                <a
+                  href={ssoInitURL("oidc", from)}
+                  className="flex items-center justify-between w-full px-4 py-2.5 rounded-lg
+                             bg-white/[0.04] border border-white/10 text-slate-300 text-sm font-medium
+                             hover:bg-white/[0.08] transition-colors group"
+                >
+                  <span>Continue with OIDC</span>
+                  <ArrowRight size={14} className="opacity-40 group-hover:opacity-80 transition-opacity" />
+                </a>
+
+                <a
+                  href={ssoInitURL("saml", from)}
+                  className="flex items-center justify-between w-full px-4 py-2.5 rounded-lg
+                             bg-white/[0.04] border border-white/10 text-slate-300 text-sm font-medium
+                             hover:bg-white/[0.08] transition-colors group"
+                >
+                  <span>Continue with SAML 2.0</span>
+                  <ArrowRight size={14} className="opacity-40 group-hover:opacity-80 transition-opacity" />
+                </a>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-between text-[11px]">
             <Link href="/forgot-password" className="text-slate-500 hover:text-slate-400 transition-colors">
-              Forgot your password?
+              Forgot password?
             </Link>
-          </p>
+            {setup?.needs_setup && (
+              <Link href="/setup" className="text-indigo-400 hover:text-indigo-300 transition-colors">
+                First-run setup →
+              </Link>
+            )}
+          </div>
         </div>
       </div>
     </div>

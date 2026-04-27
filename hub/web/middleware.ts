@@ -4,6 +4,7 @@ import type { NextRequest } from "next/server";
 // Paths that are always public — no session required.
 const PUBLIC_PREFIXES = [
   "/login",
+  "/setup",           // first-run admin setup (no account exists yet)
   "/accept-invite",   // new-user invite acceptance (token in query param)
   "/forgot-password", // password reset request form
   "/reset-password",  // password reset confirmation form
