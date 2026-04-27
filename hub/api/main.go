@@ -21,6 +21,7 @@ import (
 	"github.com/netscope/hub-api/config"
 	"github.com/netscope/hub-api/enterprise/license"
 	"github.com/netscope/hub-api/enterprise/scim"
+	"github.com/netscope/hub-api/enterprise/sigma"
 	"github.com/netscope/hub-api/enterprise/sinks"
 	"github.com/netscope/hub-api/enterprise/sso"
 	"github.com/netscope/hub-api/geoip"
@@ -90,7 +91,7 @@ func main() {
 		defer producer.Close()
 	}
 
-	if cons, err := kafka.NewConsumer(cfg.KafkaBrokers, cfg.KafkaTopic, "netscope-ch-writer"); err != nil {
+	if cons, err := kafka.NewConsumer(cfg.KafkaBrokers, cfg.KafkaTopic, cfg.KafkaGroupID); err != nil {
 		slog.Warn("Kafka consumer unavailable", "err", err)
 	} else {
 		consumer = cons
@@ -365,6 +366,16 @@ func main() {
 		License: lic,
 		Sinks:   sinksDispatcher,
 	}
+
+	// ── Sigma detection engine ────────────────────────────────────────────────
+	sigmaEngine := sigma.New(chClient)
+	if chClient != nil {
+		sigmaEngine.Start()
+		defer sigmaEngine.Stop()
+	}
+	sigmaH := &handlers.SigmaHandler{CH: chClient, License: lic, Engine: sigmaEngine}
+	savedQueriesH := &handlers.SavedQueryHandler{CH: chClient, License: lic}
+
 	oidcH    := sso.NewOIDCHandler(chClient, sessionStore, lic,
 		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret)
 	samlH    := sso.NewSAMLHandler(chClient, sessionStore, lic,
@@ -419,6 +430,19 @@ func main() {
 
 	// Audit export (authenticated — any session user)
 	ent.Get("/audit/export",                 apiLimit,           auditH.Export)
+
+	// Sigma detection rules (Community: read-only built-ins; Enterprise: full CRUD)
+	ent.Get(   "/sigma/rules",               apiLimit,           sigmaH.ListRules)
+	ent.Post(  "/sigma/rules",               apiLimit, entAdmin, sigmaH.CreateRule)
+	ent.Patch( "/sigma/rules/:id",           apiLimit, entAdmin, sigmaH.UpdateRule)
+	ent.Delete("/sigma/rules/:id",           apiLimit, entAdmin, sigmaH.DeleteRule)
+	ent.Get(   "/sigma/matches",             apiLimit,           sigmaH.ListMatches)
+
+	// Saved flow queries (Community: max 10; Enterprise: unlimited)
+	v1.Get(   "/saved-queries",              apiLimit,           savedQueriesH.List)
+	v1.Post(  "/saved-queries",              apiLimit,           savedQueriesH.Create)
+	v1.Patch( "/saved-queries/:id",          apiLimit,           savedQueriesH.Update)
+	v1.Delete("/saved-queries/:id",          apiLimit,           savedQueriesH.Delete)
 
 	// SCIM 2.0 — separate Bearer token auth (set SCIM_BEARER_TOKEN env var)
 	scimGroup := app.Group("/scim/v2", scimH.BearerAuth)
@@ -750,6 +774,92 @@ func runMigrations(ch *clickhouse.Client) error {
 			version      UInt64           DEFAULT 1
 		) ENGINE = ReplacingMergeTree(version)
 		ORDER BY sink_type`,
+
+		// Phase 14: OTel trace correlation — trace_id on flows (idempotent)
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS trace_id String DEFAULT ''`,
+
+		// Phase 15: Saved flow queries (Community: 10 max; Enterprise: unlimited)
+		`CREATE TABLE IF NOT EXISTS saved_queries (
+			id          String,
+			name        String,
+			description String  DEFAULT '',
+			filters     String  DEFAULT '{}',
+			deleted     UInt8   DEFAULT 0,
+			created_at  DateTime64(3, 'UTC') DEFAULT now64(),
+			updated_at  DateTime64(3, 'UTC') DEFAULT now64(),
+			version     UInt64  DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY id`,
+
+		// Phase 16: Sigma detection rules
+		`CREATE TABLE IF NOT EXISTS sigma_rules (
+			id          String,
+			title       String,
+			description String  DEFAULT '',
+			severity    LowCardinality(String) DEFAULT 'medium',
+			tags        String  DEFAULT '[]',
+			query       String  DEFAULT '',
+			enabled     UInt8   DEFAULT 1,
+			builtin     UInt8   DEFAULT 0,
+			created_at  DateTime64(3, 'UTC') DEFAULT now64(),
+			updated_at  DateTime64(3, 'UTC') DEFAULT now64(),
+			version     UInt64  DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY id`,
+
+		// Phase 17: Sigma match events
+		`CREATE TABLE IF NOT EXISTS sigma_matches (
+			id         UUID    DEFAULT generateUUIDv4(),
+			rule_id    String,
+			rule_title String,
+			severity   LowCardinality(String) DEFAULT 'medium',
+			match_data String  DEFAULT '{}',
+			fired_at   DateTime64(3, 'UTC') DEFAULT now64()
+		) ENGINE = MergeTree()
+		PARTITION BY toYYYYMM(fired_at)
+		ORDER BY (fired_at, rule_id)
+		TTL toDateTime(fired_at) + INTERVAL 30 DAY`,
+
+		// Phase 17b: Seed the 5 built-in Community detection rules (idempotent)
+		`INSERT INTO sigma_rules (id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at, version)
+		 SELECT 'builtin-001', 'Port Scan Detection',
+		   'Detects hosts probing more than 50 unique destination ports within a 5-minute window.',
+		   'high', '["recon","portscan","attack.discovery"]',
+		   'SELECT src_ip, count(DISTINCT dst_port) AS port_count, min(ts) AS first_seen FROM flows WHERE ts > now() - INTERVAL 5 MINUTE AND protocol IN (''TCP'',''UDP'') GROUP BY src_ip HAVING port_count > 50',
+		   1, 1, now64(), now64(), 1
+		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-001')`,
+
+		`INSERT INTO sigma_rules (id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at, version)
+		 SELECT 'builtin-002', 'DNS Tunneling Indicator',
+		   'Identifies unusually long DNS query names (>60 chars) indicating DNS-based exfiltration.',
+		   'medium', '["dns","exfiltration","attack.c2"]',
+		   'SELECT src_ip, hostname, dns_query, ts FROM flows WHERE ts > now() - INTERVAL 10 MINUTE AND protocol = ''DNS'' AND length(dns_query) > 60',
+		   1, 1, now64(), now64(), 1
+		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-002')`,
+
+		`INSERT INTO sigma_rules (id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at, version)
+		 SELECT 'builtin-003', 'Cleartext Credential Submission',
+		   'Detects HTTP POST to authentication paths over plain HTTP risking credential exposure.',
+		   'high', '["credentials","http","attack.credential_access"]',
+		   'SELECT src_ip, dst_ip, dst_port, http_path, hostname, ts FROM flows WHERE ts > now() - INTERVAL 15 MINUTE AND protocol = ''HTTP'' AND http_method = ''POST'' AND (http_path LIKE ''%/login%'' OR http_path LIKE ''%/auth%'' OR http_path LIKE ''%/signin%'') AND dst_port != 443',
+		   1, 1, now64(), now64(), 1
+		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-003')`,
+
+		`INSERT INTO sigma_rules (id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at, version)
+		 SELECT 'builtin-004', 'Unexpected Outbound High Port',
+		   'Flags large outbound connections to ephemeral ports that may indicate beaconing or reverse shells.',
+		   'medium', '["c2","beaconing","attack.command_and_control"]',
+		   'SELECT src_ip, dst_ip, dst_port, protocol, bytes_out, hostname, ts FROM flows WHERE ts > now() - INTERVAL 5 MINUTE AND dst_port > 49151 AND protocol = ''TCP'' AND bytes_out > 10000',
+		   1, 1, now64(), now64(), 1
+		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-004')`,
+
+		`INSERT INTO sigma_rules (id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at, version)
+		 SELECT 'builtin-005', 'Privileged Process Network Activity',
+		   'Detects shell or interpreter processes making unexpected outbound connections post-exploitation indicator.',
+		   'critical', '["process","shell","attack.execution","attack.lateral_movement"]',
+		   'SELECT process_name, pid, src_ip, dst_ip, dst_port, hostname, ts FROM flows WHERE ts > now() - INTERVAL 5 MINUTE AND protocol = ''TCP'' AND process_name IN (''bash'',''sh'',''zsh'',''python'',''python3'',''powershell'',''pwsh'',''cmd'',''perl'',''ruby'') AND dst_port NOT IN (22, 80, 443)',
+		   1, 1, now64(), now64(), 1
+		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-005')`,
 	}
 
 	for _, q := range ddl {

@@ -1489,6 +1489,7 @@
       <button class="tab-btn active" onclick="switchTab('desktop', this)">🖥️ Desktop</button>
       <button class="tab-btn" onclick="switchTab('capture', this)">📡 Capture & Decoding</button>
       <button class="tab-btn" onclick="switchTab('hub', this)">🌐 Hub & Backend</button>
+      <button class="tab-btn" onclick="switchTab('detection', this)">🔍 Detection</button>
       <button class="tab-btn" onclick="switchTab('security', this)">🔐 Security</button>
     </div>
 
@@ -1681,6 +1682,54 @@
             <h4>Kubernetes Ready</h4>
           </div>
           <p>Helm chart and manifests for deploying hub + ClickHouse + Kafka in-cluster. OpenTelemetry export to any OTLP-compatible backend. CI/CD matrix builds all platforms.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detection Tab -->
+    <div class="tab-panel" id="tab-detection">
+      <div class="feature-grid">
+        <div class="feature-card" style="border-color:rgba(0,212,255,0.25);background:linear-gradient(135deg,rgba(0,212,255,0.06) 0%,rgba(12,17,32,0.9) 100%)">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔍</div>
+            <h4>Sigma Detection Engine <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(0,212,255,0.15);color:var(--cyan);vertical-align:middle;margin-left:4px">v0.4</span></h4>
+          </div>
+          <p>Detection rules evaluated every 5 minutes against live flow data using ClickHouse SQL. 5 built-in rules ship out-of-the-box on every plan — port scans, DNS tunneling, cleartext credentials, shell process networking, and beaconing.</p>
+        </div>
+        <div class="feature-card" style="border-color:rgba(124,58,237,0.25);background:linear-gradient(135deg,rgba(124,58,237,0.06) 0%,rgba(12,17,32,0.9) 100%)">
+          <div class="feature-card-head">
+            <div class="feature-icon">⚡</div>
+            <h4>Custom Rules (Enterprise) <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(124,58,237,0.15);color:#a78bfa;vertical-align:middle;margin-left:4px">Enterprise</span></h4>
+          </div>
+          <p>Write unlimited custom detection queries in ClickHouse SQL. Full access to all flow dimensions — process, K8s namespace, DNS, TLS, geo, threat score. Any rows returned = rule fires and a match event is recorded.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔗</div>
+            <h4>OTel Trace Correlation <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,0.15);color:var(--green);vertical-align:middle;margin-left:4px">Community</span></h4>
+          </div>
+          <p>Every flow carries the W3C <code>traceparent</code> trace-id extracted from observed HTTP headers. Filter the Flow Explorer by trace-id to see every network hop for a given OTel span — correlate your APM traces with raw packets.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">🔖</div>
+            <h4>Saved Queries <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,0.15);color:var(--green);vertical-align:middle;margin-left:4px">Community</span></h4>
+          </div>
+          <p>Save any combination of Flow Explorer filters (protocol, IPs, trace-id, time range) with a name and recall them instantly. Community plan includes 10 saved queries; Enterprise gets unlimited.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📊</div>
+            <h4>Match History</h4>
+          </div>
+          <p>Every rule firing is recorded as a match event with the exact result row data serialised to JSON. Filter by rule, severity, or time window. 30-day TTL with ClickHouse MergeTree partition pruning.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-head">
+            <div class="feature-icon">📈</div>
+            <h4>Kafka Consumer Scaling <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(124,58,237,0.15);color:#a78bfa;vertical-align:middle;margin-left:4px">Enterprise</span></h4>
+          </div>
+          <p>Set <code>KAFKA_GROUP_ID</code> to run multiple hub instances in the same consumer group — Kafka partitioning divides the ingest load automatically. Zero code changes required; horizontal scaling in minutes.</p>
         </div>
       </div>
     </div>
@@ -1981,7 +2030,7 @@
     <div class="section-header reveal">
       <span class="section-tag">Roadmap</span>
       <h2 class="section-title">Built in the open. Growing fast.</h2>
-      <p class="section-sub">v0.1–v0.3 shipped. v0.4 Enterprise Readiness in progress (P1–P3 done). v0.5 Agent Enterprise next.</p>
+      <p class="section-sub">v0.1–v0.3 shipped. v0.4 Enterprise Readiness P1–P4 done. v0.5 Windows &amp; Fleet next.</p>
     </div>
     <div class="roadmap-grid">
       <!-- Done -->
@@ -2083,25 +2132,25 @@
             <div class="rm-sub">Multi-tenant RBAC · SAML 2.0 + OIDC SSO · SCIM 2.0 provisioning · Session management · Invite &amp; password-reset flows · SIEM sinks (Splunk, Elastic, Datadog, Loki) · Audit log export (CEF/LEEF/JSON)</div>
           </div>
         </div>
-        <div class="roadmap-item" style="border-color:rgba(0,212,255,0.3);background:rgba(0,212,255,0.04)">
-          <div class="rm-dot" style="background:var(--cyan);color:#000">⟳</div>
+        <div class="roadmap-item done">
+          <div class="rm-dot done">✓</div>
           <div>
-            <div class="rm-text" style="color:var(--cyan)">v0.4 P4–P5 — Detection &amp; Analytics (in progress)</div>
-            <div class="rm-sub">Sigma rule engine · OpenTelemetry trace correlation · Kafka consumer scaling · Saved queries · Custom dashboard builder</div>
+            <div class="rm-text">v0.4 P4 — Detection &amp; Analytics</div>
+            <div class="rm-sub">Sigma detection engine (5 built-in rules) · Custom rules (Enterprise) · OTel trace_id correlation · Kafka group scaling · Saved queries (Community: 10 max; Enterprise: unlimited)</div>
           </div>
         </div>
         <div class="roadmap-item coming">
           <div class="rm-dot coming">→</div>
           <div>
-            <div class="rm-text">v0.5 — Agent Enterprise</div>
-            <div class="rm-sub">Windows support (Npcap) · Signed binaries · eBPF for Go &amp; Python TLS · Remote config push · S3/GCS long-term storage</div>
+            <div class="rm-text">v0.5 — Windows &amp; Fleet (Enterprise)</div>
+            <div class="rm-sub">Windows agent via Npcap · Signed binaries (Authenticode + notarization) · eBPF for Go &amp; Python TLS · Remote config push · S3/GCS long-term storage</div>
           </div>
         </div>
         <div class="roadmap-item coming">
           <div class="rm-dot coming">→</div>
           <div>
             <div class="rm-text">OTel trace → packet drill-down</div>
-            <div class="rm-sub">Click a slow span in your trace viewer and jump directly to the raw packets in the hub</div>
+            <div class="rm-sub">Click a slow span in your trace viewer and jump directly to the correlated flows in the hub</div>
           </div>
         </div>
         <div class="roadmap-item coming">

@@ -149,39 +149,58 @@ Pass `--libssl-path /usr/lib/.../libssl.so.3` to override.
 | UI | UserMenu logout — `POST /enterprise/auth/logout` + redirect to `/login` | ✅ done |
 | UI | Members page — invite link copy (no-SMTP), "you" badge, self-remove guard | ✅ done |
 
-### Priority 3 — Integrations & Export (next)
+### Priority 3 — Integrations & Export ✅ shipped
 
 | Area | Feature | Status |
 |------|---------|--------|
-| Hub | Audit log export — CEF, LEEF, JSON download endpoint | 🔲 next |
-| Hub | Splunk HEC output — batch POST to Splunk HTTP Event Collector | 🔲 next |
-| Hub | Elastic / ECS output — JSON lines to Logstash / Elasticsearch | 🔲 next |
-| Hub | Datadog Logs output — POST to intake API | 🔲 next |
-| Hub | Grafana Loki push — `/loki/api/v1/push` | 🔲 next |
+| Hub | Audit log export — CEF, LEEF, JSON download endpoint | ✅ done |
+| Hub | Splunk HEC output — batch POST to Splunk HTTP Event Collector | ✅ done |
+| Hub | Elastic / ECS output — JSON lines to Logstash / Elasticsearch | ✅ done |
+| Hub | Datadog Logs output — POST to intake API | ✅ done |
+| Hub | Grafana Loki push — `/loki/api/v1/push` | ✅ done |
+| Hub | SIEM dispatcher — background goroutine, 30s poll, `last_shipped` watermark per sink | ✅ done |
+| Hub | `integrations_config` ClickHouse table (Phase 13) | ✅ done |
+| Hub | Secret redaction on List — "token", "api_key", "password" → `***` | ✅ done |
+| Hub | Integration test endpoint — lightweight health-check with latency | ✅ done |
 | Hub | S3 / GCS long-term storage tier — hourly Parquet dumps | 🔲 planned |
-| UI | Integrations settings page — enable/configure each SIEM sink | 🔲 next |
-| UI | Audit log export button — date-range picker + format selector | 🔲 next |
+| UI | Integrations settings page — collapsible sink cards, toggle, test/save | ✅ done |
+| UI | Audit log export toolbar — format picker (JSON/CEF/LEEF) + quick range + Download | ✅ done |
 
-### Priority 4 — Detection & Analytics (after P3)
+### Priority 4 — Detection & Analytics 🔄 in progress
 
-| Area | Feature | Status |
-|------|---------|--------|
-| Hub | Sigma rule engine — parse YAML Sigma rules, evaluate at ingest | 🔲 planned |
-| Hub | OpenTelemetry trace correlation — link flows to OTel trace IDs | 🔲 planned |
-| Hub | Kafka consumer group scaling — horizontal ingest workers | 🔲 planned |
-| UI | Saved queries + query history | 🔲 planned |
-| UI | Sigma rule manager — upload, edit, trigger history | 🔲 planned |
-| UI | OTel trace links — click flow → open Jaeger/Tempo side panel | 🔲 planned |
+> **Tier decisions**: Sigma rules → Enterprise (detection budget); OTel correlation → Community
+> (CNCF ecosystem adoption driver); Saved queries → Community (QoL, increases stickiness);
+> Kafka group scaling → Enterprise (horizontal scale deployments).
 
-### Priority 5 — Platform Expansion (future)
+| Area | Feature | Tier | Status |
+|------|---------|------|--------|
+| Hub | `trace_id` column on `flows` (Phase 14 ALTER TABLE) | Community | ✅ done |
+| Hub | OTel trace correlation — accept `trace_id` on ingest, filter in GET /flows | Community | ✅ done |
+| Hub | Kafka consumer group ID — `KAFKA_GROUP_ID` env var, `KafkaGroupID` in config | Enterprise | ✅ done |
+| Hub | `saved_queries` table (Phase 15) — ReplacingMergeTree, soft-delete | Community | ✅ done |
+| Hub | Saved queries CRUD API — `GET/POST/PATCH/DELETE /api/v1/saved-queries` | Community | ✅ done |
+| Hub | Community quota enforcement — max 10 saved queries on Community plan | Community | ✅ done |
+| Hub | `sigma_rules` table (Phase 16) + `sigma_matches` table (Phase 17) | Community/Enterprise | ✅ done |
+| Hub | 5 built-in detection rules seeded at startup (Phase 17b) | Community | ✅ done |
+| Hub | Sigma engine — evaluates enabled rules every 5 min, records matches | Community/Enterprise | ✅ done |
+| Hub | Sigma CRUD API — `GET/POST/PATCH/DELETE /enterprise/sigma/rules` | Enterprise CRUD | ✅ done |
+| Hub | Sigma matches API — `GET /enterprise/sigma/matches` | Community | ✅ done |
+| Hub | Enterprise gate — built-in rules readable by all; custom rules Enterprise-only | ✅ done | ✅ done |
+| UI | OTel trace ID filter in Flow Explorer — `trace_id` input field | Community | ✅ done |
+| UI | Saved queries — Save button dropdown, recall, delete in Flow Explorer | Community | ✅ done |
+| UI | Detection Rules page `/sigma` — rules list, match history, new-rule form | Community/Enterprise | ✅ done |
+| UI | Sidebar — "Detection" nav item (ScanSearch icon) | ✅ done | ✅ done |
 
-| Area | Feature | Status |
-|------|---------|--------|
-| UI | Multi-cluster fleet overview | 🔲 planned |
-| UI | Custom dashboard builder | 🔲 planned |
-| Agent | Windows support — pcap via Npcap | 🔲 planned |
-| Agent | eBPF for Go and Python native TLS libs | 🔲 planned |
-| Integrations | Splunk HEC, Elastic Beats, Datadog Logs, Grafana Loki | 🔲 planned |
+### Priority 5 — Platform Expansion (v0.5 next)
+
+| Area | Feature | Tier | Status |
+|------|---------|------|--------|
+| Agent | Windows eBPF / Npcap — pcap-mode agent for Windows corporate fleets | Enterprise | 🔲 next |
+| UI | OTel trace links — click flow → open Jaeger/Tempo side panel | Community | 🔲 planned |
+| UI | Multi-cluster fleet overview | Community | 🔲 planned |
+| UI | Custom dashboard builder | Community | 🔲 planned |
+| Agent | eBPF for Go and Python native TLS libs | Community | 🔲 planned |
+| Hub | S3 / GCS long-term storage tier — hourly Parquet dumps | Enterprise | 🔲 planned |
 
 ---
 

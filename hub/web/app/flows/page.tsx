@@ -1,9 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { fetchFlows, type Flow } from "@/lib/api";
+import {
+  fetchFlows, fetchSavedQueries, createSavedQuery, deleteSavedQuery,
+  type Flow, type SavedQuery,
+} from "@/lib/api";
 import { FlowTable } from "@/components/FlowTable";
-import { RefreshCw, Search, Clock, X, Download, Cpu, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  RefreshCw, Search, Clock, X, Download, Cpu, ChevronDown, ChevronUp,
+  Bookmark, BookmarkCheck, Trash2, ChevronRight,
+} from "lucide-react";
 
 const PAGE_SIZE = 100;
 
@@ -52,11 +58,69 @@ export default function FlowsPage() {
   const [protocol, setProtocol] = useState("");
   const [srcIP, setSrcIP] = useState("");
   const [dstIP, setDstIP] = useState("");
+  const [traceID, setTraceID] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ebpfInfoOpen, setEbpfInfoOpen] = useState(false);
+
+  // ── Saved queries ──────────────────────────────────────────────────────────
+  const [savedQueries, setSavedQueries] = useState<SavedQuery[]>([]);
+  const [savedQueryLimit, setSavedQueryLimit] = useState(10);
+  const [savedPlan, setSavedPlan] = useState("community");
+  const [savedOpen, setSavedOpen] = useState(false);
+  const [saveNameInput, setSaveNameInput] = useState("");
+  const [savingQuery, setSavingQuery] = useState(false);
+
+  useEffect(() => {
+    fetchSavedQueries()
+      .then((r) => {
+        setSavedQueries(r.queries ?? []);
+        setSavedQueryLimit(r.limit);
+        setSavedPlan(r.plan);
+      })
+      .catch(() => {});
+  }, []);
+
+  function applyFiltersFromSaved(q: SavedQuery) {
+    try {
+      const f = JSON.parse(q.filters) as Record<string, string>;
+      setProtocol(f.protocol ?? "");
+      setSrcIP(f.src_ip ?? "");
+      setDstIP(f.dst_ip ?? "");
+      setTraceID(f.trace_id ?? "");
+      setFrom(f.from ?? "");
+      setTo(f.to ?? "");
+      setPage(0);
+    } catch {
+      // malformed JSON — ignore
+    }
+    setSavedOpen(false);
+  }
+
+  async function handleSaveQuery() {
+    const name = saveNameInput.trim();
+    if (!name) return;
+    setSavingQuery(true);
+    try {
+      const newQ = await createSavedQuery({
+        name,
+        filters: { protocol, src_ip: srcIP, dst_ip: dstIP, trace_id: traceID, from, to },
+      });
+      setSavedQueries((prev) => [newQ, ...prev]);
+      setSaveNameInput("");
+    } catch {
+      // surface error inline — could add toast here
+    } finally {
+      setSavingQuery(false);
+    }
+  }
+
+  async function handleDeleteSaved(id: string) {
+    await deleteSavedQuery(id).catch(() => {});
+    setSavedQueries((prev) => prev.filter((q) => q.id !== id));
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -66,6 +130,7 @@ export default function FlowsPage() {
         protocol:  protocol || undefined,
         src_ip:    srcIP    || undefined,
         dst_ip:    dstIP    || undefined,
+        trace_id:  traceID  || undefined,
         from:      from     || undefined,
         to:        to       || undefined,
         limit:     PAGE_SIZE,
@@ -78,7 +143,7 @@ export default function FlowsPage() {
     } finally {
       setLoading(false);
     }
-  }, [protocol, srcIP, dstIP, from, to, page]);
+  }, [protocol, srcIP, dstIP, traceID, from, to, page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -102,11 +167,97 @@ export default function FlowsPage() {
   const hasEbpfData = flows.some((f) => f.process_name);
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4" onClick={() => savedOpen && setSavedOpen(false)}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-white">Flow Explorer</h1>
         <div className="flex items-center gap-2">
+
+          {/* ── Saved Queries ───────────────────────────────────────────────── */}
+          <div className="relative">
+            <button
+              onClick={() => setSavedOpen((o) => !o)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded bg-[#12121f] border border-white/10
+                         text-sm text-slate-300 hover:text-white hover:border-white/20 transition-colors"
+            >
+              <Bookmark size={14} />
+              Saved
+              <span className={`text-xs font-mono px-1 py-0.5 rounded
+                ${savedPlan === "enterprise"
+                  ? "text-amber-400 bg-amber-500/10"
+                  : "text-slate-500 bg-white/[0.04]"}`}>
+                {savedQueries.length}{savedQueryLimit > 0 ? `/${savedQueryLimit}` : ""}
+              </span>
+              <ChevronDown size={12} className={savedOpen ? "rotate-180 transition-transform" : "transition-transform"} />
+            </button>
+
+            {savedOpen && (
+              <div className="absolute right-0 top-full mt-1 w-80 z-30
+                              bg-[#0d0d1a] border border-white/[0.08] rounded-lg shadow-2xl overflow-hidden">
+                {/* Save current filters */}
+                <div className="p-3 border-b border-white/[0.06]">
+                  <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
+                    <BookmarkCheck size={11} /> Save current filters as…
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Query name"
+                      value={saveNameInput}
+                      onChange={(e) => setSaveNameInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSaveQuery()}
+                      className="flex-1 bg-[#12121f] border border-white/10 rounded px-2.5 py-1.5
+                                 text-xs text-slate-300 placeholder-slate-600
+                                 focus:outline-none focus:border-indigo-500/50"
+                    />
+                    <button
+                      onClick={handleSaveQuery}
+                      disabled={!saveNameInput.trim() || savingQuery ||
+                        (savedQueryLimit > 0 && savedQueries.length >= savedQueryLimit)}
+                      className="px-3 py-1.5 rounded bg-indigo-600 text-white text-xs font-medium
+                                 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Save
+                    </button>
+                  </div>
+                  {savedQueryLimit > 0 && savedQueries.length >= savedQueryLimit && (
+                    <p className="text-[10px] text-amber-400 mt-1.5">
+                      Community limit reached ({savedQueryLimit} queries). Upgrade to Enterprise for unlimited.
+                    </p>
+                  )}
+                </div>
+
+                {/* List of saved queries */}
+                <div className="max-h-64 overflow-y-auto">
+                  {savedQueries.length === 0 ? (
+                    <p className="text-xs text-slate-600 text-center py-5">No saved queries yet</p>
+                  ) : (
+                    savedQueries.map((q) => (
+                      <div key={q.id}
+                        className="group flex items-center justify-between px-3 py-2.5
+                                   hover:bg-white/[0.04] transition-colors border-b border-white/[0.04] last:border-0">
+                        <button
+                          className="flex items-center gap-2 text-left flex-1 min-w-0"
+                          onClick={() => applyFiltersFromSaved(q)}
+                        >
+                          <ChevronRight size={11} className="text-indigo-400 shrink-0" />
+                          <span className="text-xs text-slate-300 truncate">{q.name}</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteSaved(q.id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded
+                                     text-slate-600 hover:text-red-400 transition-all"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             onClick={() => exportCSV(flows)}
             disabled={flows.length === 0}
@@ -166,6 +317,15 @@ export default function FlowsPage() {
           onChange={(e) => { setDstIP(e.target.value); setPage(0); }}
           className="w-48 bg-[#0d0d1a] border border-white/10 rounded px-3 py-2
                      text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50"
+        />
+        <input
+          type="text"
+          placeholder="Trace ID (OTel)…"
+          value={traceID}
+          onChange={(e) => { setTraceID(e.target.value); setPage(0); }}
+          className="w-52 bg-[#0d0d1a] border border-white/10 rounded px-3 py-2
+                     text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50
+                     font-mono"
         />
       </div>
 

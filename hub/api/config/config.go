@@ -20,6 +20,10 @@ type Config struct {
 	ClickHouseDSN  string
 	KafkaBrokers   []string
 	KafkaTopic     string
+	// KafkaGroupID is the Kafka consumer group name.  Defaults to "netscope-ch-writer".
+	// Set KAFKA_GROUP_ID to run multiple hub instances without duplicate processing
+	// (Enterprise horizontal scaling).
+	KafkaGroupID   string
 	Port           string
 	// AllowedOrigins is the CORS allowed-origins list (comma-separated).
 	// Defaults to "*" for local dev; MUST be set to your domain(s) in production.
@@ -103,6 +107,7 @@ func Load() *Config {
 		APIKey:          getEnv("API_KEY", ""),
 		ClickHouseDSN:   getEnv("CLICKHOUSE_DSN", knownDefaultDSN),
 		KafkaTopic:      getEnv("KAFKA_TOPIC", "netscope.flows"),
+		KafkaGroupID:    getEnv("KAFKA_GROUP_ID", "netscope-ch-writer"),
 		Port:            getEnv("PORT", "8080"),
 		AllowedOrigins:  getEnv("ALLOWED_ORIGINS", "*"),
 		GeoIPCityDB:     getEnv("GEOIP_CITY_DB", ""),

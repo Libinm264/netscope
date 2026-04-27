@@ -100,6 +100,11 @@ type Flow struct {
 	ASOrg       string `json:"as_org,omitempty"`
 	ThreatScore uint8  `json:"threat_score,omitempty"`
 	ThreatLevel string `json:"threat_level,omitempty"`
+
+	// OTel trace correlation — the W3C traceparent trace-id (32 hex chars) extracted
+	// from observed HTTP headers by the eBPF agent, or set by the application itself.
+	// Empty string means the flow was not part of a traced request.
+	TraceID string `json:"trace_id,omitempty"`
 }
 
 // IngestRequest is the payload sent by an agent to POST /api/v1/ingest.

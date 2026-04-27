@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Network, LayoutDashboard, List, Server, Bell, GitFork, BarChart3,
-  ShieldCheck, ClipboardList, Shield, ShieldAlert,
+  ShieldCheck, ClipboardList, Shield, ShieldAlert, ScanSearch,
   Settings, Building2, Users, Users2, KeyRound, Zap, ChevronDown,
   Plug, Map,
 } from "lucide-react";
@@ -23,6 +23,7 @@ const NAV_MAIN = [
   { href: "/threats",    label: "Threats",    icon: Shield },
   { href: "/policies",   label: "Policies",   icon: ShieldAlert },
   { href: "/compliance", label: "Compliance", icon: ClipboardList },
+  { href: "/sigma",      label: "Detection",  icon: ScanSearch },
   { href: "/roadmap",    label: "Roadmap",    icon: Map },
 ];
 

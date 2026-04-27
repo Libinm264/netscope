@@ -135,6 +135,7 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 	srcIP    := c.Query("src_ip")
 	dstIP    := c.Query("dst_ip")
 	hostname := c.Query("hostname")
+	traceID  := c.Query("trace_id")
 	fromStr  := c.Query("from")
 	toStr    := c.Query("to")
 	limit    := c.QueryInt("limit", 100)
@@ -164,6 +165,10 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 	if hostname != "" {
 		where += " AND hostname = ?"
 		filterArgs = append(filterArgs, hostname)
+	}
+	if traceID != "" {
+		where += " AND trace_id = ?"
+		filterArgs = append(filterArgs, traceID)
 	}
 	if fromStr != "" {
 		var t time.Time
@@ -214,7 +219,8 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 		        dns_query, dns_type,
 		        process_name, pid,
 		        pod_name, k8s_namespace,
-		        threat_score, threat_level
+		        threat_score, threat_level,
+		        trace_id
 		 FROM flows
 		 WHERE %s
 		 ORDER BY ts DESC
@@ -244,6 +250,7 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 			&f.ProcessName, &f.PID,
 			&f.PodName, &f.K8sNamespace,
 			&f.ThreatScore, &f.ThreatLevel,
+			&f.TraceID,
 		); err != nil {
 			slog.Warn("scan flow row", "err", err)
 			continue

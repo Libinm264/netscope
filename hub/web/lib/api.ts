@@ -109,6 +109,8 @@ export interface Flow {
   threat_score?: number;
   /** Threat level: "high" | "medium" | "low" | "" */
   threat_level?: string;
+  /** W3C traceparent trace-id (32 hex chars) — present when eBPF agent observed an OTel header */
+  trace_id?: string;
 }
 
 export interface StatsResponse {
@@ -187,6 +189,7 @@ export async function fetchFlows(params?: {
   src_ip?: string;
   dst_ip?: string;
   hostname?: string;
+  trace_id?: string;
   from?: string;
   to?: string;
   limit?: number;
@@ -870,4 +873,122 @@ export function auditExportURL(params: {
   });
   if (params.limit) qs.set("limit", String(params.limit));
   return `${base}?${qs.toString()}`;
+}
+
+// ── Saved flow queries ────────────────────────────────────────────────────────
+
+export interface SavedQuery {
+  id: string;
+  name: string;
+  description: string;
+  /** JSON-serialised FlowFilters object */
+  filters: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FlowFilters {
+  protocol?: string;
+  src_ip?: string;
+  dst_ip?: string;
+  hostname?: string;
+  trace_id?: string;
+  from?: string;
+  to?: string;
+}
+
+export async function fetchSavedQueries(): Promise<{
+  queries: SavedQuery[];
+  count: number;
+  limit: number;
+  plan: string;
+}> {
+  return get("/saved-queries");
+}
+
+export async function createSavedQuery(body: {
+  name: string;
+  description?: string;
+  filters: FlowFilters;
+}): Promise<SavedQuery> {
+  return api("POST", "/saved-queries", {
+    ...body,
+    filters: JSON.stringify(body.filters),
+  });
+}
+
+export async function updateSavedQuery(
+  id: string,
+  body: { name?: string; description?: string; filters?: FlowFilters },
+): Promise<{ ok: boolean }> {
+  return api("PATCH", `/saved-queries/${id}`, {
+    ...body,
+    ...(body.filters ? { filters: JSON.stringify(body.filters) } : {}),
+  });
+}
+
+export async function deleteSavedQuery(id: string): Promise<{ ok: boolean }> {
+  return api("DELETE", `/saved-queries/${id}`);
+}
+
+// ── Sigma detection rules ─────────────────────────────────────────────────────
+
+export type SigmaSeverity = "low" | "medium" | "high" | "critical";
+
+export interface SigmaRule {
+  id: string;
+  title: string;
+  description: string;
+  severity: SigmaSeverity;
+  tags: string[];
+  query: string;
+  enabled: boolean;
+  /** True = Community built-in rule; read-only */
+  builtin: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SigmaMatch {
+  id: string;
+  rule_id: string;
+  rule_title: string;
+  severity: SigmaSeverity;
+  /** JSON object from the first result row of the rule query */
+  match_data: string;
+  fired_at: string;
+}
+
+export async function fetchSigmaRules(): Promise<{ rules: SigmaRule[]; plan: string }> {
+  return get("/enterprise/sigma/rules");
+}
+
+export async function createSigmaRule(body: {
+  title: string;
+  description?: string;
+  severity?: SigmaSeverity;
+  tags?: string[];
+  query: string;
+  enabled?: boolean;
+}): Promise<SigmaRule> {
+  return api("POST", "/enterprise/sigma/rules", body);
+}
+
+export async function updateSigmaRule(
+  id: string,
+  body: Partial<Pick<SigmaRule, "title" | "description" | "severity" | "tags" | "query" | "enabled">>,
+): Promise<{ ok: boolean }> {
+  return api("PATCH", `/enterprise/sigma/rules/${id}`, body);
+}
+
+export async function deleteSigmaRule(id: string): Promise<{ ok: boolean }> {
+  return api("DELETE", `/enterprise/sigma/rules/${id}`);
+}
+
+export async function fetchSigmaMatches(params?: {
+  rule_id?: string;
+  severity?: SigmaSeverity;
+  limit?: number;
+}): Promise<{ matches: SigmaMatch[] }> {
+  return get("/enterprise/sigma/matches", params as Record<string, string | number>);
 }
