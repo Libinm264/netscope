@@ -5,15 +5,15 @@ RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /src
 
-# Download dependencies.
-# -mod=mod allows go mod download to fetch packages added to go.mod after the
-# last `go mod tidy` run and to add their hashes to go.sum within the layer.
-# This keeps the build hermetic even when go.sum is temporarily behind go.mod.
+# Layer 1: download deps declared in go.sum (cached unless go.mod/go.sum change).
 COPY go.mod go.sum ./
-RUN go mod download -mod=mod
+RUN go mod download
 
+# Layer 2: copy source, tidy (resolves any packages added to go.mod after the
+# last committed go mod tidy), then compile.
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -mod=mod -ldflags="-s -w" -trimpath -o /hub-api .
+RUN go mod tidy && \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /hub-api .
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 FROM alpine:3.19
