@@ -183,10 +183,13 @@ func (h *AuthHandler) LocalLogin(c *fiber.Ctx) error {
 	defer cancel()
 
 	var userID, role, displayName string
+	// NOTE: avoid FINAL — use ORDER BY last_seen DESC to get the latest row
+	// without relying on ClickHouse background merges (see ClickHouse 24.x note).
 	rows, err := h.CH.Query(ctx,
 		`SELECT user_id, role, display_name
-		 FROM org_members FINAL
+		 FROM org_members
 		 WHERE org_id = 'default' AND email = ? AND is_active = 1
+		 ORDER BY last_seen DESC
 		 LIMIT 1`, req.Email)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "database error"})
@@ -203,7 +206,7 @@ func (h *AuthHandler) LocalLogin(c *fiber.Ctx) error {
 
 	var hash string
 	rows2, err := h.CH.Query(ctx,
-		`SELECT password_hash FROM local_credentials FINAL
+		`SELECT password_hash FROM local_credentials
 		 WHERE org_id = 'default' AND user_id = ?
 		 ORDER BY updated_at DESC LIMIT 1`, userID)
 	if err != nil {
@@ -447,9 +450,9 @@ func (h *AuthHandler) SetupAdmin(c *fiber.Ctx) error {
 			"error": "email and password are required",
 		})
 	}
-	if len(req.Password) < 8 {
+	if len(req.Password) < 12 {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
-			"error": "password must be at least 8 characters",
+			"error": "password must be at least 12 characters",
 		})
 	}
 

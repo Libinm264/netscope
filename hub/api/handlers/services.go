@@ -74,7 +74,7 @@ func (h *ServicesHandler) Graph(c *fiber.Ctx) error {
 
 	// Enrich nodes with agent hostnames (known hosts)
 	agentRows, err := h.CH.Query(c.Context(),
-		`SELECT agent_id, hostname FROM agents FINAL ORDER BY last_seen DESC`)
+		`SELECT agent_id, argMax(hostname, last_seen) AS hostname FROM agents GROUP BY agent_id ORDER BY max(last_seen) DESC`)
 	if err == nil {
 		defer agentRows.Close()
 		for agentRows.Next() {

@@ -67,7 +67,7 @@ export function EnterpriseGate({
           View plans
         </a>
         <a
-          href="https://netscope.io/pricing"
+          href="https://netscope.ie/pricing"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"

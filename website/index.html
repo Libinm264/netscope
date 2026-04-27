@@ -1444,6 +1444,124 @@
     }
 
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── PRICING ── */
+    #pricing { padding: 6rem 0; }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 3rem;
+    }
+
+    .plan-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      position: relative;
+      transition: border-color .25s, box-shadow .25s;
+    }
+    .plan-card:hover {
+      border-color: rgba(124,58,237,.4);
+      box-shadow: 0 0 32px rgba(124,58,237,.12);
+    }
+    .plan-card.popular {
+      border-color: rgba(0,212,255,.35);
+      box-shadow: 0 0 28px rgba(0,212,255,.10);
+    }
+    .plan-popular-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(90deg, var(--cyan), var(--purple));
+      color: #fff;
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: .2rem .75rem;
+      border-radius: 20px;
+    }
+    .plan-name {
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .plan-price {
+      font-size: 2.5rem;
+      font-weight: 900;
+      line-height: 1;
+      color: var(--text);
+    }
+    .plan-price span {
+      font-size: .9rem;
+      font-weight: 400;
+      color: var(--muted);
+    }
+    .plan-desc {
+      font-size: .85rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .plan-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: .6rem;
+      flex: 1;
+    }
+    .plan-features li {
+      font-size: .82rem;
+      color: var(--text);
+      display: flex;
+      align-items: flex-start;
+      gap: .5rem;
+    }
+    .plan-features li::before {
+      content: '✓';
+      color: var(--cyan);
+      font-size: .8rem;
+      flex-shrink: 0;
+      margin-top: .05rem;
+    }
+    .plan-features li.ent::before { color: var(--purple); }
+    .plan-cta {
+      display: block;
+      text-align: center;
+      padding: .7rem 1.5rem;
+      border-radius: 8px;
+      font-size: .85rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity .2s;
+    }
+    .plan-cta:hover { opacity: .85; }
+    .plan-cta.outline {
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .plan-cta.cyan {
+      background: linear-gradient(90deg, var(--cyan-dim), var(--cyan));
+      color: #000;
+    }
+    .plan-cta.purple {
+      background: linear-gradient(90deg, var(--purple-dim), var(--purple));
+      color: #fff;
+    }
+    .pricing-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: .8rem;
+      margin-top: 2rem;
+    }
   </style>
 </head>
 <body>
@@ -1476,6 +1594,7 @@
     <li><a href="#changelog">What's New</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#quickinstall">Quick Start</a></li>
+    <li><a href="#pricing">Pricing</a></li>
     <li><a href="#download">Download</a></li>
   </ul>
   <div class="nav-cta">
@@ -3019,6 +3138,99 @@
 
 <div class="glow-line"></div>
 
+<!-- ── PRICING ── -->
+<section id="pricing">
+  <div class="container">
+    <div style="text-align:center; margin-bottom:1rem;">
+      <span class="section-tag">Pricing</span>
+    </div>
+    <h2 style="text-align:center; font-size:clamp(1.75rem,3.5vw,2.5rem); font-weight:800; line-height:1.2; margin-bottom:.75rem;">
+      Open-source core. <span class="gradient-text">Enterprise power.</span>
+    </h2>
+    <p style="text-align:center; color:var(--muted); font-size:clamp(.9rem,1.5vw,1.05rem); max-width:560px; margin:0 auto;">
+      Start free with the full community feature set. Upgrade when your team needs SSO, multi-tenancy, and compliance tooling.
+    </p>
+
+    <div class="pricing-grid">
+
+      <!-- Community -->
+      <div class="plan-card">
+        <div>
+          <p class="plan-name">Community</p>
+          <p class="plan-price">Free <span>forever</span></p>
+        </div>
+        <p class="plan-desc">Self-hosted. MIT licensed. No telemetry, no usage limits on packet capture.</p>
+        <ul class="plan-features">
+          <li>Up to 10 agents</li>
+          <li>HTTP / DNS / TLS / ICMP deep inspection</li>
+          <li>eBPF SSL intercept (Linux ≥ 5.8)</li>
+          <li>GeoIP &amp; threat intelligence</li>
+          <li>Kubernetes pod attribution</li>
+          <li>Desktop app (macOS, Windows, Linux)</li>
+          <li>90-day data retention</li>
+          <li>Email / password login</li>
+        </ul>
+        <a href="https://github.com/Libinm264/netscope/releases" target="_blank" class="plan-cta outline">
+          Download free →
+        </a>
+      </div>
+
+      <!-- Team -->
+      <div class="plan-card popular">
+        <span class="plan-popular-badge">Most Popular</span>
+        <div>
+          <p class="plan-name">Team</p>
+          <p class="plan-price">$149 <span>/ month</span></p>
+        </div>
+        <p class="plan-desc">Everything in Community, plus the identity and compliance features growing teams need.</p>
+        <ul class="plan-features">
+          <li>Up to 50 agents</li>
+          <li>Everything in Community</li>
+          <li>SSO — SAML 2.0 &amp; OIDC</li>
+          <li>Multi-tenant organisations</li>
+          <li>SCIM 2.0 user provisioning</li>
+          <li>Audit log export (CEF / JSON)</li>
+          <li>Custom data retention periods</li>
+          <li>Priority email support</li>
+        </ul>
+        <a href="mailto:hello@netscope.ie?subject=NetScope%20Team%20Plan" class="plan-cta cyan">
+          Get started →
+        </a>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="plan-card">
+        <div>
+          <p class="plan-name">Enterprise</p>
+          <p class="plan-price" style="font-size:1.8rem;">Custom</p>
+        </div>
+        <p class="plan-desc">Unlimited scale, custom contracts, and dedicated support for large deployments.</p>
+        <ul class="plan-features">
+          <li class="ent">Unlimited agents</li>
+          <li class="ent">Everything in Team</li>
+          <li class="ent">Custom RBAC roles</li>
+          <li class="ent">PII redaction on eBPF captures</li>
+          <li class="ent">OpenTelemetry trace correlation</li>
+          <li class="ent">Sigma rule engine (custom rules)</li>
+          <li class="ent">SOC 2 / ISO 27001 compliance reports</li>
+          <li class="ent">Dedicated Slack channel &amp; SLA</li>
+        </ul>
+        <a href="mailto:hello@netscope.ie?subject=NetScope%20Enterprise" class="plan-cta purple">
+          Contact us →
+        </a>
+      </div>
+
+    </div>
+
+    <p class="pricing-note">
+      All plans are self-hosted — your data never leaves your infrastructure.
+      Team &amp; Enterprise licenses are issued as JWT keys applied via the hub <code style="font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.07);padding:.1rem .4rem;border-radius:4px">ENTERPRISE_LICENSE_KEY</code> env var.
+    </p>
+  </div>
+</section>
+
+<div class="glow-line"></div>
+
 <!-- ── CTA ── -->
 <section id="cta">
   <div class="container">
@@ -3048,6 +3260,7 @@
         <a href="https://github.com/Libinm264/netscope" target="_blank">GitHub</a>
         <a href="https://github.com/Libinm264/netscope/releases" target="_blank">Releases</a>
         <a href="https://github.com/Libinm264/netscope/blob/main/README.md" target="_blank">Docs</a>
+        <a href="#pricing">Pricing</a>
         <a href="https://github.com/Libinm264/netscope/blob/main/LICENSE" target="_blank">License</a>
       </div>
       <div>Built with Rust · Go · React · ClickHouse &nbsp;·&nbsp; Community: MIT &nbsp;·&nbsp; Enterprise: BSL-1.1</div>

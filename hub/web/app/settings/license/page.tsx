@@ -222,7 +222,7 @@ export default function LicensePage() {
                 </p>
               </div>
               <a
-                href="https://netscope.io/pricing"
+                href="https://netscope.ie/pricing"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 px-4 py-2 rounded-lg bg-indigo-600

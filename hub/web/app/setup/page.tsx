@@ -38,7 +38,7 @@ export default function SetupPage() {
   }, [router]);
 
   const passwordsMatch = password === confirm;
-  const canSubmit = name.trim() && email.trim() && password.length >= 8 && passwordsMatch;
+  const canSubmit = name.trim() && email.trim() && password.length >= 12 && passwordsMatch;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,7 +160,7 @@ export default function SetupPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 8 characters"
+                placeholder="At least 12 characters"
                 autoComplete="new-password"
                 required
                 className={clsx(

@@ -56,10 +56,12 @@ func (h *InviteHandler) AcceptInvite(c *fiber.Ctx) error {
 
 	// Look up and validate the invite token.
 	var userID, email string
+	// Avoid FINAL: ORDER BY version DESC returns the latest row for this token
+	// without waiting for a background merge (ClickHouse 24.x race condition).
 	rows, err := h.CH.Query(ctx,
-		`SELECT user_id, email FROM invite_tokens FINAL
+		`SELECT user_id, email FROM invite_tokens
 		 WHERE token = ? AND used = 0 AND expires_at > now64()
-		 LIMIT 1`, req.Token)
+		 ORDER BY version DESC LIMIT 1`, req.Token)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "database error"})
 	}
@@ -98,15 +100,15 @@ func (h *InviteHandler) AcceptInvite(c *fiber.Ctx) error {
 		`INSERT INTO org_members
 		 (user_id, org_id, email, display_name, role, sso_provider, sso_subject, is_active, created_at, last_seen, version)
 		 SELECT user_id, org_id, email, display_name, role, 'local', '', is_active, created_at, ?, ?
-		 FROM org_members FINAL WHERE user_id = ? LIMIT 1`,
+		 FROM org_members WHERE user_id = ? ORDER BY last_seen DESC LIMIT 1`,
 		now, now.UnixMilli(), userID,
 	)
 
 	// Fetch display name + role for session.
 	var displayName, role string
 	rows2, err := h.CH.Query(ctx,
-		`SELECT display_name, role FROM org_members FINAL
-		 WHERE user_id = ? LIMIT 1`, userID)
+		`SELECT display_name, role FROM org_members
+		 WHERE user_id = ? ORDER BY last_seen DESC LIMIT 1`, userID)
 	if err == nil {
 		if rows2.Next() {
 			_ = rows2.Scan(&displayName, &role)
@@ -239,10 +241,11 @@ func (h *InviteHandler) ResetPassword(c *fiber.Ctx) error {
 	defer cancel()
 
 	var userID, email string
+	// Avoid FINAL: ORDER BY version DESC to get the latest row without background merge.
 	rows, err := h.CH.Query(ctx,
-		`SELECT user_id, email FROM password_reset_tokens FINAL
+		`SELECT user_id, email FROM password_reset_tokens
 		 WHERE token = ? AND used = 0 AND expires_at > now64()
-		 LIMIT 1`, req.Token)
+		 ORDER BY version DESC LIMIT 1`, req.Token)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "database error"})
 	}

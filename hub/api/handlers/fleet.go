@@ -30,6 +30,8 @@ func (h *FleetHandler) Clusters(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.Context(), 10*time.Second)
 	defer cancel()
 
+	// Use argMax aggregation instead of FINAL to avoid missing freshly-inserted
+	// rows on ClickHouse 24.x ReplacingMergeTree before background merge runs.
 	rows, err := h.CH.Query(ctx, `
 		SELECT
 			cluster,
@@ -44,8 +46,14 @@ func (h *FleetHandler) Clusters(c *fiber.Ctx) error {
 				a.last_seen,
 				countIf(f.ts >= now() - INTERVAL 1 HOUR) AS flow_count_1h
 			FROM (
-				SELECT agent_id, hostname, version, cluster, last_seen
-				FROM agents FINAL
+				SELECT
+					agent_id,
+					argMax(hostname,     last_seen) AS hostname,
+					argMax(version,      last_seen) AS version,
+					argMax(cluster,      last_seen) AS cluster,
+					max(last_seen)                 AS last_seen
+				FROM agents
+				GROUP BY agent_id
 			) a
 			LEFT JOIN flows f ON f.agent_id = a.agent_id
 			GROUP BY a.cluster, a.version, a.last_seen, a.agent_id
@@ -103,7 +111,7 @@ func (h *FleetHandler) Search(c *fiber.Ctx) error {
 
 	if cluster != "" {
 		// Join through agents to get cluster filter
-		where = append(where, "f.agent_id IN (SELECT agent_id FROM agents FINAL WHERE cluster = ?)")
+		where = append(where, "f.agent_id IN (SELECT agent_id FROM (SELECT agent_id, argMax(cluster, last_seen) AS cluster FROM agents GROUP BY agent_id) WHERE cluster = ?)")
 		args = append(args, cluster)
 	}
 	if srcIP != "" {
@@ -125,7 +133,7 @@ func (h *FleetHandler) Search(c *fiber.Ctx) error {
 		       f.bytes_in, f.bytes_out, f.duration_ms,
 		       f.process_name, f.cluster, a.cluster AS agent_cluster
 		FROM flows f
-		LEFT JOIN (SELECT agent_id, cluster FROM agents FINAL) a ON a.agent_id = f.agent_id
+		LEFT JOIN (SELECT agent_id, argMax(cluster, last_seen) AS cluster FROM agents GROUP BY agent_id) a ON a.agent_id = f.agent_id
 		WHERE %s
 		ORDER BY f.ts DESC
 		LIMIT %d`, strings.Join(where, " AND "), limit)
@@ -193,9 +201,9 @@ func (h *FleetHandler) GetAgentConfig(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT config, pushed_at, ack_at, version
-		 FROM agent_configs FINAL
+		 FROM agent_configs
 		 WHERE agent_id = ?
-		 LIMIT 1`, agentID)
+		 ORDER BY pushed_at DESC LIMIT 1`, agentID)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
@@ -281,7 +289,7 @@ func (h *FleetHandler) AckAgentConfig(c *fiber.Ctx) error {
 	defer cancel()
 
 	// Read current version to preserve it in the upsert.
-	rows, _ := h.CH.Query(ctx, `SELECT version FROM agent_configs FINAL WHERE agent_id = ? LIMIT 1`, agentID)
+	rows, _ := h.CH.Query(ctx, `SELECT version FROM agent_configs WHERE agent_id = ? ORDER BY pushed_at DESC LIMIT 1`, agentID)
 	var ver uint64
 	if rows != nil {
 		if rows.Next() {
@@ -294,8 +302,9 @@ func (h *FleetHandler) AckAgentConfig(c *fiber.Ctx) error {
 	if err := h.CH.Exec(ctx,
 		`INSERT INTO agent_configs (agent_id, config, pushed_at, ack_at, version)
 		 SELECT config, pushed_at, ?, ?
-		 FROM agent_configs FINAL
-		 WHERE agent_id = ?`,
+		 FROM agent_configs
+		 WHERE agent_id = ?
+		 ORDER BY pushed_at DESC LIMIT 1`,
 		now, ver+1, agentID,
 	); err != nil {
 		return util.InternalError(c, err)
@@ -307,7 +316,7 @@ func (h *FleetHandler) AckAgentConfig(c *fiber.Ctx) error {
 		  os, capture_mode, ebpf_enabled, cluster, config_version)
 		 SELECT agent_id, hostname, version, interface, last_seen, registered_at,
 		        os, capture_mode, ebpf_enabled, cluster, ?
-		 FROM agents FINAL WHERE agent_id = ?`,
+		 FROM agents WHERE agent_id = ? ORDER BY last_seen DESC LIMIT 1`,
 		body.ConfigVersion, agentID,
 	)
 
