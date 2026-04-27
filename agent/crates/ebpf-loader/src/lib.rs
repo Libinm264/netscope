@@ -10,6 +10,8 @@
 
 #![cfg(target_os = "linux")]
 
+mod go_tls;
+mod python_ssl;
 mod ssl;
 mod tcp;
 
@@ -39,6 +41,11 @@ pub struct EbpfConfig {
     pub libssl_path: Option<String>,
     /// Capacity of the event channel.
     pub channel_capacity: usize,
+    /// Attach uprobes to Go crypto/tls (Write + Read) in running Go binaries.
+    /// Requires scanning /proc — adds ~100ms startup overhead per Go process.
+    pub enable_go_tls: bool,
+    /// Attach uprobes to Python _ssl.cpython-*.so (ssl.SSLSocket send/recv).
+    pub enable_python_ssl: bool,
 }
 
 impl Default for EbpfConfig {
@@ -46,6 +53,8 @@ impl Default for EbpfConfig {
         Self {
             libssl_path: None,
             channel_capacity: 8192,
+            enable_go_tls: false,
+            enable_python_ssl: false,
         }
     }
 }
@@ -88,6 +97,22 @@ pub async fn start(
     tcp::attach(&mut ebpf, tx.clone())
         .await
         .context("TCP kprobe attach failed")?;
+
+    // Optional: Go crypto/tls uprobes (Community feature).
+    if cfg.enable_go_tls {
+        match go_tls::attach_all(&mut ebpf, tx.clone()).await {
+            Ok(n) => info!("Go TLS uprobes attached to {} binaries", n),
+            Err(e) => warn!("Go TLS uprobe attach failed: {}", e),
+        }
+    }
+
+    // Optional: Python ssl uprobes (Community feature).
+    if cfg.enable_python_ssl {
+        match python_ssl::attach_all(&mut ebpf, tx.clone()).await {
+            Ok(n) => info!("Python SSL uprobes attached to {} libraries", n),
+            Err(e) => warn!("Python SSL uprobe attach failed: {}", e),
+        }
+    }
 
     // Keep the ebpf handle alive by moving it into a background task.
     tokio::spawn(async move {

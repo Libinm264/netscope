@@ -78,6 +78,12 @@ enum Command {
         /// Override libssl path (auto-detected if not set)
         #[arg(long)]
         libssl_path: Option<String>,
+        /// Attach uprobes to Go crypto/tls in all running Go binaries (Community)
+        #[arg(long, default_value_t = false)]
+        enable_go_tls: bool,
+        /// Attach uprobes to Python ssl module (_ssl.cpython-*.so) (Community)
+        #[arg(long, default_value_t = false)]
+        enable_python_ssl: bool,
     },
 }
 
@@ -112,8 +118,8 @@ fn run(cli: Cli) -> Result<()> {
         }
 
         #[cfg(target_os = "linux")]
-        Command::Ebpf { hub_url, api_key, libssl_path } => {
-            run_ebpf(hub_url, api_key, libssl_path)?;
+        Command::Ebpf { hub_url, api_key, libssl_path, enable_go_tls, enable_python_ssl } => {
+            run_ebpf(hub_url, api_key, libssl_path, enable_go_tls, enable_python_ssl)?;
         }
 
         Command::Capture {
@@ -326,6 +332,8 @@ fn run_ebpf(
     hub_url: Option<String>,
     api_key: Option<String>,
     libssl_path: Option<String>,
+    enable_go_tls: bool,
+    enable_python_ssl: bool,
 ) -> Result<()> {
     #[cfg(not(feature = "ebpf"))]
     {
@@ -406,6 +414,8 @@ fn run_ebpf(
             let cfg = EbpfConfig {
                 libssl_path,
                 channel_capacity: 8192,
+                enable_go_tls,
+                enable_python_ssl,
             };
 
             info!("Starting eBPF capture engine (SSL intercept + TCP attribution)");

@@ -191,16 +191,113 @@ Pass `--libssl-path /usr/lib/.../libssl.so.3` to override.
 | UI | Detection Rules page `/sigma` — rules list, match history, new-rule form | Community/Enterprise | ✅ done |
 | UI | Sidebar — "Detection" nav item (ScanSearch icon) | ✅ done | ✅ done |
 
-### Priority 5 — Platform Expansion (v0.5 next)
+---
+
+## 🔄 v0.5 — Fleet Intelligence (in progress)
+
+> **Theme**: Own the fleet. Every OS, every cloud, one pane of glass.
+>
+> **Build order**: Hub (F1–F4) → Agent (F5–F6) → Desktop (F7–F8)
+
+### F1 — Cloud VPC Flow Log Ingestion
 
 | Area | Feature | Tier | Status |
 |------|---------|------|--------|
-| Agent | Windows eBPF / Npcap — pcap-mode agent for Windows corporate fleets | Enterprise | 🔲 next |
-| UI | OTel trace links — click flow → open Jaeger/Tempo side panel | Community | 🔲 planned |
-| UI | Multi-cluster fleet overview | Community | 🔲 planned |
-| UI | Custom dashboard builder | Community | 🔲 planned |
-| Agent | eBPF for Go and Python native TLS libs | Community | 🔲 planned |
-| Hub | S3 / GCS long-term storage tier — hourly Parquet dumps | Enterprise | 🔲 planned |
+| Hub | Cloud source config CRUD — `cloud_flow_sources` table (Phase 22) | Community | 🔄 in progress |
+| Hub | Pull audit log — `cloud_flow_pull_log` table (Phase 23) | Community | 🔄 in progress |
+| Hub | `flows.source` column — distinguishes agent-push vs cloud-pull (Phase 24) | Community | 🔄 in progress |
+| Hub | AWS VPC Flow Logs ingestion — S3 + CloudWatch Logs poll | Community | 🔄 in progress |
+| Hub | GCP VPC Flow Logs ingestion — Pub/Sub pull | Enterprise | 🔄 in progress |
+| Hub | Azure NSG Flow Logs ingestion — Blob Storage / Event Hub | Enterprise | 🔄 in progress |
+| Hub | Cloud source handler — CRUD + manual trigger + pull log API | Community | 🔄 in progress |
+| UI | Cloud Sources management page `/cloud` | Community | 🔲 todo |
+
+### F2 — Multi-Cluster Fleet Overview
+
+| Area | Feature | Tier | Status |
+|------|---------|------|--------|
+| Hub | `agent_configs` table — remote config push (Phase 25) | Community | 🔄 in progress |
+| Hub | `agents.config_version` column (Phase 26) | Community | 🔄 in progress |
+| Hub | Fleet cluster grid API — aggregated per-cluster health | Community | 🔄 in progress |
+| Hub | Cross-cluster flow search API | Community | 🔄 in progress |
+| Hub | Remote config push + agent config poll + ack API | Community | 🔄 in progress |
+| Agent | `poll_config` + `ack_config` on heartbeat cycle | Community | 🔲 todo |
+| UI | Fleet health page `/fleet` — cluster cards + agent grid | Community | 🔲 todo |
+
+### F3 — Compliance Dashboard & Scheduled Reports
+
+| Area | Feature | Tier | Status |
+|------|---------|------|--------|
+| Hub | `compliance_report_schedules` table (Phase 27) | Enterprise | 🔄 in progress |
+| Hub | `compliance_report_runs` audit log (Phase 28) | Enterprise | 🔄 in progress |
+| Hub | SOC 2 / PCI-DSS / HIPAA query bundles | Enterprise | 🔄 in progress |
+| Hub | PDF + CSV renderer (gofpdf) | Enterprise | 🔄 in progress |
+| Hub | Compliance scheduler — 5-min cron loop | Enterprise | 🔄 in progress |
+| Hub | Compliance report CRUD + manual run + preview API | Enterprise | 🔄 in progress |
+| UI | Compliance report schedules page `/compliance/reports` | Enterprise | 🔲 todo |
+
+### F4 — Incident Workflow Integration
+
+| Area | Feature | Tier | Status |
+|------|---------|------|--------|
+| Hub | `incidents` table — in-hub incident timeline (Phase 29) | Enterprise | 🔄 in progress |
+| Hub | `incident_workflow_config` table (Phase 30) | Enterprise | 🔄 in progress |
+| Hub | Incident dispatcher — hooks Sigma engine on match | Enterprise | 🔄 in progress |
+| Hub | Jira REST API v3 ticket creation | Enterprise | 🔄 in progress |
+| Hub | Linear GraphQL ticket creation | Enterprise | 🔄 in progress |
+| Hub | PagerDuty + OpsGenie routing from Sigma matches | Enterprise | 🔄 in progress |
+| Hub | Incident CRUD + ack/resolve/notes API | Enterprise | 🔄 in progress |
+| UI | Incidents timeline page `/incidents` | Enterprise | 🔲 todo |
+
+### F5 — Windows Agent (Npcap)
+
+| Area | Feature | Tier | Status |
+|------|---------|------|--------|
+| Agent | `capture-windows` crate — Npcap backend | Enterprise | 🔲 todo |
+| Agent | Windows process enrichment (Toolhelp32Snapshot) | Enterprise | 🔲 todo |
+| Agent | `#[cfg(windows)]` capture dispatch in main agent | Enterprise | 🔲 todo |
+| Agent | MSI installer (WiX) bundling wpcap.dll | Enterprise | 🔲 todo |
+
+### F6 — eBPF for Go + Python TLS
+
+| Area | Feature | Tier | Status |
+|------|---------|------|--------|
+| Agent | eBPF uprobes for Go `crypto/tls` (Write + Read) | Community | 🔲 todo |
+| Agent | eBPF uprobes for Python `ssl.SSLSocket` | Community | 🔲 todo |
+| Agent | Go binary symbol resolver (iterate /proc/*/exe) | Community | 🔲 todo |
+| Agent | `--enable-go-tls` + `--enable-python-ssl` CLI flags | Community | 🔲 todo |
+
+### F7 — Fleet View in Desktop
+
+| Area | Feature | Tier | Status |
+|------|---------|------|--------|
+| Desktop | `FleetPane` component — cluster grid (requires hub connection) | Community | 🔲 todo |
+| Desktop | `get_fleet_summary` + `get_agent_list` Tauri commands | Community | 🔲 todo |
+| Desktop | Fleet tab in bottom tab bar | Community | 🔲 todo |
+
+### F8 — OTel Trace Side Panel in Desktop
+
+| Area | Feature | Tier | Status |
+|------|---------|------|--------|
+| Desktop | `OtelTracePanel` — slide-in drawer with Jaeger/Tempo webview | Community | 🔲 todo |
+| Desktop | `trace_id` dot indicator on flow rows | Community | 🔲 todo |
+| Desktop | `get_otel_backend_url` Tauri command | Community | 🔲 todo |
+
+---
+
+## DB Migration Summary (v0.5 Phases 22–30)
+
+| Phase | Change | Feature |
+|-------|--------|---------|
+| 22 | `cloud_flow_sources` CREATE | F1 |
+| 23 | `cloud_flow_pull_log` CREATE | F1 |
+| 24 | `flows ADD COLUMN source` | F1 |
+| 25 | `agent_configs` CREATE | F2 |
+| 26 | `agents ADD COLUMN config_version` | F2 |
+| 27 | `compliance_report_schedules` CREATE | F3 |
+| 28 | `compliance_report_runs` CREATE | F3 |
+| 29 | `incidents` CREATE | F4 |
+| 30 | `incident_workflow_config` CREATE | F4 |
 
 ---
 

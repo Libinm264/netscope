@@ -20,6 +20,8 @@ pub struct AppState {
     pub threat_scorer: Arc<ThreatScorer>,
     /// Hub connection config — None until user configures a connection
     pub hub_config: Option<HubConfig>,
+    /// OTel backend base URL for trace linking (e.g. "http://localhost:16686" for Jaeger)
+    pub otel_backend_url: Option<String>,
 }
 
 impl AppState {
@@ -37,6 +39,7 @@ impl AppState {
             geoip,
             threat_scorer: Arc::new(ThreatScorer::new()),
             hub_config: None,
+            otel_backend_url: None,
         }
     }
 }

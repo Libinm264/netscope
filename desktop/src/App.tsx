@@ -16,6 +16,8 @@ import { HubConnectModal } from "@/components/HubConnectModal";
 import { CertSidebar } from "@/components/CertSidebar";
 import { AnalyticsPane } from "@/components/AnalyticsPane";
 import { ServiceMapPane } from "@/components/ServiceMapPane";
+import { FleetPane } from "@/components/FleetPane";
+import { OtelTracePanel } from "@/components/OtelTracePanel";
 import { OnboardingWizard, ONBOARDING_KEY } from "@/components/OnboardingWizard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,13 +36,31 @@ import {
   BarChart2,
   Network,
   FileDown,
+  Globe,
+  GitBranch,
 } from "lucide-react";
+
+// ── OTel header detection (mirrors OtelTracePanel logic, kept in sync) ────────
+function hasTraceHeaders(flow: FlowDto | null): boolean {
+  if (!flow) return false;
+  const headers: [string, string][] = [
+    ...(flow.http?.reqHeaders ?? []),
+    ...(flow.http?.respHeaders ?? []),
+    ...(flow.http2?.request?.headers ?? []),
+    ...(flow.http2?.response?.headers ?? []),
+  ];
+  const TRACE_KEYS = [
+    "traceparent", "b3", "x-b3-traceid",
+    "x-trace-id", "x-request-id", "x-amzn-trace-id",
+  ];
+  return headers.some(([k]) => TRACE_KEYS.includes(k.toLowerCase()));
+}
 
 // Resizable pane heights (top %, middle %, bottom %)
 const DEFAULT_SPLIT = [50, 28, 22];
 
 // Bottom pane tab options
-type BottomTab = "hex" | "analytics" | "servicemap";
+type BottomTab = "hex" | "analytics" | "servicemap" | "fleet";
 
 export default function App() {
   const {
@@ -52,6 +72,7 @@ export default function App() {
     hubConfig,
     hubConnected,
     certInventory,
+    selectedFlow,
     addFlow,
     setFlows,
     setStatus,
@@ -64,6 +85,7 @@ export default function App() {
   const [showPrivModal, setShowPrivModal] = useState(false);
   const [showHubModal, setShowHubModal] = useState(false);
   const [showCertSidebar, setShowCertSidebar] = useState(false);
+  const [showOtelPanel, setShowOtelPanel] = useState(false);
   const [bottomTab, setBottomTab] = useState<BottomTab>("hex");
   const [split, setSplit] = useState(DEFAULT_SPLIT);
   const draggingRef = useRef<{ divider: number; startY: number; startSplit: number[] } | null>(null);
@@ -237,6 +259,24 @@ export default function App() {
           )}
         </Button>
 
+        {/* OTel trace panel toggle — lights up when selected flow has trace headers */}
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => setShowOtelPanel((v) => !v)}
+          title="OTel Trace Panel"
+          className={cn(
+            "gap-1.5 text-xs",
+            showOtelPanel && "text-purple-400",
+            hasTraceHeaders(selectedFlow) && !showOtelPanel && "text-purple-400/60",
+          )}
+        >
+          <GitBranch className="h-3.5 w-3.5" />
+          {hasTraceHeaders(selectedFlow) && (
+            <span className="hidden sm:inline text-[10px]">Trace</span>
+          )}
+        </Button>
+
         <div className="h-4 w-px bg-white/20 mx-1" />
 
         <Button size="sm" variant="ghost" onClick={handleSave} title="Save session">
@@ -292,11 +332,12 @@ export default function App() {
             <div className="flex shrink-0 items-center gap-0.5 border-b border-white/10 bg-[#0a0a14] px-2">
               {(
                 [
-                  { id: "hex",        label: "Hex Dump",    Icon: Binary     },
-                  { id: "analytics",  label: "Analytics",   Icon: BarChart2  },
-                  { id: "servicemap", label: "Service Map", Icon: Network    },
-                ] as { id: BottomTab; label: string; Icon: typeof Binary }[]
-              ).map(({ id, label, Icon }) => (
+                  { id: "hex",        label: "Hex Dump",    Icon: Binary    },
+                  { id: "analytics",  label: "Analytics",   Icon: BarChart2 },
+                  { id: "servicemap", label: "Service Map", Icon: Network   },
+                  { id: "fleet",      label: "Fleet",       Icon: Globe     },
+                ]
+              ).map(({ id, label, Icon }: { id: BottomTab; label: string; Icon: typeof Binary }) => (
                 <button
                   key={id}
                   onClick={() => setBottomTab(id)}
@@ -318,6 +359,7 @@ export default function App() {
               {bottomTab === "hex"        && <HexDumpPane />}
               {bottomTab === "analytics"  && <AnalyticsPane />}
               {bottomTab === "servicemap" && <ServiceMapPane />}
+              {bottomTab === "fleet"      && <FleetPane />}
             </div>
           </div>
         </div>
@@ -325,6 +367,20 @@ export default function App() {
         {/* Cert sidebar (right panel) */}
         {showCertSidebar && (
           <CertSidebar onClose={() => setShowCertSidebar(false)} />
+        )}
+
+        {/* OTel trace panel (right panel) */}
+        {showOtelPanel && selectedFlow && (
+          <OtelTracePanel
+            flow={selectedFlow}
+            onClose={() => setShowOtelPanel(false)}
+          />
+        )}
+        {showOtelPanel && !selectedFlow && (
+          <div className="flex w-64 shrink-0 flex-col items-center justify-center border-l border-white/10 bg-[#0a0a14] text-gray-500 text-sm gap-2 p-4 text-center">
+            <GitBranch className="h-5 w-5 text-gray-600" />
+            <span className="text-[11px]">Select a flow to inspect its trace context.</span>
+          </div>
         )}
       </div>
 

@@ -2,6 +2,7 @@
 members = [
     ".",
     "crates/capture",
+    "crates/capture-windows",
     "crates/parser",
     "crates/proto",
     "crates/config",
@@ -50,6 +51,10 @@ gethostname = "0.4"
 # eBPF mode — Linux-only, opt-in via `--features ebpf`
 [target.'cfg(target_os = "linux")'.dependencies]
 ebpf-loader = { path = "crates/ebpf-loader", optional = true }
+
+# Windows capture backend (Enterprise)
+[target.'cfg(target_os = "windows")'.dependencies]
+capture-windows = { path = "crates/capture-windows" }
 
 [features]
 ebpf = ["dep:ebpf-loader"]

@@ -41,6 +41,13 @@ pub fn run() {
             get_hub_config,
             test_hub_connection,
             query_hub_flows,
+            // Fleet
+            get_fleet_clusters,
+            get_fleet_agents,
+            // OTel
+            get_otel_backend_url,
+            set_otel_backend_url,
+            open_url,
             // Export
             export_pcap,
         ])

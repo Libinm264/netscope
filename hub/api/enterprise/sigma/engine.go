@@ -60,14 +60,38 @@ type Match struct {
 	FiredAt   time.Time `json:"fired_at"`
 }
 
+// Dispatcher is implemented by the incidents package to route Sigma matches
+// to external ticketing / alerting systems. Defined as an interface here to
+// avoid an import cycle (sigma → incidents → sigma).
+type Dispatcher interface {
+	Dispatch(ctx context.Context, ev DispatchEvent)
+}
+
+// DispatchEvent carries the data needed by the incident dispatcher.
+type DispatchEvent struct {
+	RuleID    string
+	RuleTitle string
+	Severity  string
+	SrcIP     string
+	DstIP     string
+	FiredAt   time.Time
+}
+
 // Engine polls sigma_rules and executes each enabled rule's query on a schedule.
 type Engine struct {
-	ch       *clickhouse.Client
-	interval time.Duration
+	ch         *clickhouse.Client
+	interval   time.Duration
+	dispatcher Dispatcher
 
 	mu      sync.Mutex
 	ticker  *time.Ticker
 	done    chan struct{}
+}
+
+// SetDispatcher wires an incident dispatcher into the engine.
+// Must be called before Start().
+func (e *Engine) SetDispatcher(d Dispatcher) {
+	e.dispatcher = d
 }
 
 // New returns a new Engine.  It does not start the background goroutine.
@@ -210,6 +234,21 @@ func (e *Engine) runRule(ctx context.Context, r Rule) error {
 		); err != nil {
 			slog.Warn("sigma: insert match failed", "rule", r.ID, "err", err)
 		}
+
+		// Dispatch to incident workflow (Enterprise) if configured.
+		if e.dispatcher != nil {
+			srcIP, _ := row["src_ip"].(string)
+			dstIP, _ := row["dst_ip"].(string)
+			e.dispatcher.Dispatch(ctx, DispatchEvent{
+				RuleID:    r.ID,
+				RuleTitle: r.Title,
+				Severity:  r.Severity,
+				SrcIP:     srcIP,
+				DstIP:     dstIP,
+				FiredAt:   now,
+			})
+		}
+
 		matchCount++
 	}
 

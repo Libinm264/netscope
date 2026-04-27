@@ -18,7 +18,10 @@ import (
 
 	"github.com/netscope/hub-api/alerting"
 	"github.com/netscope/hub-api/clickhouse"
+	"github.com/netscope/hub-api/cloud"
 	"github.com/netscope/hub-api/config"
+	"github.com/netscope/hub-api/enterprise/compliance"
+	"github.com/netscope/hub-api/enterprise/incidents"
 	"github.com/netscope/hub-api/enterprise/license"
 	"github.com/netscope/hub-api/enterprise/scim"
 	"github.com/netscope/hub-api/enterprise/sigma"
@@ -35,6 +38,23 @@ import (
 	"github.com/netscope/hub-api/sessions"
 	"github.com/netscope/hub-api/threat"
 )
+
+// sigmaDispatcherAdapter adapts incidents.Dispatcher to the sigma.Dispatcher
+// interface without creating an import cycle between the two packages.
+type sigmaDispatcherAdapter struct {
+	d *incidents.Dispatcher
+}
+
+func (a sigmaDispatcherAdapter) Dispatch(ctx context.Context, ev sigma.DispatchEvent) {
+	a.d.Dispatch(ctx, incidents.SigmaMatchEvent{
+		RuleID:    ev.RuleID,
+		RuleTitle: ev.RuleTitle,
+		Severity:  ev.Severity,
+		SrcIP:     ev.SrcIP,
+		DstIP:     ev.DstIP,
+		FiredAt:   ev.FiredAt,
+	})
+}
 
 func main() {
 	// Structured JSON logging to stdout
@@ -385,6 +405,27 @@ func main() {
 	}
 	storageH := &handlers.StorageHandler{CH: chClient, License: lic}
 
+	// ── v0.5: Cloud VPC Flow Log Ingestion ────────────────────────────────────
+	cloudIngester := cloud.New(chClient, lic)
+	cloudIngester.Start()
+	defer cloudIngester.Stop()
+	cloudH := &handlers.CloudSourceHandler{CH: chClient, License: lic}
+
+	// ── v0.5: Multi-Cluster Fleet Overview ────────────────────────────────────
+	fleetH := &handlers.FleetHandler{CH: chClient}
+
+	// ── v0.5: Compliance Reports (Enterprise) ─────────────────────────────────
+	complianceScheduler := compliance.New(chClient, lic, nil) // nil = no SMTP (use API download)
+	complianceScheduler.Start()
+	defer complianceScheduler.Stop()
+	complianceReportH := &handlers.ComplianceReportHandler{CH: chClient, License: lic}
+
+	// ── v0.5: Incident Workflow (Enterprise) ──────────────────────────────────
+	incidentDispatcher := incidents.New(chClient, lic)
+	// Adapt incidents.Dispatcher to sigma.Dispatcher interface (no import cycle).
+	sigmaEngine.SetDispatcher(sigmaDispatcherAdapter{d: incidentDispatcher})
+	incidentH := &handlers.IncidentHandler{CH: chClient, License: lic}
+
 	oidcH    := sso.NewOIDCHandler(chClient, sessionStore, lic,
 		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret)
 	samlH    := sso.NewSAMLHandler(chClient, sessionStore, lic,
@@ -458,6 +499,41 @@ func main() {
 	ent.Put(   "/storage/config",            apiLimit, entAdmin, storageH.UpsertConfig)
 	ent.Delete("/storage/config",            apiLimit, entAdmin, storageH.DeleteConfig)
 	ent.Get(   "/storage/exports",           apiLimit,           storageH.ListExports)
+
+	// ── v0.5: Cloud VPC Flow Sources (Community: AWS; Enterprise: GCP + Azure)
+	v1.Get(   "/cloud/sources",              apiLimit,           cloudH.List)
+	v1.Post(  "/cloud/sources",              apiLimit,           cloudH.Create)
+	v1.Patch( "/cloud/sources/:id",          apiLimit, entAdmin, cloudH.Update)
+	v1.Delete("/cloud/sources/:id",          apiLimit, entAdmin, cloudH.Delete)
+	v1.Get(   "/cloud/sources/:id/log",      apiLimit,           cloudH.PullLog)
+
+	// ── v0.5: Multi-Cluster Fleet Overview (Community)
+	v1.Get("/fleet/clusters",                apiLimit,           fleetH.Clusters)
+	v1.Get("/fleet/search",                  apiLimit,           fleetH.Search)
+	v1.Get("/agents/:id/config",             apiLimit,           fleetH.GetAgentConfig)
+	v1.Post("/agents/:id/config",            apiLimit, entAdmin, fleetH.PushAgentConfig)
+	v1.Post("/agents/:id/config/ack",        apiLimit,           fleetH.AckAgentConfig)
+
+	// ── v0.5: Compliance Reports (Enterprise)
+	ent.Get(  "/compliance/reports",                   apiLimit,           complianceReportH.List)
+	ent.Post( "/compliance/reports",                   apiLimit, entAdmin, complianceReportH.Create)
+	ent.Patch("/compliance/reports/:id",               apiLimit, entAdmin, complianceReportH.Update)
+	ent.Delete("/compliance/reports/:id",              apiLimit, entAdmin, complianceReportH.Delete)
+	ent.Post( "/compliance/reports/:id/run",           apiLimit, entAdmin, complianceReportH.Run)
+	ent.Get(  "/compliance/reports/:id/history",       apiLimit,           complianceReportH.History)
+	ent.Get(  "/compliance/reports/:id/preview",       apiLimit,           complianceReportH.Preview)
+
+	// ── v0.5: Incident Workflow (Enterprise)
+	ent.Get(  "/incidents",                            apiLimit,           incidentH.List)
+	ent.Post( "/incidents",                            apiLimit,           incidentH.CreateManual)
+	ent.Get(  "/incidents/:id",                        apiLimit,           incidentH.Get)
+	ent.Post( "/incidents/:id/ack",                    apiLimit,           incidentH.Ack)
+	ent.Post( "/incidents/:id/resolve",                apiLimit,           incidentH.Resolve)
+	ent.Post( "/incidents/:id/notes",                  apiLimit,           incidentH.AddNote)
+	ent.Get(  "/incident-config",                      apiLimit,           incidentH.ListWorkflowConfigs)
+	ent.Put(  "/incident-config/:type",                apiLimit, entAdmin, incidentH.UpsertWorkflowConfig)
+	ent.Delete("/incident-config/:type",               apiLimit, entAdmin, incidentH.DeleteWorkflowConfig)
+	ent.Post( "/incident-config/:type/test",           apiLimit, entAdmin, incidentH.TestWorkflowConfig)
 
 	// SCIM 2.0 — separate Bearer token auth (set SCIM_BEARER_TOKEN env var)
 	scimGroup := app.Group("/scim/v2", scimH.BearerAuth)
@@ -911,6 +987,108 @@ func runMigrations(ch *clickhouse.Client) error {
 		   'SELECT process_name, pid, src_ip, dst_ip, dst_port, hostname, ts FROM flows WHERE ts > now() - INTERVAL 5 MINUTE AND protocol = ''TCP'' AND process_name IN (''bash'',''sh'',''zsh'',''python'',''python3'',''powershell'',''pwsh'',''cmd'',''perl'',''ruby'') AND dst_port NOT IN (22, 80, 443)',
 		   1, 1, now64(), now64(), 1
 		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-005')`,
+
+		// ── v0.5 Fleet Intelligence ───────────────────────────────────────────
+
+		// Phase 22: Cloud flow sources (VPC Flow Logs config per cloud account)
+		`CREATE TABLE IF NOT EXISTS cloud_flow_sources (
+			id          String,
+			provider    LowCardinality(String) DEFAULT 'aws',
+			name        String                 DEFAULT '',
+			config      String                 DEFAULT '{}',
+			enabled     UInt8                  DEFAULT 1,
+			last_pulled DateTime64(3,'UTC')    DEFAULT toDateTime64(0,3),
+			error_msg   String                 DEFAULT '',
+			created_at  DateTime64(3,'UTC')    DEFAULT now64(),
+			version     UInt64                 DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY id`,
+
+		// Phase 23: Cloud pull audit log
+		`CREATE TABLE IF NOT EXISTS cloud_flow_pull_log (
+			id            UUID    DEFAULT generateUUIDv4(),
+			source_id     String,
+			provider      LowCardinality(String) DEFAULT 'aws',
+			rows_ingested UInt64  DEFAULT 0,
+			pulled_at     DateTime64(3,'UTC') DEFAULT now64(),
+			duration_ms   UInt32  DEFAULT 0,
+			error         String  DEFAULT ''
+		) ENGINE = MergeTree()
+		PARTITION BY toYYYYMM(pulled_at)
+		ORDER BY pulled_at
+		TTL toDateTime(pulled_at) + INTERVAL 30 DAY`,
+
+		// Phase 24: Source label on flows (agent vs cloud-pull)
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS source LowCardinality(String) DEFAULT 'agent'`,
+
+		// Phase 25: Agent remote-config push table
+		`CREATE TABLE IF NOT EXISTS agent_configs (
+			agent_id   String,
+			config     String              DEFAULT '{}',
+			pushed_at  DateTime64(3,'UTC') DEFAULT now64(),
+			ack_at     DateTime64(3,'UTC') DEFAULT toDateTime64(0,3),
+			version    UInt64              DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY agent_id`,
+
+		// Phase 26: Config version on agents (agent reports running config)
+		`ALTER TABLE agents ADD COLUMN IF NOT EXISTS config_version String DEFAULT ''`,
+
+		// Phase 27: Compliance report schedules (Enterprise)
+		`CREATE TABLE IF NOT EXISTS compliance_report_schedules (
+			id         String,
+			name       String                 DEFAULT '',
+			framework  LowCardinality(String) DEFAULT 'soc2',
+			format     LowCardinality(String) DEFAULT 'pdf',
+			schedule   LowCardinality(String) DEFAULT 'weekly',
+			recipients String                 DEFAULT '[]',
+			enabled    UInt8                  DEFAULT 1,
+			last_sent  DateTime64(3,'UTC')    DEFAULT toDateTime64(0,3),
+			created_at DateTime64(3,'UTC')    DEFAULT now64(),
+			version    UInt64                 DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY id`,
+
+		// Phase 28: Compliance report run history
+		`CREATE TABLE IF NOT EXISTS compliance_report_runs (
+			id          UUID    DEFAULT generateUUIDv4(),
+			schedule_id String,
+			framework   LowCardinality(String) DEFAULT 'soc2',
+			format      LowCardinality(String) DEFAULT 'pdf',
+			recipients  String  DEFAULT '[]',
+			rows        UInt64  DEFAULT 0,
+			sent_at     DateTime64(3,'UTC') DEFAULT now64(),
+			error       String  DEFAULT ''
+		) ENGINE = MergeTree()
+		PARTITION BY toYYYYMM(sent_at)
+		ORDER BY sent_at
+		TTL toDateTime(sent_at) + INTERVAL 90 DAY`,
+
+		// Phase 29: In-hub incident timeline (Enterprise)
+		`CREATE TABLE IF NOT EXISTS incidents (
+			id           String,
+			title        String                 DEFAULT '',
+			severity     LowCardinality(String) DEFAULT 'medium',
+			status       LowCardinality(String) DEFAULT 'open',
+			source       LowCardinality(String) DEFAULT 'sigma',
+			source_id    String                 DEFAULT '',
+			notes        String                 DEFAULT '',
+			external_ref String                 DEFAULT '',
+			created_at   DateTime64(3,'UTC')    DEFAULT now64(),
+			updated_at   DateTime64(3,'UTC')    DEFAULT now64(),
+			version      UInt64                 DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY (created_at, id)`,
+
+		// Phase 30: Incident workflow config (per-integration credentials)
+		`CREATE TABLE IF NOT EXISTS incident_workflow_config (
+			integration LowCardinality(String) DEFAULT 'pagerduty',
+			enabled     UInt8                  DEFAULT 0,
+			config      String                 DEFAULT '{}',
+			updated_at  DateTime64(3,'UTC')    DEFAULT now64(),
+			version     UInt64                 DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY integration`,
 	}
 
 	for _, q := range ddl {

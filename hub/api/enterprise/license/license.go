@@ -22,14 +22,21 @@ const (
 
 // Feature flag constants — used with License.HasFeature().
 const (
-	FeatureSSO            = "sso"
-	FeatureMultiTenant    = "multi_tenant"
-	FeatureSCIM           = "scim"
-	FeatureAuditExport    = "audit_export"
+	FeatureSSO             = "sso"
+	FeatureMultiTenant     = "multi_tenant"
+	FeatureSCIM            = "scim"
+	FeatureAuditExport     = "audit_export"
 	FeatureCustomRetention = "custom_retention"
-	FeatureCustomRoles    = "custom_roles"
-	FeaturePIIRedaction   = "pii_redaction"
+	FeatureCustomRoles     = "custom_roles"
+	FeaturePIIRedaction    = "pii_redaction"
 	FeatureOTelCorrelation = "otel_correlation"
+
+	// v0.5 features
+	FeatureCloudIngestGCP   = "cloud_ingest_gcp"   // GCP Pub/Sub VPC flow ingestion
+	FeatureCloudIngestAzure = "cloud_ingest_azure"  // Azure NSG flow ingestion
+	FeatureComplianceReports = "compliance_reports" // SOC2/PCI/HIPAA scheduled PDF reports
+	FeatureIncidentWorkflow  = "incident_workflow"  // Jira/Linear/PD/OpsGenie incident routing
+	FeatureWindowsAgent      = "windows_agent"      // Npcap-based Windows capture agent
 )
 
 // LicenseClaims is the JWT payload embedded in a NetScope license key.

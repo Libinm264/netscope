@@ -1,7 +1,7 @@
 use crate::db;
 use crate::dto::{flow_to_dto, CaptureStatus, FlowDto, GeoInfoDto, InterfaceDto, ThreatInfoDto};
 use crate::geoip::GeoIpReader;
-use crate::hub::{hub_record_to_dto, HubClient, HubConfig, HubFlowFilters};
+use crate::hub::{hub_record_to_dto, AgentInfo, ClusterSummary, HubClient, HubConfig, HubFlowFilters};
 use crate::state::SharedState;
 use crate::threat::ThreatScorer;
 use capture::CaptureError;
@@ -379,6 +379,79 @@ fn write_pcap(path: &str, flows: &[FlowDto]) -> std::io::Result<()> {
 fn parse_ipv4(s: &str) -> Option<[u8; 4]> {
     let parts: Vec<u8> = s.split('.').filter_map(|p| p.parse().ok()).collect();
     if parts.len() == 4 { Some([parts[0], parts[1], parts[2], parts[3]]) } else { None }
+}
+
+// ── Fleet commands ────────────────────────────────────────────────────────────
+
+/// Fetch cluster summaries from the connected hub (requires hub to be configured).
+#[tauri::command]
+pub async fn get_fleet_clusters(
+    state: State<'_, SharedState>,
+) -> Result<Vec<ClusterSummary>, String> {
+    let config = state
+        .lock()
+        .unwrap()
+        .hub_config
+        .clone()
+        .ok_or("No hub configured. Connect to a hub first.")?;
+    HubClient::new(config).get_fleet_clusters().await
+}
+
+/// Fetch agent list from the connected hub, optionally filtered by cluster name.
+#[tauri::command]
+pub async fn get_fleet_agents(
+    cluster: Option<String>,
+    state: State<'_, SharedState>,
+) -> Result<Vec<AgentInfo>, String> {
+    let config = state
+        .lock()
+        .unwrap()
+        .hub_config
+        .clone()
+        .ok_or("No hub configured. Connect to a hub first.")?;
+    HubClient::new(config)
+        .get_fleet_agents(cluster.as_deref())
+        .await
+}
+
+// ── OTel backend commands ─────────────────────────────────────────────────────
+
+/// Return the configured OTel backend URL (e.g. Jaeger / Zipkin / Grafana Tempo).
+#[tauri::command]
+pub fn get_otel_backend_url(state: State<'_, SharedState>) -> Option<String> {
+    state.lock().unwrap().otel_backend_url.clone()
+}
+
+/// Set (or clear) the OTel backend URL. Pass an empty string to clear.
+#[tauri::command]
+pub fn set_otel_backend_url(url: String, state: State<'_, SharedState>) {
+    let mut s = state.lock().unwrap();
+    s.otel_backend_url = if url.is_empty() { None } else { Some(url) };
+}
+
+/// Open a URL in the system's default browser.
+/// Used by OtelTracePanel to deep-link into Jaeger / Zipkin / Tempo.
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "linux")]
+    std::process::Command::new("xdg-open")
+        .arg(&url)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "windows")]
+    std::process::Command::new("cmd")
+        .args(["/c", "start", "", &url])
+        .spawn()
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 
 /// Query flows from the hub and merge them into local state.

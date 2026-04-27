@@ -6,7 +6,7 @@ import {
   Network, LayoutDashboard, List, Server, Bell, GitFork, BarChart3,
   ShieldCheck, ClipboardList, Shield, ShieldAlert, ScanSearch,
   Settings, Building2, Users, Users2, KeyRound, Zap, ChevronDown,
-  Plug, Map,
+  Plug, Map, Cloud, Globe, Siren, FileBarChart2,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useState } from "react";
@@ -24,6 +24,9 @@ const NAV_MAIN = [
   { href: "/policies",   label: "Policies",   icon: ShieldAlert },
   { href: "/compliance", label: "Compliance", icon: ClipboardList },
   { href: "/sigma",      label: "Detection",  icon: ScanSearch },
+  { href: "/incidents",  label: "Incidents",  icon: Siren },
+  { href: "/fleet",      label: "Fleet",      icon: Globe },
+  { href: "/cloud",      label: "Cloud Flows", icon: Cloud },
   { href: "/roadmap",    label: "Roadmap",    icon: Map },
 ];
 
@@ -33,7 +36,9 @@ const NAV_SETTINGS = [
   { href: "/settings/members",        label: "Members",        icon: Users,    badge: "Enterprise" },
   { href: "/settings/teams",          label: "Teams",          icon: Users2,   badge: "Enterprise" },
   { href: "/settings/sso",            label: "SSO",            icon: KeyRound, badge: "Enterprise" },
-  { href: "/settings/integrations",   label: "Integrations",   icon: Plug,     badge: "Enterprise" },
+  { href: "/settings/integrations",   label: "Integrations",   icon: Plug,          badge: "Enterprise" },
+  { href: "/settings/storage",        label: "Storage",        icon: Cloud,         badge: "Enterprise" },
+  { href: "/compliance/reports",      label: "Reports",        icon: FileBarChart2, badge: "Enterprise" },
   { href: "/settings/license",        label: "License",        icon: Zap },
 ];
 
@@ -148,7 +153,7 @@ export function Sidebar({ user }: SidebarProps) {
             picture={user.picture}
           />
         ) : (
-          <p className="text-[11px] text-slate-600 px-2">NetScope v0.4.0</p>
+          <p className="text-[11px] text-slate-600 px-2">NetScope v0.5.0</p>
         )}
       </div>
     </aside>

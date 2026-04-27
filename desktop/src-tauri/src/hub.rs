@@ -6,6 +6,29 @@ use crate::dto::{FlowDto, GeoInfoDto, ThreatInfoDto};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 
+// ── Fleet API types ───────────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClusterSummary {
+    pub cluster: String,
+    pub total_agents: u64,
+    pub online_agents: u64,
+    pub versions: Vec<String>,
+    pub flows_per_hour: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentInfo {
+    pub agent_id: String,
+    pub hostname: String,
+    pub cluster: String,
+    pub version: String,
+    pub mode: String,
+    pub ebpf_enabled: bool,
+    pub last_seen: String,
+    pub flow_count_1h: u64,
+}
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,6 +104,49 @@ impl HubClient {
             .error_for_status()
             .map_err(|e| format!("Hub returned error: {e}"))?;
         Ok(())
+    }
+
+    /// Fetch cluster summaries from the hub fleet endpoint.
+    pub async fn get_fleet_clusters(&self) -> Result<Vec<ClusterSummary>, String> {
+        let url = format!("{}/api/v1/fleet/clusters", self.config.url);
+        let resp: Vec<ClusterSummary> = self
+            .http
+            .get(&url)
+            .header("X-API-Key", &self.config.token)
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {e}"))?
+            .error_for_status()
+            .map_err(|e| format!("Hub error: {e}"))?
+            .json()
+            .await
+            .map_err(|e| format!("JSON parse error: {e}"))?;
+        Ok(resp)
+    }
+
+    /// Fetch agent list, optionally filtered by cluster name.
+    pub async fn get_fleet_agents(
+        &self,
+        cluster: Option<&str>,
+    ) -> Result<Vec<AgentInfo>, String> {
+        let url = format!("{}/api/v1/agents", self.config.url);
+        let mut req = self
+            .http
+            .get(&url)
+            .header("X-API-Key", &self.config.token);
+        if let Some(c) = cluster {
+            req = req.query(&[("cluster", c)]);
+        }
+        let resp: Vec<AgentInfo> = req
+            .send()
+            .await
+            .map_err(|e| format!("Request failed: {e}"))?
+            .error_for_status()
+            .map_err(|e| format!("Hub error: {e}"))?
+            .json()
+            .await
+            .map_err(|e| format!("JSON parse error: {e}"))?;
+        Ok(resp)
     }
 
     /// Query flows with optional filters.
