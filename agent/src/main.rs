@@ -265,25 +265,44 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
         None
     };
 
-    // Spawn a heartbeat thread when hub output is active
-    if hub_output {
-        if let (Some(url), Some(key)) = (cfg.hub_url.as_ref(), cfg.api_key.as_ref()) {
-            match HubClient::new(url, key) {
+    // Spawn a heartbeat thread when hub output is active.
+    //
+    // IMPORTANT: use new_with_id() so the heartbeat client shares the same
+    // agent_id as the flow client above.  Creating a second HubClient via
+    // new() would generate a fresh UUID and register a second ghost agent.
+    // The three-part if-let also guards against hub being None (construction
+    // failed), in which case there is no agent_id to share and we skip the
+    // heartbeat entirely.
+    if let (Some(ref flow_client), Some(url), Some(key)) = (
+        hub.as_ref(), cfg.hub_url.as_ref(), cfg.api_key.as_ref(),
+    ) {
+        let shared_id = flow_client.agent_id().to_string();
+        let iface_hb  = cfg.interface.clone();
+        let url       = url.clone();
+        let key       = key.clone();
+        thread::spawn(move || {
+            match HubClient::new_with_id(&url, &key, &shared_id) {
                 Ok(hb_client) => {
-                    thread::spawn(move || {
-                        loop {
-                            if let Err(e) = hb_client.send_heartbeat("pcap", false) {
-                                tracing::warn!("heartbeat failed: {}", e);
+                    let mut first = true;
+                    loop {
+                        match hb_client.send_heartbeat(&iface_hb, "pcap", false) {
+                            Ok(()) => {
+                                if first {
+                                    info!(
+                                        agent_id = %shared_id,
+                                        "Registered with hub — agent now visible in dashboard"
+                                    );
+                                    first = false;
+                                }
                             }
-                            std::thread::sleep(std::time::Duration::from_secs(30));
+                            Err(e) => warn!("heartbeat failed: {}", e),
                         }
-                    });
+                        std::thread::sleep(std::time::Duration::from_secs(30));
+                    }
                 }
-                Err(e) => {
-                    warn!("Failed to create heartbeat client: {:#}", e);
-                }
+                Err(e) => warn!("Failed to create heartbeat client: {:#}", e),
             }
-        }
+        });
     }
 
     let mut session_mgr = SessionManager::new();
@@ -396,7 +415,7 @@ fn run_ebpf(
                 Ok(hb_client) => {
                     thread::spawn(move || {
                         loop {
-                            if let Err(e) = hb_client.send_heartbeat("ebpf", true) {
+                            if let Err(e) = hb_client.send_heartbeat("", "ebpf", true) {
                                 tracing::warn!("heartbeat failed: {}", e);
                             }
                             std::thread::sleep(std::time::Duration::from_secs(30));

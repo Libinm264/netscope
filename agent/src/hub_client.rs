@@ -146,6 +146,13 @@ pub struct HubClient {
 
 impl HubClient {
     pub fn new(hub_url: &str, api_key: &str) -> Result<Self> {
+        Self::new_with_id(hub_url, api_key, &Uuid::new_v4().to_string())
+    }
+
+    /// Create a client with a pre-determined agent ID.
+    /// Use this when the heartbeat thread must share the same ID as the flow
+    /// client to avoid registering two separate ghost agents in the Hub.
+    pub fn new_with_id(hub_url: &str, api_key: &str, agent_id: &str) -> Result<Self> {
         let client = Client::builder()
             .timeout(Duration::from_secs(TIMEOUT_SECS))
             .build()
@@ -163,7 +170,7 @@ impl HubClient {
             hub_url: base,
             ingest_url,
             api_key: api_key.to_string(),
-            agent_id: Uuid::new_v4().to_string(),
+            agent_id: agent_id.to_string(),
             hostname,
             buffer: Vec::with_capacity(BATCH_SIZE),
         })
@@ -217,15 +224,20 @@ impl HubClient {
     }
 
     /// POST a heartbeat to /api/v1/agents/heartbeat.
-    /// Reports OS, capture mode, and eBPF status to the Hub.
-    pub fn send_heartbeat(&self, capture_mode: &str, ebpf_enabled: bool) -> anyhow::Result<()> {
+    /// Reports OS, interface, capture mode, and eBPF status to the Hub.
+    pub fn send_heartbeat(
+        &self,
+        interface: &str,
+        capture_mode: &str,
+        ebpf_enabled: bool,
+    ) -> anyhow::Result<()> {
         let os = std::env::consts::OS.to_string();
         let body = serde_json::json!({
-            "agent_id": self.agent_id,
-            "hostname": self.hostname,
-            "version": env!("CARGO_PKG_VERSION"),
-            "interface": "",
-            "os": os,
+            "agent_id":    self.agent_id,
+            "hostname":    self.hostname,
+            "version":     env!("CARGO_PKG_VERSION"),
+            "interface":   interface,
+            "os":          os,
             "capture_mode": capture_mode,
             "ebpf_enabled": ebpf_enabled,
         });
@@ -236,8 +248,9 @@ impl HubClient {
             .json(&body)
             .send()?;
         if !resp.status().is_success() {
-            let txt = resp.text().unwrap_or_default();
-            anyhow::bail!("heartbeat failed: {}", txt);
+            let status = resp.status();
+            let txt    = resp.text().unwrap_or_default();
+            anyhow::bail!("heartbeat rejected by hub ({}): {}", status, txt);
         }
         Ok(())
     }

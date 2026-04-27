@@ -115,16 +115,23 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "token and hostname are required"})
 	}
 
-	// Validate token: must exist, be unexpired and unrevoked
+	// Validate token: must exist, be unexpired and unrevoked.
+	//
+	// NOTE: we deliberately do NOT use FINAL here. With ReplacingMergeTree,
+	// FINAL triggers an in-query merge that can miss rows inserted in the same
+	// second on ClickHouse 24.x.  Instead we ORDER BY created_at DESC LIMIT 1
+	// which naturally returns the most-recent version of the row (handling the
+	// revocation case where a new row with revoked=1 is inserted).
 	rows, err := h.CH.Query(c.Context(),
-		`SELECT id, expires_at, revoked FROM enrollment_tokens FINAL
-		 WHERE token = ? LIMIT 1`, req.Token)
+		`SELECT id, expires_at, revoked FROM enrollment_tokens
+		 WHERE token = ? ORDER BY created_at DESC LIMIT 1`, req.Token)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
+		slog.Warn("enrollment: token not found in DB", "token_prefix", req.Token[:8])
 		return c.Status(401).JSON(fiber.Map{"error": "invalid enrollment token"})
 	}
 	var tokenID string

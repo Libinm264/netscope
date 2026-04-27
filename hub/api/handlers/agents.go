@@ -19,21 +19,27 @@ func (h *AgentHandler) List(c *fiber.Ctx) error {
 	if h.CH == nil {
 		return c.Status(503).JSON(fiber.Map{"error": "ClickHouse not available"})
 	}
+	// NOTE: we use argMax / max aggregation instead of FINAL to deduplicate agents.
+	// FINAL on ReplacingMergeTree can miss freshly inserted rows on ClickHouse 24.x
+	// because the background merge may not have run yet. The aggregation approach
+	// always reflects the latest INSERT for each agent_id without relying on merges.
 	rows, err := h.CH.Query(c.Context(), `
         SELECT
-            a.agent_id, a.hostname, a.version, a.interface,
-            a.last_seen, a.registered_at,
-            a.os, a.capture_mode, a.ebpf_enabled, a.cluster,
+            a.agent_id,
+            argMax(a.hostname,     a.last_seen) AS hostname,
+            argMax(a.version,      a.last_seen) AS version,
+            argMax(a.interface,    a.last_seen) AS interface,
+            max(a.last_seen)                    AS last_seen,
+            min(a.registered_at)               AS registered_at,
+            argMax(a.os,           a.last_seen) AS os,
+            argMax(a.capture_mode, a.last_seen) AS capture_mode,
+            argMax(a.ebpf_enabled, a.last_seen) AS ebpf_enabled,
+            argMax(a.cluster,      a.last_seen) AS cluster,
             countIf(f.ts >= now() - INTERVAL 1 HOUR) AS flow_count_1h
-        FROM (
-            SELECT agent_id, hostname, version, interface, last_seen, registered_at,
-                   os, capture_mode, ebpf_enabled, cluster
-            FROM agents FINAL
-        ) a
+        FROM agents AS a
         LEFT JOIN flows f ON f.agent_id = a.agent_id
-        GROUP BY a.agent_id, a.hostname, a.version, a.interface,
-                 a.last_seen, a.registered_at, a.os, a.capture_mode, a.ebpf_enabled, a.cluster
-        ORDER BY a.last_seen DESC`)
+        GROUP BY a.agent_id
+        ORDER BY last_seen DESC`)
 	if err != nil {
 		return util.InternalError(c, err)
 	}

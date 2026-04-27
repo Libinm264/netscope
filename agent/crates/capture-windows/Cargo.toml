@@ -6,7 +6,7 @@ description = "Npcap/WinPcap packet capture backend for the NetScope Windows age
 
 # Only compiled on Windows.
 [target.'cfg(target_os = "windows")'.dependencies]
-pcap    = { version = "2", features = ["npcap"] }
+pcap    = { version = "2" }  # npcap feature removed in pcap v2; npcap links via build.rs
 windows = { version = "0.58", features = [
     "Win32_Foundation",
     "Win32_System_Diagnostics_ToolHelp",
