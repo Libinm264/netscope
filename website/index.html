@@ -654,6 +654,115 @@
 
     .proto-desc { font-size: .75rem; color: var(--muted); }
 
+    /* ── CHANGELOG ── */
+    #changelog { padding: 6rem 0; }
+
+    .cl-timeline {
+      position: relative;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .cl-timeline::before {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 0; bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--cyan), var(--purple), transparent);
+      opacity: .35;
+    }
+    .cl-entry {
+      display: flex;
+      gap: 1.75rem;
+      margin-bottom: 2.5rem;
+    }
+    .cl-dot {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--bg2);
+      border: 2px solid var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .6rem;
+      margin-top: .15rem;
+      position: relative;
+      z-index: 1;
+    }
+    .cl-dot.enterprise { border-color: var(--purple); }
+    .cl-body {
+      flex: 1;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+    }
+    .cl-header {
+      display: flex;
+      align-items: center;
+      gap: .65rem;
+      flex-wrap: wrap;
+      margin-bottom: .75rem;
+    }
+    .cl-version {
+      font-size: .75rem;
+      font-weight: 700;
+      padding: .2rem .65rem;
+      border-radius: 999px;
+      background: rgba(0,212,255,.12);
+      color: var(--cyan);
+      letter-spacing: .04em;
+    }
+    .cl-version.ent {
+      background: rgba(124,58,237,.15);
+      color: #a78bfa;
+    }
+    .cl-date {
+      font-size: .78rem;
+      color: var(--muted);
+    }
+    .cl-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      flex: 1;
+    }
+    .cl-items {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: .45rem;
+    }
+    .cl-items li {
+      display: flex;
+      align-items: flex-start;
+      gap: .6rem;
+      font-size: .875rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .cl-items li::before {
+      content: '→';
+      color: var(--cyan);
+      flex-shrink: 0;
+      margin-top: .05rem;
+    }
+    .cl-items li.ent-item::before { color: #a78bfa; }
+    .cl-items strong { color: var(--text); }
+    .cl-tier-note {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+      padding-top: .85rem;
+      border-top: 1px solid var(--border);
+      font-size: .75rem;
+      color: var(--muted);
+    }
+    .cl-tier-note span { display: flex; align-items: center; gap: .35rem; }
+
     /* ── ROADMAP ── */
     #roadmap { padding: 6rem 0; }
 
@@ -1364,6 +1473,7 @@
     <li><a href="#features">Features</a></li>
     <li><a href="#gallery">Gallery</a></li>
     <li><a href="#protocols">Protocols</a></li>
+    <li><a href="#changelog">What's New</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#quickinstall">Quick Start</a></li>
     <li><a href="#download">Download</a></li>
@@ -2019,6 +2129,135 @@
       </div>
 
     </div><!-- /arch-visual -->
+  </div>
+</section>
+
+<div class="glow-line"></div>
+
+<!-- ── CHANGELOG ── -->
+<section id="changelog">
+  <div class="container">
+    <div class="section-header reveal">
+      <span class="section-tag">Changelog</span>
+      <h2 class="section-title">What's New in v0.4</h2>
+      <p class="section-sub">Enterprise Readiness — four priority phases shipped. Community gets more power; Enterprise gets the full stack.</p>
+    </div>
+
+    <div class="cl-timeline reveal">
+
+      <!-- P4 — Detection & Analytics -->
+      <div class="cl-entry">
+        <div class="cl-dot enterprise">🔍</div>
+        <div class="cl-body">
+          <div class="cl-header">
+            <span class="cl-version ent">v0.4 · P4</span>
+            <span class="cl-date">April 2026</span>
+            <span class="cl-title">Detection &amp; Analytics</span>
+          </div>
+          <ul class="cl-items">
+            <li class="ent-item"><strong>Sigma detection engine</strong> — 5 built-in rules shipped to all tiers; CRUD for custom rules + 30-day match history (Enterprise).</li>
+            <li><strong>Saved queries</strong> — bookmark up to 10 flow filter presets (Community); unlimited (Enterprise).</li>
+            <li><strong>OTel trace correlation</strong> — filter flows by <code>trace_id</code>; link to your Jaeger/Tempo backend directly from the flow table.</li>
+            <li class="ent-item"><strong>Long-term S3/GCS export</strong> — scheduled hourly or daily Parquet export to AWS S3, GCS, MinIO, or Cloudflare R2. Export runs inside ClickHouse — zero data through the hub process (Enterprise).</li>
+            <li><strong>Cluster labels</strong> — tag agents with a logical cluster name (e.g. <code>prod-eu</code>) and filter flows by cluster.</li>
+          </ul>
+          <div class="cl-tier-note">
+            <span><span style="color:var(--cyan)">●</span> Community (MIT)</span>
+            <span><span style="color:#a78bfa">●</span> Enterprise (BSL-1.1)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- P3 — Integrations & Export -->
+      <div class="cl-entry">
+        <div class="cl-dot enterprise">🔗</div>
+        <div class="cl-body">
+          <div class="cl-header">
+            <span class="cl-version ent">v0.4 · P3</span>
+            <span class="cl-date">April 2026</span>
+            <span class="cl-title">Integrations &amp; Export</span>
+          </div>
+          <ul class="cl-items">
+            <li class="ent-item"><strong>SIEM sinks</strong> — push flows to Splunk HEC, Elasticsearch, or a generic webhook in real time (Enterprise).</li>
+            <li class="ent-item"><strong>Audit log export</strong> — scheduled CSV/JSON exports of the access audit trail (Enterprise).</li>
+            <li class="ent-item"><strong>Kafka consumer groups</strong> — configurable <code>KAFKA_GROUP_ID</code> for horizontally-scaled hub deployments (Enterprise).</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- P1/P2 — Multi-Tenancy & SSO -->
+      <div class="cl-entry">
+        <div class="cl-dot enterprise">🏢</div>
+        <div class="cl-body">
+          <div class="cl-header">
+            <span class="cl-version ent">v0.4 · P1–P2</span>
+            <span class="cl-date">March 2026</span>
+            <span class="cl-title">Multi-Tenancy, RBAC &amp; SSO</span>
+          </div>
+          <ul class="cl-items">
+            <li class="ent-item"><strong>Organisations + invite links</strong> — create isolated tenants, invite members via one-time token (Enterprise).</li>
+            <li class="ent-item"><strong>RBAC</strong> — Owner / Admin / Viewer roles with per-route enforcement (Enterprise).</li>
+            <li class="ent-item"><strong>OIDC &amp; SAML SSO</strong> — plug in Okta, Azure AD, Google Workspace, or any standards-compliant IdP (Enterprise).</li>
+            <li class="ent-item"><strong>SCIM 2.0</strong> — automated user provisioning/deprovisioning from your IdP (Enterprise).</li>
+            <li><strong>You badge + self-remove guard</strong> — identity-aware member list UI shipped to all tiers.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v0.3 -->
+      <div class="cl-entry">
+        <div class="cl-dot">🧠</div>
+        <div class="cl-body">
+          <div class="cl-header">
+            <span class="cl-version">v0.3</span>
+            <span class="cl-date">Q1 2026</span>
+            <span class="cl-title">Intelligence Layer</span>
+          </div>
+          <ul class="cl-items">
+            <li><strong>GeoIP enrichment</strong> — MaxMind-free ASN + country lookup on every flow.</li>
+            <li><strong>Threat intelligence</strong> — AbuseIPDB integration with configurable score thresholds.</li>
+            <li><strong>Process tracking</strong> — eBPF-sourced PID + process name on every connection.</li>
+            <li><strong>Alert rules</strong> — threshold and regex-based alerts with notification webhooks.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v0.2 -->
+      <div class="cl-entry">
+        <div class="cl-dot">⚡</div>
+        <div class="cl-body">
+          <div class="cl-header">
+            <span class="cl-version">v0.2</span>
+            <span class="cl-date">Q4 2025</span>
+            <span class="cl-title">eBPF Engine</span>
+          </div>
+          <ul class="cl-items">
+            <li><strong>Linux eBPF capture</strong> — kernel-level packet interception without libpcap overhead.</li>
+            <li><strong>SSL/TLS intercept</strong> — eBPF uprobe on OpenSSL for plaintext visibility.</li>
+            <li><strong>Kubernetes context</strong> — pod name + namespace injected into every flow.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- v0.1 -->
+      <div class="cl-entry">
+        <div class="cl-dot">🚀</div>
+        <div class="cl-body">
+          <div class="cl-header">
+            <span class="cl-version">v0.1</span>
+            <span class="cl-date">Q3 2025</span>
+            <span class="cl-title">Initial Release</span>
+          </div>
+          <ul class="cl-items">
+            <li><strong>Rust capture agent</strong> — cross-platform libpcap with deep DPI on 30+ protocols.</li>
+            <li><strong>Go hub API</strong> — ClickHouse-backed flow store, REST API, Kafka ingest.</li>
+            <li><strong>React dashboard</strong> — real-time flow table, protocol breakdown, GeoIP map.</li>
+            <li><strong>macOS desktop app</strong> — Tauri-based native UI for local packet inspection.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div><!-- /cl-timeline -->
   </div>
 </section>
 
