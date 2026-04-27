@@ -99,6 +99,15 @@ type Config struct {
 	// creating an account.  Set DEMO_ENABLED=true in docker-compose for try-it
 	// deployments; leave unset (default false) for production installs.
 	DemoEnabled bool
+
+	// ── Social login (OAuth2) ─────────────────────────────────────────────────
+
+	// GoogleClientID / GoogleClientSecret enable "Sign in with Google".
+	// Register a Web application at https://console.cloud.google.com/apis/credentials
+	// and add {APP_URL}/api/v1/auth/google/callback as an authorised redirect URI.
+	// Leave both empty to hide the Google button on the login page.
+	GoogleClientID     string
+	GoogleClientSecret string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -139,6 +148,9 @@ func Load() *Config {
 		AdminEmail:                  getEnv("ADMIN_EMAIL", ""),
 		AdminPassword:               getEnv("ADMIN_PASSWORD", ""),
 		DemoEnabled:                 os.Getenv("DEMO_ENABLED") == "true",
+
+		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
+		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")

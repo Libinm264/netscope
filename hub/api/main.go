@@ -372,7 +372,15 @@ func main() {
 		SMTP:        smtpCfg,
 		FrontendURL: cfg.FrontendURL,
 	}
-	authH    := &handlers.AuthHandler{CH: chClient, Sessions: sessionStore, FrontendURL: cfg.FrontendURL, DemoEnabled: cfg.DemoEnabled}
+	authH    := &handlers.AuthHandler{
+		CH:                 chClient,
+		Sessions:           sessionStore,
+		FrontendURL:        cfg.FrontendURL,
+		AppURL:             cfg.AppURL,
+		DemoEnabled:        cfg.DemoEnabled,
+		GoogleClientID:     cfg.GoogleClientID,
+		GoogleClientSecret: cfg.GoogleClientSecret,
+	}
 	inviteH  := &handlers.InviteHandler{CH: chClient, Sessions: sessionStore, SMTP: smtpCfg, FrontendURL: cfg.FrontendURL}
 	scimH    := &scim.Handler{CH: chClient, License: lic, BearerToken: cfg.SCIMBearerToken}
 
@@ -440,6 +448,9 @@ func main() {
 	app.Post("/api/v1/auth/demo",                             apiLimit, authH.DemoLogin)
 	app.Get( "/api/v1/auth/setup",                            apiLimit, authH.SetupStatus)
 	app.Post("/api/v1/auth/setup",                            apiLimit, authH.SetupAdmin)
+	// Google OAuth2 sign-in (enabled when GOOGLE_CLIENT_ID is set)
+	app.Get("/api/v1/auth/google/initiate",                   apiLimit, authH.GoogleInitiate)
+	app.Get("/api/v1/auth/google/callback",                   apiLimit, authH.GoogleCallback)
 	app.Post("/api/v1/enterprise/auth/invite/accept",         apiLimit, inviteH.AcceptInvite)
 	app.Post("/api/v1/enterprise/auth/forgot-password",       apiLimit, inviteH.ForgotPassword)
 	app.Post("/api/v1/enterprise/auth/reset-password",        apiLimit, inviteH.ResetPassword)
