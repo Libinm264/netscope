@@ -33,14 +33,19 @@ func TokenAuth(bootstrapKey string, ch *chclient.Client) fiber.Handler {
 			return c.Next()
 		}
 
-		// Look up in api_tokens table
+		// Look up in api_tokens table.
+		// Avoid FINAL: ORDER BY last_used DESC returns the most-recent row for
+		// this token without waiting for a ClickHouse 24.x background merge.
+		// This fixes the race where a freshly-enrolled agent's token is
+		// invisible and every subsequent request returns 401.
 		if ch != nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
 
 			rows, err := ch.Query(ctx,
-				`SELECT id, role FROM api_tokens FINAL
-				 WHERE token = ? AND revoked = 0 LIMIT 1`, key)
+				`SELECT id, role FROM api_tokens
+				 WHERE token = ? AND revoked = 0
+				 ORDER BY last_used DESC LIMIT 1`, key)
 			if err == nil {
 				if rows.Next() {
 					var tokenID, role string
@@ -55,7 +60,8 @@ func TokenAuth(bootstrapKey string, ch *chclient.Client) fiber.Handler {
 							_ = ch.Exec(context.Background(),
 								`INSERT INTO api_tokens (id, name, role, token, created_at, last_used, revoked)
 								 SELECT id, name, role, token, created_at, ?, revoked
-								 FROM api_tokens FINAL WHERE id = ? LIMIT 1`,
+								 FROM api_tokens WHERE id = ?
+								 ORDER BY last_used DESC LIMIT 1`,
 								time.Now().UTC(), tokenID)
 						}()
 
@@ -140,8 +146,9 @@ func EnterpriseAuth(bootstrapKey string, ch *chclient.Client, sess *sessions.Sto
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancel()
 			rows, err := ch.Query(ctx,
-				`SELECT id, role FROM api_tokens FINAL
-				 WHERE token = ? AND revoked = 0 LIMIT 1`, key)
+				`SELECT id, role FROM api_tokens
+				 WHERE token = ? AND revoked = 0
+				 ORDER BY last_used DESC LIMIT 1`, key)
 			if err == nil {
 				if rows.Next() {
 					var tokenID, role string
@@ -151,7 +158,8 @@ func EnterpriseAuth(bootstrapKey string, ch *chclient.Client, sess *sessions.Sto
 							_ = ch.Exec(context.Background(),
 								`INSERT INTO api_tokens (id, name, role, token, created_at, last_used, revoked)
 								 SELECT id, name, role, token, created_at, ?, revoked
-								 FROM api_tokens FINAL WHERE id = ? LIMIT 1`,
+								 FROM api_tokens WHERE id = ?
+								 ORDER BY last_used DESC LIMIT 1`,
 								time.Now().UTC(), tokenID)
 						}()
 						c.Locals("role", role)
