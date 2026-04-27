@@ -47,8 +47,9 @@ func (p *azurePuller) pull(ctx context.Context, sourceID string, lastPulled time
 		return nil, err
 	}
 
-	containerClient := client.ServiceClient().NewContainerClient(p.cfg.ContainerName)
-	pager := containerClient.NewListBlobsFlatPager(nil)
+	// NewListBlobsFlatPager is a method on *azblob.Client; the first argument is
+	// the container name.  There is no standalone ContainerClient type in this SDK.
+	pager := client.NewListBlobsFlatPager(p.cfg.ContainerName, nil)
 
 	var flows []*ParsedFlow
 	for pager.More() {
@@ -67,7 +68,7 @@ func (p *azurePuller) pull(ctx context.Context, sourceID string, lastPulled time
 			if item.Name != nil {
 				blobName = *item.Name
 			}
-			blobFlows, err := p.downloadAndParse(ctx, containerClient, blobName, sourceID)
+			blobFlows, err := p.downloadAndParse(ctx, client, blobName, sourceID)
 			if err != nil {
 				slog.Warn("cloud/azure: blob parse error", "blob", blobName, "err", err)
 				continue
@@ -79,9 +80,9 @@ func (p *azurePuller) pull(ctx context.Context, sourceID string, lastPulled time
 }
 
 // downloadAndParse fetches one blob and parses it as Azure NSG flow log v2 JSON.
-func (p *azurePuller) downloadAndParse(ctx context.Context, container *azblob.ContainerClient, blobName, sourceID string) ([]*ParsedFlow, error) {
-	blobClient := container.NewBlobClient(blobName)
-	resp, err := blobClient.DownloadStream(ctx, nil)
+// Uses the account-level *azblob.Client — DownloadStream(ctx, container, blob, opts).
+func (p *azurePuller) downloadAndParse(ctx context.Context, client *azblob.Client, blobName, sourceID string) ([]*ParsedFlow, error) {
+	resp, err := client.DownloadStream(ctx, p.cfg.ContainerName, blobName, nil)
 	if err != nil {
 		return nil, fmt.Errorf("download: %w", err)
 	}

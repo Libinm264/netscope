@@ -99,7 +99,8 @@ func (p *awsPuller) pullS3(ctx context.Context, awsCfg aws.Config, sourceID stri
 			flows = append(flows, objFlows...)
 		}
 
-		if !out.IsTruncated || out.NextContinuationToken == nil {
+		// IsTruncated is a *bool in the AWS SDK v2; use aws.ToBool to safely dereference.
+		if !aws.ToBool(out.IsTruncated) || out.NextContinuationToken == nil {
 			break
 		}
 		continuationToken = out.NextContinuationToken

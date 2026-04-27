@@ -237,7 +237,7 @@ func toParsedFlow(p *ParsedFlow) models.Flow {
 		ID:          p.ID,
 		AgentID:     p.AgentID,
 		Hostname:    p.Hostname,
-		TS:          p.TS,
+		Timestamp:   p.TS,   // models.Flow uses Timestamp, not TS
 		Protocol:    p.Protocol,
 		SrcIP:       p.SrcIP,
 		SrcPort:     p.SrcPort,
@@ -248,8 +248,8 @@ func toParsedFlow(p *ParsedFlow) models.Flow {
 		DurationMs:  p.DurationMs,
 		CountryCode: p.CountryCode,
 		CountryName: p.CountryName,
-		AsOrg:       p.AsOrg,
-		ThreatScore: p.ThreatScore,
+		ASOrg:       p.AsOrg,             // models.Flow uses ASOrg (not AsOrg)
+		ThreatScore: uint8(p.ThreatScore), // models.Flow.ThreatScore is uint8
 		ThreatLevel: p.ThreatLevel,
 	}
 }
