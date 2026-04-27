@@ -5,13 +5,16 @@ import "time"
 // Organisation is a top-level tenant. All resources (agents, flows, alerts)
 // belong to exactly one org. The built-in "default" org always exists.
 type Organisation struct {
-	OrgID         string    `json:"org_id"`
-	Name          string    `json:"name"`
-	Slug          string    `json:"slug"`
-	AgentQuota    int       `json:"agent_quota"`
-	RetentionDays int       `json:"retention_days"`
-	Plan          string    `json:"plan"` // "community" | "team" | "enterprise"
-	CreatedAt     time.Time `json:"created_at"`
+	OrgID           string    `json:"org_id"`
+	Name            string    `json:"name"`
+	Slug            string    `json:"slug"`
+	AgentQuota      int       `json:"agent_quota"`
+	RetentionDays   int       `json:"retention_days"`
+	Plan            string    `json:"plan"` // "community" | "team" | "enterprise"
+	CreatedAt       time.Time `json:"created_at"`
+	// OtelBackendURL is the base URL of the OTel trace backend (e.g. "http://jaeger:16686").
+	// When set, trace_id values in flows become clickable links in the hub UI.
+	OtelBackendURL  string    `json:"otel_backend_url,omitempty"`
 }
 
 // OrgMember is a user within an organisation.
@@ -72,9 +75,10 @@ type SSOConfig struct {
 // ── Request / Response bodies ─────────────────────────────────────────────────
 
 type UpdateOrgRequest struct {
-	Name          string `json:"name"`
-	AgentQuota    int    `json:"agent_quota"`
-	RetentionDays int    `json:"retention_days"`
+	Name           string `json:"name"`
+	AgentQuota     int    `json:"agent_quota"`
+	RetentionDays  int    `json:"retention_days"`
+	OtelBackendURL string `json:"otel_backend_url,omitempty"`
 }
 
 type InviteMemberRequest struct {

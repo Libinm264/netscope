@@ -23,16 +23,16 @@ func (h *AgentHandler) List(c *fiber.Ctx) error {
         SELECT
             a.agent_id, a.hostname, a.version, a.interface,
             a.last_seen, a.registered_at,
-            a.os, a.capture_mode, a.ebpf_enabled,
+            a.os, a.capture_mode, a.ebpf_enabled, a.cluster,
             countIf(f.ts >= now() - INTERVAL 1 HOUR) AS flow_count_1h
         FROM (
             SELECT agent_id, hostname, version, interface, last_seen, registered_at,
-                   os, capture_mode, ebpf_enabled
+                   os, capture_mode, ebpf_enabled, cluster
             FROM agents FINAL
         ) a
         LEFT JOIN flows f ON f.agent_id = a.agent_id
         GROUP BY a.agent_id, a.hostname, a.version, a.interface,
-                 a.last_seen, a.registered_at, a.os, a.capture_mode, a.ebpf_enabled
+                 a.last_seen, a.registered_at, a.os, a.capture_mode, a.ebpf_enabled, a.cluster
         ORDER BY a.last_seen DESC`)
 	if err != nil {
 		return util.InternalError(c, err)
@@ -46,7 +46,7 @@ func (h *AgentHandler) List(c *fiber.Ctx) error {
 		if err := rows.Scan(
 			&a.AgentID, &a.Hostname, &a.Version, &a.Interface,
 			&a.LastSeen, &a.RegisteredAt,
-			&a.OS, &a.CaptureMode, &ebpfInt, &a.FlowCount1h,
+			&a.OS, &a.CaptureMode, &ebpfInt, &a.Cluster, &a.FlowCount1h,
 		); err != nil {
 			slog.Warn("agents list: scan", "err", err)
 			continue
@@ -74,9 +74,9 @@ func (h *AgentHandler) Register(c *fiber.Ctx) error {
 		ebpfInt = 1
 	}
 	if err := h.CH.Exec(c.Context(),
-		`INSERT INTO agents (agent_id, hostname, version, interface, last_seen, registered_at, os, capture_mode, ebpf_enabled)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		req.AgentID, req.Hostname, req.Version, req.Interface, now, now, req.OS, req.CaptureMode, ebpfInt,
+		`INSERT INTO agents (agent_id, hostname, version, interface, last_seen, registered_at, os, capture_mode, ebpf_enabled, cluster)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		req.AgentID, req.Hostname, req.Version, req.Interface, now, now, req.OS, req.CaptureMode, ebpfInt, req.Cluster,
 	); err != nil {
 		return util.InternalError(c, err)
 	}
@@ -93,6 +93,7 @@ func (h *AgentHandler) Heartbeat(c *fiber.Ctx) error {
 		OS          string `json:"os"`
 		CaptureMode string `json:"capture_mode"`
 		EbpfEnabled bool   `json:"ebpf_enabled"`
+		Cluster     string `json:"cluster,omitempty"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "invalid body"})
@@ -109,9 +110,9 @@ func (h *AgentHandler) Heartbeat(c *fiber.Ctx) error {
 		ebpfInt = 1
 	}
 	if err := h.CH.Exec(c.Context(),
-		`INSERT INTO agents (agent_id, hostname, version, interface, last_seen, registered_at, os, capture_mode, ebpf_enabled)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		req.AgentID, req.Hostname, req.Version, req.Interface, now, now, req.OS, req.CaptureMode, ebpfInt,
+		`INSERT INTO agents (agent_id, hostname, version, interface, last_seen, registered_at, os, capture_mode, ebpf_enabled, cluster)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		req.AgentID, req.Hostname, req.Version, req.Interface, now, now, req.OS, req.CaptureMode, ebpfInt, req.Cluster,
 	); err != nil {
 		return util.InternalError(c, err)
 	}

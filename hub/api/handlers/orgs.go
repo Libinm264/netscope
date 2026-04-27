@@ -39,7 +39,8 @@ func (h *EnterpriseHandler) GetOrg(c *fiber.Ctx) error {
 	defer cancel()
 
 	rows, err := h.CH.Query(ctx,
-		`SELECT org_id, name, slug, agent_quota, retention_days, plan, created_at
+		`SELECT org_id, name, slug, agent_quota, retention_days, plan, created_at,
+		        otel_backend_url
 		 FROM organisations FINAL
 		 WHERE org_id = 'default'
 		 LIMIT 1`)
@@ -64,7 +65,7 @@ func (h *EnterpriseHandler) GetOrg(c *fiber.Ctx) error {
 	if err := rows.Scan(
 		&org.OrgID, &org.Name, &org.Slug,
 		&org.AgentQuota, &org.RetentionDays, &org.Plan,
-		&org.CreatedAt,
+		&org.CreatedAt, &org.OtelBackendURL,
 	); err != nil {
 		return util.InternalError(c, err)
 	}
@@ -88,9 +89,11 @@ func (h *EnterpriseHandler) UpdateOrg(c *fiber.Ctx) error {
 	defer cancel()
 
 	if err := h.CH.Exec(ctx,
-		`INSERT INTO organisations (org_id, name, slug, agent_quota, retention_days, plan, created_at)
-		 VALUES ('default', ?, 'default', ?, ?, 'community', now64())`,
-		req.Name, req.AgentQuota, req.RetentionDays,
+		`INSERT INTO organisations
+		 (org_id, name, slug, agent_quota, retention_days, plan, otel_backend_url, created_at, version)
+		 VALUES ('default', ?, 'default', ?, ?, 'community', ?, now64(),
+		         toUInt64(toUnixTimestamp64Milli(now64())))`,
+		req.Name, req.AgentQuota, req.RetentionDays, req.OtelBackendURL,
 	); err != nil {
 		return util.InternalError(c, err)
 	}

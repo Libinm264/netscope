@@ -24,6 +24,7 @@ import (
 	"github.com/netscope/hub-api/enterprise/sigma"
 	"github.com/netscope/hub-api/enterprise/sinks"
 	"github.com/netscope/hub-api/enterprise/sso"
+	"github.com/netscope/hub-api/enterprise/storage"
 	"github.com/netscope/hub-api/geoip"
 	"github.com/netscope/hub-api/handlers"
 	"github.com/netscope/hub-api/kafka"
@@ -376,6 +377,14 @@ func main() {
 	sigmaH := &handlers.SigmaHandler{CH: chClient, License: lic, Engine: sigmaEngine}
 	savedQueriesH := &handlers.SavedQueryHandler{CH: chClient, License: lic}
 
+	// ── Long-term storage exporter (S3/GCS) ───────────────────────────────────
+	storageExporter := storage.New(chClient)
+	if chClient != nil && lic.Plan == "enterprise" {
+		storageExporter.Start()
+		defer storageExporter.Stop()
+	}
+	storageH := &handlers.StorageHandler{CH: chClient, License: lic}
+
 	oidcH    := sso.NewOIDCHandler(chClient, sessionStore, lic,
 		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret)
 	samlH    := sso.NewSAMLHandler(chClient, sessionStore, lic,
@@ -443,6 +452,12 @@ func main() {
 	v1.Post(  "/saved-queries",              apiLimit,           savedQueriesH.Create)
 	v1.Patch( "/saved-queries/:id",          apiLimit,           savedQueriesH.Update)
 	v1.Delete("/saved-queries/:id",          apiLimit,           savedQueriesH.Delete)
+
+	// Long-term storage export config (Enterprise)
+	ent.Get(   "/storage/config",            apiLimit,           storageH.GetConfig)
+	ent.Put(   "/storage/config",            apiLimit, entAdmin, storageH.UpsertConfig)
+	ent.Delete("/storage/config",            apiLimit, entAdmin, storageH.DeleteConfig)
+	ent.Get(   "/storage/exports",           apiLimit,           storageH.ListExports)
 
 	// SCIM 2.0 — separate Bearer token auth (set SCIM_BEARER_TOKEN env var)
 	scimGroup := app.Group("/scim/v2", scimH.BearerAuth)
@@ -819,6 +834,42 @@ func runMigrations(ch *clickhouse.Client) error {
 		PARTITION BY toYYYYMM(fired_at)
 		ORDER BY (fired_at, rule_id)
 		TTL toDateTime(fired_at) + INTERVAL 30 DAY`,
+
+		// Phase 18: OTel backend URL on organisations (idempotent)
+		`ALTER TABLE organisations ADD COLUMN IF NOT EXISTS otel_backend_url String DEFAULT ''`,
+
+		// Phase 19: Cluster label on agents (idempotent)
+		`ALTER TABLE agents ADD COLUMN IF NOT EXISTS cluster LowCardinality(String) DEFAULT ''`,
+
+		// Phase 20: Long-term storage config (Enterprise S3/GCS export)
+		`CREATE TABLE IF NOT EXISTS storage_config (
+			provider    LowCardinality(String) DEFAULT 's3',
+			enabled     UInt8            DEFAULT 0,
+			bucket      String           DEFAULT '',
+			region      String           DEFAULT '',
+			endpoint    String           DEFAULT '',
+			access_key  String           DEFAULT '',
+			secret_key  String           DEFAULT '',
+			prefix      String           DEFAULT 'netscope/flows',
+			schedule    LowCardinality(String) DEFAULT 'hourly',
+			last_export DateTime64(3, 'UTC') DEFAULT toDateTime64(0, 3),
+			updated_at  DateTime64(3, 'UTC') DEFAULT now64(),
+			version     UInt64           DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY provider`,
+
+		// Phase 21: Storage export audit log
+		`CREATE TABLE IF NOT EXISTS storage_exports (
+			id          UUID    DEFAULT generateUUIDv4(),
+			window      String,
+			object_key  String  DEFAULT '',
+			row_count   UInt64  DEFAULT 0,
+			exported_at DateTime64(3, 'UTC') DEFAULT now64(),
+			error       String  DEFAULT ''
+		) ENGINE = MergeTree()
+		PARTITION BY toYYYYMM(exported_at)
+		ORDER BY exported_at
+		TTL toDateTime(exported_at) + INTERVAL 90 DAY`,
 
 		// Phase 17b: Seed the 5 built-in Community detection rules (idempotent)
 		`INSERT INTO sigma_rules (id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at, version)
