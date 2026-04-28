@@ -99,7 +99,7 @@ func (h *IncidentHandler) Get(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT id, title, severity, status, source, source_id, notes, external_ref, created_at, updated_at
-		 FROM incidents WHERE id = ? ORDER BY updated_at DESC LIMIT 1 LIMIT 1`, id)
+		 FROM incidents WHERE id = ? ORDER BY updated_at DESC LIMIT 1`, id)
 	if err != nil {
 		return util.InternalError(c, err)
 	}

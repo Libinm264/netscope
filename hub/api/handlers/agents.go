@@ -107,6 +107,22 @@ func (h *AgentHandler) Heartbeat(c *fiber.Ctx) error {
 	if req.AgentID == "" {
 		return c.Status(400).JSON(fiber.Map{"error": "agent_id is required"})
 	}
+
+	// Whitelist-validate enum fields to prevent junk data from cluttering the DB.
+	validCaptureMode := map[string]bool{"": true, "pcap": true, "ebpf": true}
+	if !validCaptureMode[req.CaptureMode] {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid capture_mode"})
+	}
+	validOS := map[string]bool{"": true, "linux": true, "darwin": true, "windows": true}
+	if !validOS[req.OS] {
+		return c.Status(400).JSON(fiber.Map{"error": "invalid os"})
+	}
+	const maxStrLen = 256
+	if len(req.Hostname) > maxStrLen || len(req.Cluster) > maxStrLen ||
+		len(req.Interface) > maxStrLen || len(req.Version) > 64 {
+		return c.Status(400).JSON(fiber.Map{"error": "field value too long"})
+	}
+
 	if h.CH == nil {
 		return c.Status(503).JSON(fiber.Map{"error": "ClickHouse not available"})
 	}

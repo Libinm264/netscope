@@ -295,7 +295,7 @@ func main() {
 
 	// ── Public (no auth) ──────────────────────────────────────────────────────
 	app.Post("/api/v1/agents/enroll", apiLimit, enrollH.Enroll)
-	app.Get("/install", enrollH.InstallScript)
+	app.Get("/install",              apiLimit, enrollH.InstallScript)
 
 	v1.Post("/ingest",                    ingestLimit,                         flowH.Ingest)
 	v1.Get("/flows",                      apiLimit,                            flowH.Query)
@@ -507,10 +507,11 @@ func main() {
 	ent.Get(   "/sigma/matches",             apiLimit,           sigmaH.ListMatches)
 
 	// Saved flow queries (Community: max 10; Enterprise: unlimited)
-	v1.Get(   "/saved-queries",              apiLimit,           savedQueriesH.List)
-	v1.Post(  "/saved-queries",              apiLimit,           savedQueriesH.Create)
-	v1.Patch( "/saved-queries/:id",          apiLimit,           savedQueriesH.Update)
-	v1.Delete("/saved-queries/:id",          apiLimit,           savedQueriesH.Delete)
+	// Reads are viewer-safe; writes require admin to prevent unprivileged query injection.
+	v1.Get(   "/saved-queries",              apiLimit,                            savedQueriesH.List)
+	v1.Post(  "/saved-queries",              apiLimit, middleware.RequireAdmin(), savedQueriesH.Create)
+	v1.Patch( "/saved-queries/:id",          apiLimit, middleware.RequireAdmin(), savedQueriesH.Update)
+	v1.Delete("/saved-queries/:id",          apiLimit, middleware.RequireAdmin(), savedQueriesH.Delete)
 
 	// Long-term storage export config (Enterprise)
 	ent.Get(   "/storage/config",            apiLimit,           storageH.GetConfig)
@@ -519,10 +520,10 @@ func main() {
 	ent.Get(   "/storage/exports",           apiLimit,           storageH.ListExports)
 
 	// ── v0.5: Cloud VPC Flow Sources (Community: AWS; Enterprise: GCP + Azure)
-	v1.Get(   "/cloud/sources",              apiLimit,           cloudH.List)
-	v1.Post(  "/cloud/sources",              apiLimit,           cloudH.Create)
-	v1.Patch( "/cloud/sources/:id",          apiLimit, entAdmin, cloudH.Update)
-	v1.Delete("/cloud/sources/:id",          apiLimit, entAdmin, cloudH.Delete)
+	v1.Get(   "/cloud/sources",              apiLimit,                            cloudH.List)
+	v1.Post(  "/cloud/sources",              apiLimit, middleware.RequireAdmin(), cloudH.Create)
+	v1.Patch( "/cloud/sources/:id",          apiLimit, entAdmin,                 cloudH.Update)
+	v1.Delete("/cloud/sources/:id",          apiLimit, entAdmin,                 cloudH.Delete)
 	v1.Get(   "/cloud/sources/:id/log",      apiLimit,           cloudH.PullLog)
 
 	// ── v0.5: Multi-Cluster Fleet Overview (Community)
@@ -660,9 +661,13 @@ func runMigrations(ch *clickhouse.Client) error {
 			created_at DateTime64(3, 'UTC') DEFAULT now64(),
 			expires_at DateTime64(3, 'UTC'),
 			used_count UInt32  DEFAULT 0,
+			max_uses   UInt32  DEFAULT 0,
 			revoked    UInt8   DEFAULT 0
 		) ENGINE = ReplacingMergeTree(created_at)
 		ORDER BY id`,
+
+		// v0.7: add max_uses cap to existing deployments
+		`ALTER TABLE enrollment_tokens ADD COLUMN IF NOT EXISTS max_uses UInt32 DEFAULT 0`,
 
 		// Phase 6: TLS certificate fleet
 		`CREATE TABLE IF NOT EXISTS tls_certs (

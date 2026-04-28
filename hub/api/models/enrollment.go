@@ -2,7 +2,7 @@ package models
 
 import "time"
 
-// EnrollmentToken is a one-time-use token an admin generates to authorise
+// EnrollmentToken is a limited-use token an admin generates to authorise
 // a new agent to join the fleet without exposing the bootstrap API key.
 type EnrollmentToken struct {
 	ID        string    `json:"id"`
@@ -10,7 +10,8 @@ type EnrollmentToken struct {
 	Token     string    `json:"token"`      // the secret UUID shown once
 	CreatedAt time.Time `json:"created_at"`
 	ExpiresAt time.Time `json:"expires_at"`
-	UsedCount int       `json:"used_count"` // 0 = unused
+	UsedCount int       `json:"used_count"` // how many agents have enrolled
+	MaxUses   int       `json:"max_uses"`   // 0 = unlimited, >0 = cap
 	Revoked   bool      `json:"revoked"`
 }
 
@@ -18,6 +19,7 @@ type EnrollmentToken struct {
 type CreateEnrollmentTokenRequest struct {
 	Name      string `json:"name"`
 	ExpiresIn string `json:"expires_in"` // "24h" | "7d" | "30d" | "never"
+	MaxUses   int    `json:"max_uses"`   // 0 = unlimited; set to 1 for single-use
 }
 
 // EnrollRequest is posted by an agent to /api/v1/agents/enroll.

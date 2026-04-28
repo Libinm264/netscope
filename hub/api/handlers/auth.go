@@ -272,6 +272,12 @@ type setPasswordRequest struct {
 }
 
 // SetPassword handles PUT /api/v1/enterprise/auth/password
+//
+// Two flows:
+//  1. Self-service: no user_id in body → caller must have a valid session cookie.
+//     Optionally verifies old_password before writing the new hash.
+//  2. Admin reset: user_id provided → caller must have a valid admin/owner session
+//     (prevents unauthenticated password takeover via the user_id field).
 func (h *AuthHandler) SetPassword(c *fiber.Ctx) error {
 	if h.CH == nil {
 		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "database unavailable"})
@@ -281,26 +287,28 @@ func (h *AuthHandler) SetPassword(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil || req.Password == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "password is required"})
 	}
-	if len(req.Password) < 8 {
+	if len(req.Password) < 12 {
 		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
-			"error": "password must be at least 8 characters",
+			"error": "password must be at least 12 characters",
 		})
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	targetUserID := req.UserID
+	// Always require a valid session — whether changing own password or another user's.
+	token := c.Cookies(sessionCookieName)
+	if token == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "not authenticated"})
+	}
+	sess, ok := h.Sessions.Get(token)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "session expired"})
+	}
 
+	targetUserID := req.UserID
 	if targetUserID == "" {
-		token := c.Cookies(sessionCookieName)
-		if token == "" {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "not authenticated"})
-		}
-		sess, ok := h.Sessions.Get(token)
-		if !ok {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "session expired"})
-		}
+		// Self-service: change own password.
 		targetUserID = sess.UserID
 
 		if req.OldPassword != "" {
@@ -320,6 +328,16 @@ func (h *AuthHandler) SetPassword(c *fiber.Ctx) error {
 					return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "current password is incorrect"})
 				}
 			}
+		}
+	} else {
+		// Admin reset: setting another user's password requires owner or admin role.
+		switch sess.Role {
+		case "owner", "admin":
+			// allowed
+		default:
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "forbidden: admin role required to reset another user's password",
+			})
 		}
 	}
 

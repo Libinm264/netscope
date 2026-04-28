@@ -27,7 +27,7 @@ func (h *EnrollmentHandler) ListTokens(c *fiber.Ctx) error {
 	}
 
 	rows, err := h.CH.Query(c.Context(),
-		`SELECT id, name, token, created_at, expires_at, used_count, revoked
+		`SELECT id, name, token, created_at, expires_at, used_count, max_uses, revoked
 		 FROM enrollment_tokens
 		 ORDER BY created_at DESC`)
 	if err != nil {
@@ -41,7 +41,7 @@ func (h *EnrollmentHandler) ListTokens(c *fiber.Ctx) error {
 		var revokedInt uint8
 		if err := rows.Scan(
 			&t.ID, &t.Name, &t.Token,
-			&t.CreatedAt, &t.ExpiresAt, &t.UsedCount, &revokedInt,
+			&t.CreatedAt, &t.ExpiresAt, &t.UsedCount, &t.MaxUses, &revokedInt,
 		); err != nil {
 			continue
 		}
@@ -72,15 +72,20 @@ func (h *EnrollmentHandler) CreateToken(c *fiber.Ctx) error {
 	token := uuid.New().String()
 	now := time.Now().UTC()
 
+	maxUses := req.MaxUses
+	if maxUses < 0 {
+		maxUses = 0
+	}
+
 	if err := h.CH.Exec(c.Context(),
-		`INSERT INTO enrollment_tokens (id, name, token, created_at, expires_at, used_count, revoked)
-		 VALUES (?, ?, ?, ?, ?, 0, 0)`,
-		id, req.Name, token, now, expiresAt,
+		`INSERT INTO enrollment_tokens (id, name, token, created_at, expires_at, used_count, max_uses, revoked)
+		 VALUES (?, ?, ?, ?, ?, 0, ?, 0)`,
+		id, req.Name, token, now, expiresAt, maxUses,
 	); err != nil {
 		return util.InternalError(c, err)
 	}
 
-	slog.Info("enrollment token created", "name", req.Name, "id", id)
+	slog.Info("enrollment token created", "name", req.Name, "id", id, "max_uses", maxUses)
 	return c.Status(201).JSON(models.EnrollmentToken{
 		ID: id, Name: req.Name, Token: token,
 		CreatedAt: now, ExpiresAt: expiresAt,
@@ -95,9 +100,10 @@ func (h *EnrollmentHandler) RevokeToken(c *fiber.Ctx) error {
 	id := c.Params("id")
 	// ClickHouse MergeTree: we INSERT a new row with revoked=1; ReplacingMergeTree picks latest
 	if err := h.CH.Exec(c.Context(),
-		`INSERT INTO enrollment_tokens (id, name, token, created_at, expires_at, used_count, revoked)
-		 SELECT id, name, token, created_at, expires_at, used_count, 1
-		 FROM enrollment_tokens WHERE id = ? LIMIT 1`, id,
+		`INSERT INTO enrollment_tokens (id, name, token, created_at, expires_at, used_count, max_uses, revoked)
+		 SELECT id, name, token, created_at, expires_at, used_count, max_uses, 1
+		 FROM enrollment_tokens WHERE id = ?
+		 ORDER BY created_at DESC LIMIT 1`, id,
 	); err != nil {
 		return util.InternalError(c, err)
 	}
@@ -123,7 +129,7 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 	// which naturally returns the most-recent version of the row (handling the
 	// revocation case where a new row with revoked=1 is inserted).
 	rows, err := h.CH.Query(c.Context(),
-		`SELECT id, expires_at, revoked FROM enrollment_tokens
+		`SELECT id, expires_at, used_count, max_uses, revoked FROM enrollment_tokens
 		 WHERE token = ? ORDER BY created_at DESC LIMIT 1`, req.Token)
 	if err != nil {
 		return util.InternalError(c, err)
@@ -136,8 +142,9 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 	}
 	var tokenID string
 	var expiresAt time.Time
+	var usedCount, maxUses uint32
 	var revokedInt uint8
-	if err := rows.Scan(&tokenID, &expiresAt, &revokedInt); err != nil {
+	if err := rows.Scan(&tokenID, &expiresAt, &usedCount, &maxUses, &revokedInt); err != nil {
 		return util.InternalError(c, err)
 	}
 	rows.Close()
@@ -147,6 +154,10 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 	}
 	if time.Now().After(expiresAt) {
 		return c.Status(401).JSON(fiber.Map{"error": "enrollment token has expired"})
+	}
+	// Enforce max_uses cap (0 = unlimited).
+	if maxUses > 0 && usedCount >= maxUses {
+		return c.Status(401).JSON(fiber.Map{"error": "enrollment token usage limit reached"})
 	}
 
 	// Register the agent
@@ -162,8 +173,8 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 
 	// Increment used_count (insert updated row; ReplacingMergeTree keeps latest)
 	_ = h.CH.Exec(c.Context(),
-		`INSERT INTO enrollment_tokens (id, name, token, created_at, expires_at, used_count, revoked)
-		 SELECT id, name, token, created_at, expires_at, used_count + 1, revoked
+		`INSERT INTO enrollment_tokens (id, name, token, created_at, expires_at, used_count, max_uses, revoked)
+		 SELECT id, name, token, created_at, expires_at, used_count + 1, max_uses, revoked
 		 FROM enrollment_tokens WHERE id = ?
 		 ORDER BY created_at DESC LIMIT 1`, tokenID)
 
