@@ -1,4 +1,9 @@
-# BPF kernel programs — compiled to bpfel-unknown-none, NOT a workspace member.
+# BPF kernel programs — compiled to bpfel-unknown-none.
+# Declared as its own workspace so Cargo does not merge it into the agent
+# workspace (which targets the host). The [workspace] table must come before
+# [package] to be recognised correctly.
+[workspace]
+
 [package]
 name = "netscope-ebpf"
 version = "0.5.0"
