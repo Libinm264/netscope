@@ -42,14 +42,8 @@ fn build_ebpf(release: bool) -> Result<()> {
 
     println!("Building BPF programs in {}", ebpf_dir.display());
 
-    // Ensure the nightly toolchain and bpf target are present
-    run(
-        Command::new("rustup")
-            .args(["target", "add", "bpfel-unknown-none"])
-            .current_dir(&ebpf_dir),
-    )
-    .context("Failed to add bpfel-unknown-none target")?;
-
+    // bpfel-unknown-none is a Tier 3 target — no prebuilt rust-std exists.
+    // -Z build-std=core (in ebpf/.cargo/config.toml) compiles core from rust-src.
     let mut cmd = Command::new("cargo");
     cmd.current_dir(&ebpf_dir)
         .env("CARGO_CFG_BPF", "1")
