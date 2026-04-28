@@ -39,7 +39,7 @@ func (h *AgentHandler) List(c *fiber.Ctx) error {
             argMax(a.capture_mode, a.last_seen) AS capture_mode,
             argMax(a.ebpf_enabled, a.last_seen) AS ebpf_enabled,
             argMax(a.cluster,      a.last_seen) AS cluster,
-            coalesce(fc.flow_count_1h, 0)       AS flow_count_1h
+            coalesce(any(fc.flow_count_1h), 0)  AS flow_count_1h
         FROM agents AS a
         LEFT JOIN (
             SELECT agent_id, count() AS flow_count_1h
