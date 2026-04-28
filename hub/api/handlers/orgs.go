@@ -41,9 +41,9 @@ func (h *EnterpriseHandler) GetOrg(c *fiber.Ctx) error {
 	rows, err := h.CH.Query(ctx,
 		`SELECT org_id, name, slug, agent_quota, retention_days, plan, created_at,
 		        otel_backend_url
-		 FROM organisations FINAL
+		 FROM organisations
 		 WHERE org_id = 'default'
-		 LIMIT 1`)
+		 ORDER BY version DESC LIMIT 1`)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
@@ -111,10 +111,18 @@ func (h *EnterpriseHandler) ListMembers(c *fiber.Ctx) error {
 	defer cancel()
 
 	rows, err := h.CH.Query(ctx,
-		`SELECT user_id, org_id, email, display_name, role,
-		        sso_provider, is_active, created_at, last_seen
-		 FROM org_members FINAL
-		 WHERE org_id = 'default' AND is_active = 1
+		`SELECT user_id, org_id,
+		        argMax(email, version)        AS email,
+		        argMax(display_name, version) AS display_name,
+		        argMax(role, version)         AS role,
+		        argMax(sso_provider, version) AS sso_provider,
+		        argMax(is_active, version)    AS is_active,
+		        min(created_at)               AS created_at,
+		        max(last_seen)                AS last_seen
+		 FROM org_members
+		 WHERE org_id = 'default'
+		 GROUP BY user_id, org_id
+		 HAVING is_active = 1
 		 ORDER BY created_at ASC`)
 	if err != nil {
 		return util.InternalError(c, err)
@@ -249,7 +257,8 @@ func (h *EnterpriseHandler) UpdateMemberRole(c *fiber.Ctx) error {
 	// Re-insert the row with updated role — ReplacingMergeTree will deduplicate.
 	rows, err := h.CH.Query(ctx,
 		`SELECT email, display_name, sso_provider, sso_subject, created_at
-		 FROM org_members FINAL WHERE user_id = ? AND org_id = 'default' LIMIT 1`, userID)
+		 FROM org_members WHERE user_id = ? AND org_id = 'default'
+		 ORDER BY version DESC LIMIT 1`, userID)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
@@ -295,7 +304,8 @@ func (h *EnterpriseHandler) RemoveMember(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT email, display_name, role, sso_provider, sso_subject, created_at
-		 FROM org_members FINAL WHERE user_id = ? AND org_id = 'default' LIMIT 1`, userID)
+		 FROM org_members WHERE user_id = ? AND org_id = 'default'
+		 ORDER BY version DESC LIMIT 1`, userID)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
@@ -333,8 +343,8 @@ func (h *EnterpriseHandler) ListTeams(c *fiber.Ctx) error {
 	rows, err := h.CH.Query(ctx,
 		`SELECT t.team_id, t.org_id, t.name, t.description, t.created_at,
 		        count(tm.user_id) AS member_count
-		 FROM teams t FINAL
-		 LEFT JOIN team_members tm FINAL ON t.team_id = tm.team_id
+		 FROM teams t
+		 LEFT JOIN team_members tm ON t.team_id = tm.team_id
 		 WHERE t.org_id = 'default'
 		 GROUP BY t.team_id, t.org_id, t.name, t.description, t.created_at
 		 ORDER BY t.created_at ASC`)
@@ -411,8 +421,15 @@ func (h *EnterpriseHandler) ListTeamMembers(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT tm.user_id, tm.added_at, m.email, m.display_name, m.role
-		 FROM team_members tm FINAL
-		 JOIN org_members m FINAL ON tm.user_id = m.user_id
+		 FROM team_members tm
+		 JOIN (
+		   SELECT user_id,
+		          argMax(email, version)     AS email,
+		          argMax(display_name, version) AS display_name,
+		          argMax(role, version)      AS role,
+		          argMax(is_active, version) AS is_active
+		   FROM org_members GROUP BY user_id
+		 ) m ON tm.user_id = m.user_id
 		 WHERE tm.team_id = ? AND m.is_active = 1`, teamID)
 	if err != nil {
 		return util.InternalError(c, err)
@@ -489,7 +506,7 @@ func (h *EnterpriseHandler) GetSSOConfig(c *fiber.Ctx) error {
 	rows, err := h.CH.Query(ctx,
 		`SELECT provider, enabled, entity_id, sso_url, certificate,
 		        issuer_url, client_id, updated_at
-		 FROM sso_configs FINAL
+		 FROM sso_configs
 		 WHERE org_id = 'default'
 		 ORDER BY updated_at DESC
 		 LIMIT 1`)

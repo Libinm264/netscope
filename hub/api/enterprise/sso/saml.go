@@ -131,7 +131,7 @@ func (h *SAMLHandler) consumeRelayState(state string) (pendingState, bool) {
 func (h *SAMLHandler) loadSAMLConfig(ctx context.Context) (entityID, ssoURL, cert string, enabled bool, err error) {
 	rows, err := h.CH.Query(ctx,
 		`SELECT entity_id, sso_url, certificate, enabled
-		 FROM sso_configs FINAL
+		 FROM sso_configs
 		 WHERE org_id = 'default' AND provider = 'saml'
 		 ORDER BY updated_at DESC
 		 LIMIT 1`)
@@ -405,10 +405,10 @@ func extractSAMLClaims(a *cssaml.Assertion) (email, displayName string) {
 func (h *SAMLHandler) upsertSAMLUser(ctx context.Context, nameID, email, displayName string) (userID, role string, err error) {
 	// Look up by SAML NameID first.
 	rows, qErr := h.CH.Query(ctx,
-		`SELECT user_id, role FROM org_members FINAL
+		`SELECT user_id, role FROM org_members
 		 WHERE org_id = 'default' AND sso_provider = 'saml' AND sso_subject = ?
 		   AND is_active = 1
-		 LIMIT 1`, nameID)
+		 ORDER BY last_seen DESC LIMIT 1`, nameID)
 	if qErr == nil {
 		if rows.Next() {
 			_ = rows.Scan(&userID, &role)
@@ -419,9 +419,9 @@ func (h *SAMLHandler) upsertSAMLUser(ctx context.Context, nameID, email, display
 	// Fall back to email match.
 	if userID == "" {
 		rows2, qErr2 := h.CH.Query(ctx,
-			`SELECT user_id, role FROM org_members FINAL
+			`SELECT user_id, role FROM org_members
 			 WHERE org_id = 'default' AND email = ? AND is_active = 1
-			 LIMIT 1`, email)
+			 ORDER BY last_seen DESC LIMIT 1`, email)
 		if qErr2 == nil {
 			if rows2.Next() {
 				_ = rows2.Scan(&userID, &role)

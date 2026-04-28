@@ -152,7 +152,7 @@ func (d *Dispatcher) dispatch() {
 func (d *Dispatcher) loadConfigs(ctx context.Context) ([]SinkConfig, error) {
 	rows, err := d.ch.Query(ctx,
 		`SELECT sink_type, enabled, config, last_shipped, updated_at
-		 FROM integrations_config FINAL
+		 FROM integrations_config
 		 ORDER BY sink_type`)
 	if err != nil {
 		return nil, err

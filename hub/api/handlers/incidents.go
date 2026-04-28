@@ -57,16 +57,7 @@ func (h *IncidentHandler) List(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		"SELECT id, title, severity, status, source, source_id, notes, external_ref, created_at, updated_at "+
-			"FROM incidents FINAL WHERE "+where+" ORDER BY created_at DESC LIMIT "+
-			string(rune('0'+limit/100))+strings.Repeat("0", 0), // use Sprintf instead
-		args...,
-	)
-	// Re-query with proper limit formatting.
-	rows.Close()
-	rows, err = h.CH.Query(ctx,
-		"SELECT id, title, severity, status, source, source_id, notes, external_ref, created_at, updated_at "+
-			"FROM incidents FINAL WHERE "+where+
-			" ORDER BY created_at DESC LIMIT ?",
+			"FROM incidents WHERE "+where+" ORDER BY created_at DESC LIMIT ?",
 		append(args, limit)...,
 	)
 	if err != nil {
@@ -108,7 +99,7 @@ func (h *IncidentHandler) Get(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT id, title, severity, status, source, source_id, notes, external_ref, created_at, updated_at
-		 FROM incidents FINAL WHERE id = ? LIMIT 1`, id)
+		 FROM incidents WHERE id = ? ORDER BY updated_at DESC LIMIT 1 LIMIT 1`, id)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
@@ -159,7 +150,7 @@ func (h *IncidentHandler) updateStatus(c *fiber.Ctx, newStatus string) error {
 		 SELECT id, title, severity, ?, source, source_id,
 		        if(? != '', concat(notes, '\n[', formatDateTime(now64(),'%Y-%m-%d %H:%M'), '] ', ?), notes),
 		        external_ref, created_at, ?, toUInt64(toUnixTimestamp64Milli(now64()))
-		 FROM incidents FINAL WHERE id = ?`,
+		 FROM incidents WHERE id = ? ORDER BY updated_at DESC LIMIT 1`,
 		newStatus, body.Note, body.Note, now, id,
 	); err != nil {
 		return util.InternalError(c, err)
@@ -194,7 +185,7 @@ func (h *IncidentHandler) AddNote(c *fiber.Ctx) error {
 		 SELECT id, title, severity, status, source, source_id,
 		        concat(notes, '\n[', formatDateTime(now64(),'%Y-%m-%d %H:%M'), '] ', ?),
 		        external_ref, created_at, ?, toUInt64(toUnixTimestamp64Milli(now64()))
-		 FROM incidents FINAL WHERE id = ?`,
+		 FROM incidents WHERE id = ? ORDER BY updated_at DESC LIMIT 1`,
 		body.Note, now, id,
 	); err != nil {
 		return util.InternalError(c, err)
@@ -217,7 +208,7 @@ func (h *IncidentHandler) ListWorkflowConfigs(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT integration, enabled, config, updated_at
-		 FROM incident_workflow_config FINAL
+		 FROM incident_workflow_config
 		 ORDER BY integration`)
 	if err != nil {
 		return util.InternalError(c, err)
@@ -303,7 +294,8 @@ func (h *IncidentHandler) DeleteWorkflowConfig(c *fiber.Ctx) error {
 	_ = h.CH.Exec(ctx,
 		`INSERT INTO incident_workflow_config (integration, enabled, config, updated_at, version)
 		 SELECT integration, 0, config, ?, ?
-		 FROM incident_workflow_config FINAL WHERE integration = ?`,
+		 FROM incident_workflow_config WHERE integration = ?
+		 ORDER BY updated_at DESC LIMIT 1`,
 		now, now.UnixMilli()+1, integration,
 	)
 	return c.JSON(fiber.Map{"ok": true})
@@ -359,7 +351,7 @@ func restoreRedactedFields(ctx context.Context, ch *clickhouse.Client, integrati
 		return newCfg
 	}
 
-	rows, _ := ch.Query(ctx, `SELECT config FROM incident_workflow_config FINAL WHERE integration = ? LIMIT 1`, integration)
+	rows, _ := ch.Query(ctx, `SELECT config FROM incident_workflow_config WHERE integration = ? ORDER BY updated_at DESC LIMIT 1`, integration)
 	if rows == nil {
 		return newCfg
 	}

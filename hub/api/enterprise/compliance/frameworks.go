@@ -179,7 +179,14 @@ var soc2Checks = []checkDef{
 		description: "Lists all agent registrations and heartbeat gaps (offline > 1h) as change-management evidence.",
 		query: `SELECT agent_id, hostname, version, registered_at, last_seen,
 			       if(last_seen < now() - INTERVAL 1 HOUR, 'OFFLINE', 'ONLINE') AS status
-			FROM agents FINAL
+			FROM (
+			  SELECT agent_id,
+			         argMax(hostname, last_seen) AS hostname,
+			         argMax(version, last_seen)  AS version,
+			         min(registered_at)          AS registered_at,
+			         max(last_seen)               AS last_seen
+			  FROM agents GROUP BY agent_id
+			)
 			WHERE registered_at >= ? OR last_seen >= ?
 			ORDER BY registered_at DESC`,
 		columns:  []string{"agent_id", "hostname", "version", "registered_at", "last_seen", "status"},
@@ -273,7 +280,7 @@ var hipaaChecks = []checkDef{
 		name:        "§164.308(a)(1) — Workforce Access Review",
 		description: "Lists all active org members and their roles for workforce authorisation review.",
 		query: `SELECT email, role, joined_at, last_seen
-			FROM org_members FINAL
+			FROM org_members
 			WHERE org_id = 'default' AND status = 'active' AND joined_at >= ?
 			ORDER BY joined_at DESC`,
 		columns:  []string{"email", "role", "joined_at", "last_seen"},
@@ -283,7 +290,7 @@ var hipaaChecks = []checkDef{
 		name:        "§164.312(a)(1) — Unique User ID / Access",
 		description: "Flags accounts with no recent login (> 90 days) — potential orphan accounts.",
 		query: `SELECT email, role, last_seen
-			FROM org_members FINAL
+			FROM org_members
 			WHERE org_id = 'default' AND status = 'active'
 			  AND last_seen < now() - INTERVAL 90 DAY
 			ORDER BY last_seen ASC LIMIT 50`,

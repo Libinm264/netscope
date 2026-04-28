@@ -164,7 +164,8 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 	_ = h.CH.Exec(c.Context(),
 		`INSERT INTO enrollment_tokens (id, name, token, created_at, expires_at, used_count, revoked)
 		 SELECT id, name, token, created_at, expires_at, used_count + 1, revoked
-		 FROM enrollment_tokens FINAL WHERE id = ?`, tokenID)
+		 FROM enrollment_tokens WHERE id = ?
+		 ORDER BY created_at DESC LIMIT 1`, tokenID)
 
 	// Issue a scoped viewer token for this agent — never hand out the global admin key.
 	agentTokenID := uuid.New().String()
@@ -237,8 +238,14 @@ case "$ARCH" in
 esac
 
 echo "==> Downloading netscope-agent ($OS/$ARCH)..."
-curl -sSfL "https://github.com/netscope/netscope/releases/latest/download/netscope-agent-$OS-$ARCH" \
-  -o /usr/local/bin/netscope-agent
+DOWNLOAD_URL="https://github.com/Libinm264/netscope/releases/latest/download/netscope-agent-$OS-$ARCH"
+if ! curl -sSfL "$DOWNLOAD_URL" -o /usr/local/bin/netscope-agent 2>/dev/null; then
+  echo "ERROR: Could not download agent binary from:"
+  echo "       $DOWNLOAD_URL"
+  echo "       Please download manually from https://github.com/Libinm264/netscope/releases"
+  echo "       and place it at /usr/local/bin/netscope-agent"
+  exit 1
+fi
 chmod +x /usr/local/bin/netscope-agent
 
 echo "==> Starting capture on $INTERFACE..."

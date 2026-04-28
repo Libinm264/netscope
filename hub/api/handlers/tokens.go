@@ -25,7 +25,7 @@ func (h *TokenHandler) List(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(c.Context(),
 		`SELECT id, name, role, token, created_at, last_used, revoked
-		 FROM api_tokens FINAL
+		 FROM api_tokens
 		 ORDER BY created_at DESC`)
 	if err != nil {
 		return util.InternalError(c, err)
@@ -95,7 +95,8 @@ func (h *TokenHandler) Revoke(c *fiber.Ctx) error {
 	if err := h.CH.Exec(c.Context(),
 		`INSERT INTO api_tokens (id, name, role, token, created_at, last_used, revoked)
 		 SELECT id, name, role, token, created_at, last_used, 1
-		 FROM api_tokens FINAL WHERE id = ? LIMIT 1`, id,
+		 FROM api_tokens WHERE id = ?
+		 ORDER BY last_used DESC LIMIT 1`, id,
 	); err != nil {
 		return util.InternalError(c, err)
 	}

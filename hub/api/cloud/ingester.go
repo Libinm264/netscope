@@ -96,7 +96,7 @@ type cloudSource struct {
 func (ing *Ingester) loadSources(ctx context.Context) ([]cloudSource, error) {
 	rows, err := ing.ch.Query(ctx,
 		`SELECT id, provider, name, config, last_pulled
-		 FROM cloud_flow_sources FINAL
+		 FROM cloud_flow_sources
 		 WHERE enabled = 1`)
 	if err != nil {
 		return nil, err
@@ -155,8 +155,8 @@ func (ing *Ingester) pullSource(ctx context.Context, src cloudSource) {
 		 (id, provider, name, config, enabled, last_pulled, error_msg, created_at, version)
 		 SELECT id, provider, name, config, enabled, ?, ?, created_at,
 		        toUInt64(toUnixTimestamp64Milli(now64()))
-		 FROM cloud_flow_sources FINAL
-		 WHERE id = ?`,
+		 FROM cloud_flow_sources
+		 WHERE id = ? ORDER BY created_at DESC LIMIT 1`,
 		now, result.err, src.ID,
 	)
 }

@@ -42,7 +42,7 @@ func (h *ComplianceReportHandler) List(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT id, name, framework, format, schedule, recipients, enabled, last_sent, created_at
-		 FROM compliance_report_schedules FINAL
+		 FROM compliance_report_schedules
 		 ORDER BY created_at DESC`)
 	if err != nil {
 		return util.InternalError(c, err)
@@ -160,7 +160,7 @@ func (h *ComplianceReportHandler) Update(c *fiber.Ctx) error {
 	// Load current.
 	rows, err := h.CH.Query(ctx,
 		`SELECT id, name, framework, format, schedule, recipients, enabled, last_sent, created_at
-		 FROM compliance_report_schedules FINAL WHERE id = ? LIMIT 1`, id)
+		 FROM compliance_report_schedules WHERE id = ? ORDER BY created_at DESC LIMIT 1`, id)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
@@ -231,7 +231,8 @@ func (h *ComplianceReportHandler) Delete(c *fiber.Ctx) error {
 		`INSERT INTO compliance_report_schedules
 		 (id, name, framework, format, schedule, recipients, enabled, last_sent, created_at, version)
 		 SELECT id, name, framework, format, schedule, recipients, 0, last_sent, created_at, ?
-		 FROM compliance_report_schedules FINAL WHERE id = ?`,
+		 FROM compliance_report_schedules WHERE id = ?
+		 ORDER BY created_at DESC LIMIT 1`,
 		now.UnixMilli()+1, id,
 	)
 	return c.JSON(fiber.Map{"ok": true})
@@ -254,7 +255,7 @@ func (h *ComplianceReportHandler) Run(c *fiber.Ctx) error {
 
 	// Load schedule.
 	rows, err := h.CH.Query(ctx,
-		`SELECT framework, format, schedule FROM compliance_report_schedules FINAL WHERE id = ? LIMIT 1`, id)
+		`SELECT framework, format, schedule FROM compliance_report_schedules WHERE id = ? ORDER BY created_at DESC LIMIT 1`, id)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
@@ -352,7 +353,7 @@ func (h *ComplianceReportHandler) Preview(c *fiber.Ctx) error {
 	defer cancel()
 
 	rows, err := h.CH.Query(ctx,
-		`SELECT framework, format, schedule FROM compliance_report_schedules FINAL WHERE id = ? LIMIT 1`, id)
+		`SELECT framework, format, schedule FROM compliance_report_schedules WHERE id = ? ORDER BY created_at DESC LIMIT 1`, id)
 	if err != nil {
 		return util.InternalError(c, err)
 	}

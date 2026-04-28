@@ -173,8 +173,9 @@ func (h *InviteHandler) ForgotPassword(c *fiber.Ctx) error {
 	// Find user — but always return 200 to avoid email enumeration.
 	var userID, displayName string
 	rows, err := h.CH.Query(ctx,
-		`SELECT user_id, display_name FROM org_members FINAL
-		 WHERE org_id = 'default' AND email = ? AND is_active = 1 LIMIT 1`, req.Email)
+		`SELECT user_id, display_name FROM org_members
+		 WHERE org_id = 'default' AND email = ? AND is_active = 1
+		 ORDER BY last_seen DESC LIMIT 1`, req.Email)
 	if err == nil {
 		if rows.Next() {
 			_ = rows.Scan(&userID, &displayName)

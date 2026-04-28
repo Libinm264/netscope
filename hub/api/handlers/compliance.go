@@ -57,7 +57,7 @@ func (h *ComplianceHandler) Summary(c *fiber.Ctx) error {
 
 	// TLS issues: only count certs that are actually expired
 	certRows, err := h.CH.Query(c.Context(), `
-		SELECT count() FROM tls_certs FINAL
+		SELECT count() FROM tls_certs
 		WHERE expired = 1
 	`)
 	tlsIssues := 0
@@ -155,7 +155,7 @@ func (h *ComplianceHandler) TLSAudit(c *fiber.Ctx) error {
 	rows, err := h.CH.Query(c.Context(), `
 		SELECT fingerprint, cn, issuer, expiry, expired,
 		       hostname, dst_ip, last_seen
-		FROM tls_certs FINAL
+		FROM tls_certs
 		ORDER BY expiry ASC
 		LIMIT 500
 	`)

@@ -161,7 +161,7 @@ func (e *Engine) evaluate() {
 func (e *Engine) loadRules(ctx context.Context) ([]Rule, error) {
 	rows, err := e.ch.Query(ctx,
 		`SELECT id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at
-		 FROM sigma_rules FINAL
+		 FROM sigma_rules
 		 WHERE enabled = 1
 		 ORDER BY created_at`)
 	if err != nil {

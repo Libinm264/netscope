@@ -29,7 +29,7 @@ func (h *CertHandler) List(c *fiber.Ctx) error {
 			fingerprint, cn, issuer, expiry, expired,
 			sans, agent_id, hostname, src_ip, dst_ip,
 			first_seen, last_seen
-		FROM tls_certs FINAL
+		FROM tls_certs
 		ORDER BY expiry ASC
 		LIMIT 500
 	`)

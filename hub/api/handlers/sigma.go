@@ -33,7 +33,7 @@ func (h *SigmaHandler) ListRules(c *fiber.Ctx) error {
 	ctx := c.Context()
 	rows, err := h.CH.Query(ctx,
 		`SELECT id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at
-		 FROM sigma_rules FINAL
+		 FROM sigma_rules
 		 ORDER BY builtin DESC, created_at`)
 	if err != nil {
 		return util.InternalError(c, err)
@@ -294,7 +294,7 @@ func (h *SigmaHandler) planStr() string {
 func (h *SigmaHandler) loadRule(ctx context.Context, id string) (sigma.Rule, error) {
 	rows, err := h.CH.Query(ctx,
 		`SELECT id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at
-		 FROM sigma_rules FINAL
+		 FROM sigma_rules
 		 WHERE id = ? LIMIT 1`, id)
 	if err != nil {
 		return sigma.Rule{}, err

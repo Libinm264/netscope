@@ -50,7 +50,7 @@ func (h *StorageHandler) GetConfig(c *fiber.Ctx) error {
 	rows, err := h.CH.Query(ctx,
 		`SELECT provider, enabled, bucket, region, endpoint,
 		        access_key, secret_key, prefix, schedule, last_export, updated_at
-		 FROM storage_config FINAL LIMIT 1`)
+		 FROM storage_config ORDER BY version DESC LIMIT 1`)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
@@ -113,7 +113,7 @@ func (h *StorageHandler) UpsertConfig(c *fiber.Ctx) error {
 	defer cancel()
 
 	if strings.HasPrefix(body.SecretKey, "***") {
-		rows, _ := h.CH.Query(ctx, `SELECT secret_key FROM storage_config FINAL LIMIT 1`)
+		rows, _ := h.CH.Query(ctx, `SELECT secret_key FROM storage_config ORDER BY version DESC LIMIT 1`)
 		if rows != nil {
 			if rows.Next() {
 				_ = rows.Scan(&body.SecretKey)

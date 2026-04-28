@@ -43,7 +43,7 @@ func (h *IntegrationsHandler) List(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT sink_type, enabled, config, last_shipped, updated_at
-		 FROM integrations_config FINAL
+		 FROM integrations_config
 		 ORDER BY sink_type`)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
@@ -127,7 +127,7 @@ func (h *IntegrationsHandler) Upsert(c *fiber.Ctx) error {
 	// Preserve last_shipped so we don't re-send already-delivered events.
 	var lastShipped time.Time
 	rows, err := h.CH.Query(ctx,
-		`SELECT last_shipped FROM integrations_config FINAL WHERE sink_type = ? LIMIT 1`,
+		`SELECT last_shipped FROM integrations_config WHERE sink_type = ? ORDER BY updated_at DESC LIMIT 1`,
 		string(sinkType))
 	if err == nil {
 		if rows.Next() {

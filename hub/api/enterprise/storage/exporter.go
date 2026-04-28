@@ -145,8 +145,8 @@ func (e *Exporter) export() {
 		 (provider, enabled, bucket, region, endpoint, access_key, secret_key, prefix, schedule, last_export, updated_at, version)
 		 SELECT provider, enabled, bucket, region, endpoint, access_key, secret_key, prefix, schedule, ?, now64(),
 		        toUInt64(toUnixTimestamp64Milli(now64()))
-		 FROM storage_config FINAL
-		 WHERE provider = ?`,
+		 FROM storage_config
+		 WHERE provider = ? ORDER BY version DESC LIMIT 1`,
 		end, cfg.Provider,
 	)
 }
@@ -226,9 +226,9 @@ func (e *Exporter) loadConfig(ctx context.Context) (Config, error) {
 	rows, err := e.ch.Query(ctx,
 		`SELECT provider, enabled, bucket, region, endpoint,
 		        access_key, secret_key, prefix, schedule
-		 FROM storage_config FINAL
+		 FROM storage_config
 		 WHERE enabled = 1
-		 LIMIT 1`)
+		 ORDER BY version DESC LIMIT 1`)
 	if err != nil {
 		return Config{}, err
 	}

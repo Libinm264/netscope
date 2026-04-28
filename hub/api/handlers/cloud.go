@@ -35,7 +35,7 @@ func (h *CloudSourceHandler) List(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT id, provider, name, config, enabled, last_pulled, error_msg, created_at
-		 FROM cloud_flow_sources FINAL
+		 FROM cloud_flow_sources
 		 ORDER BY created_at DESC`)
 	if err != nil {
 		return util.InternalError(c, err)
@@ -139,7 +139,8 @@ func (h *CloudSourceHandler) Update(c *fiber.Ctx) error {
 	// Load current record first.
 	rows, err := h.CH.Query(ctx,
 		`SELECT id, provider, name, config, enabled, last_pulled, error_msg, created_at
-		 FROM cloud_flow_sources FINAL WHERE id = ? LIMIT 1`, id)
+		 FROM cloud_flow_sources WHERE id = ?
+		 ORDER BY created_at DESC LIMIT 1`, id)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
@@ -203,7 +204,8 @@ func (h *CloudSourceHandler) Delete(c *fiber.Ctx) error {
 		`INSERT INTO cloud_flow_sources
 		 (id, provider, name, config, enabled, last_pulled, error_msg, created_at, version)
 		 SELECT id, provider, name, config, 0, last_pulled, error_msg, created_at, ?
-		 FROM cloud_flow_sources FINAL WHERE id = ?`,
+		 FROM cloud_flow_sources WHERE id = ?
+		 ORDER BY created_at DESC LIMIT 1`,
 		now.UnixMilli()+1, id,
 	)
 	return c.JSON(fiber.Map{"ok": true})

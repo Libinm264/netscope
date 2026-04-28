@@ -152,7 +152,7 @@ func (h *Handler) ListUsers(c *fiber.Ctx) error {
 	}
 
 	query := `SELECT user_id, email, display_name, role, sso_subject, is_active, created_at, last_seen
-	          FROM org_members FINAL WHERE org_id = 'default'`
+	          FROM org_members WHERE org_id = 'default'`
 	args := []interface{}{}
 	if emailFilter != "" {
 		query += " AND email = ?"
@@ -193,8 +193,9 @@ func (h *Handler) GetUser(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT user_id, email, display_name, role, sso_subject, is_active, created_at, last_seen
-		 FROM org_members FINAL
-		 WHERE org_id = 'default' AND user_id = ? LIMIT 1`, id)
+		 FROM org_members
+		 WHERE org_id = 'default' AND user_id = ?
+		 ORDER BY last_seen DESC LIMIT 1`, id)
 	if err != nil {
 		return scimError(c, fiber.StatusInternalServerError, "serverError", err.Error())
 	}
@@ -277,8 +278,8 @@ func (h *Handler) ReplaceUser(c *fiber.Ctx) error {
 
 	// Read existing to keep role/sso_provider
 	rows, err := h.CH.Query(ctx,
-		`SELECT role, sso_provider FROM org_members FINAL
-		 WHERE org_id='default' AND user_id=? LIMIT 1`, id)
+		`SELECT role, sso_provider FROM org_members
+		 WHERE org_id='default' AND user_id=? ORDER BY last_seen DESC LIMIT 1`, id)
 	if err != nil {
 		return scimError(c, fiber.StatusInternalServerError, "serverError", err.Error())
 	}
@@ -323,7 +324,7 @@ func (h *Handler) PatchUser(c *fiber.Ctx) error {
 	// Read current values
 	rows, err := h.CH.Query(ctx,
 		`SELECT email, display_name, role, sso_provider, sso_subject, is_active, created_at
-		 FROM org_members FINAL WHERE org_id='default' AND user_id=? LIMIT 1`, id)
+		 FROM org_members WHERE org_id='default' AND user_id=? ORDER BY last_seen DESC LIMIT 1`, id)
 	if err != nil {
 		return scimError(c, fiber.StatusInternalServerError, "serverError", err.Error())
 	}
@@ -380,7 +381,7 @@ func (h *Handler) DeleteUser(c *fiber.Ctx) error {
 
 	rows, err := h.CH.Query(ctx,
 		`SELECT email, display_name, role, sso_provider, sso_subject, created_at
-		 FROM org_members FINAL WHERE org_id='default' AND user_id=? LIMIT 1`, id)
+		 FROM org_members WHERE org_id='default' AND user_id=? ORDER BY last_seen DESC LIMIT 1`, id)
 	if err != nil {
 		return scimError(c, fiber.StatusInternalServerError, "serverError", err.Error())
 	}

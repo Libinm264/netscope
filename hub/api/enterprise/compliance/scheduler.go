@@ -113,7 +113,7 @@ type scheduleRecord struct {
 func (s *Scheduler) loadSchedules(ctx context.Context) ([]scheduleRecord, error) {
 	rows, err := s.ch.Query(ctx,
 		`SELECT id, name, framework, format, schedule, recipients, last_sent
-		 FROM compliance_report_schedules FINAL
+		 FROM compliance_report_schedules
 		 WHERE enabled = 1`)
 	if err != nil {
 		return nil, err
@@ -201,7 +201,8 @@ func (s *Scheduler) run(ctx context.Context, sched scheduleRecord) {
 		 (id, name, framework, format, schedule, recipients, enabled, last_sent, created_at, version)
 		 SELECT id, name, framework, format, schedule, ?, enabled, ?, created_at,
 		        toUInt64(toUnixTimestamp64Milli(now64()))
-		 FROM compliance_report_schedules FINAL WHERE id = ?`,
+		 FROM compliance_report_schedules WHERE id = ?
+		 ORDER BY created_at DESC LIMIT 1`,
 		string(recipJSON), now, sched.ID,
 	)
 }

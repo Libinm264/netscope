@@ -972,7 +972,7 @@ func runMigrations(ch *clickhouse.Client) error {
 		   'high', '["recon","portscan","attack.discovery"]',
 		   'SELECT src_ip, count(DISTINCT dst_port) AS port_count, min(ts) AS first_seen FROM flows WHERE ts > now() - INTERVAL 5 MINUTE AND protocol IN (''TCP'',''UDP'') GROUP BY src_ip HAVING port_count > 50',
 		   1, 1, now64(), now64(), 1
-		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-001')`,
+		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules WHERE id = 'builtin-001')`,
 
 		`INSERT INTO sigma_rules (id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at, version)
 		 SELECT 'builtin-002', 'DNS Tunneling Indicator',
@@ -980,7 +980,7 @@ func runMigrations(ch *clickhouse.Client) error {
 		   'medium', '["dns","exfiltration","attack.c2"]',
 		   'SELECT src_ip, hostname, dns_query, ts FROM flows WHERE ts > now() - INTERVAL 10 MINUTE AND protocol = ''DNS'' AND length(dns_query) > 60',
 		   1, 1, now64(), now64(), 1
-		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-002')`,
+		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules WHERE id = 'builtin-002')`,
 
 		`INSERT INTO sigma_rules (id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at, version)
 		 SELECT 'builtin-003', 'Cleartext Credential Submission',
@@ -988,7 +988,7 @@ func runMigrations(ch *clickhouse.Client) error {
 		   'high', '["credentials","http","attack.credential_access"]',
 		   'SELECT src_ip, dst_ip, dst_port, http_path, hostname, ts FROM flows WHERE ts > now() - INTERVAL 15 MINUTE AND protocol = ''HTTP'' AND http_method = ''POST'' AND (http_path LIKE ''%/login%'' OR http_path LIKE ''%/auth%'' OR http_path LIKE ''%/signin%'') AND dst_port != 443',
 		   1, 1, now64(), now64(), 1
-		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-003')`,
+		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules WHERE id = 'builtin-003')`,
 
 		`INSERT INTO sigma_rules (id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at, version)
 		 SELECT 'builtin-004', 'Unexpected Outbound High Port',
@@ -996,7 +996,7 @@ func runMigrations(ch *clickhouse.Client) error {
 		   'medium', '["c2","beaconing","attack.command_and_control"]',
 		   'SELECT src_ip, dst_ip, dst_port, protocol, bytes_out, hostname, ts FROM flows WHERE ts > now() - INTERVAL 5 MINUTE AND dst_port > 49151 AND protocol = ''TCP'' AND bytes_out > 10000',
 		   1, 1, now64(), now64(), 1
-		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-004')`,
+		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules WHERE id = 'builtin-004')`,
 
 		`INSERT INTO sigma_rules (id, title, description, severity, tags, query, enabled, builtin, created_at, updated_at, version)
 		 SELECT 'builtin-005', 'Privileged Process Network Activity',
@@ -1004,7 +1004,7 @@ func runMigrations(ch *clickhouse.Client) error {
 		   'critical', '["process","shell","attack.execution","attack.lateral_movement"]',
 		   'SELECT process_name, pid, src_ip, dst_ip, dst_port, hostname, ts FROM flows WHERE ts > now() - INTERVAL 5 MINUTE AND protocol = ''TCP'' AND process_name IN (''bash'',''sh'',''zsh'',''python'',''python3'',''powershell'',''pwsh'',''cmd'',''perl'',''ruby'') AND dst_port NOT IN (22, 80, 443)',
 		   1, 1, now64(), now64(), 1
-		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules FINAL WHERE id = 'builtin-005')`,
+		 WHERE NOT EXISTS (SELECT 1 FROM sigma_rules WHERE id = 'builtin-005')`,
 
 		// ── v0.5 Fleet Intelligence ───────────────────────────────────────────
 
@@ -1128,8 +1128,9 @@ func seedAdmin(ch *clickhouse.Client, email, plainPassword string) error {
 
 	// Check if the user already exists.
 	rows, err := ch.Query(ctx,
-		`SELECT user_id FROM org_members FINAL
-		 WHERE org_id = 'default' AND email = ? LIMIT 1`, email)
+		`SELECT user_id FROM org_members
+		 WHERE org_id = 'default' AND email = ?
+		 ORDER BY last_seen DESC LIMIT 1`, email)
 	if err != nil {
 		return err
 	}

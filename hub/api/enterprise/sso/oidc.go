@@ -105,7 +105,7 @@ func (h *OIDCHandler) consumeState(state string) (pendingState, bool) {
 func (h *OIDCHandler) loadOIDCConfig(ctx context.Context) (issuerURL, clientID string, enabled bool, err error) {
 	rows, err := h.CH.Query(ctx,
 		`SELECT issuer_url, client_id, enabled
-		 FROM sso_configs FINAL
+		 FROM sso_configs
 		 WHERE org_id = 'default' AND provider = 'oidc'
 		 ORDER BY updated_at DESC
 		 LIMIT 1`)
@@ -279,10 +279,10 @@ func (h *OIDCHandler) Callback(c *fiber.Ctx) error {
 func (h *OIDCHandler) upsertUser(ctx context.Context, subject, email, displayName string) (userID, role string, err error) {
 	// Prefer lookup by stable SSO subject.
 	rows, qErr := h.CH.Query(ctx,
-		`SELECT user_id, role FROM org_members FINAL
+		`SELECT user_id, role FROM org_members
 		 WHERE org_id = 'default' AND sso_provider = 'oidc' AND sso_subject = ?
 		   AND is_active = 1
-		 LIMIT 1`, subject)
+		 ORDER BY last_seen DESC LIMIT 1`, subject)
 	if qErr == nil {
 		if rows.Next() {
 			_ = rows.Scan(&userID, &role)
@@ -293,9 +293,9 @@ func (h *OIDCHandler) upsertUser(ctx context.Context, subject, email, displayNam
 	// Fall back to email match (covers users pre-created via invite).
 	if userID == "" {
 		rows2, qErr2 := h.CH.Query(ctx,
-			`SELECT user_id, role FROM org_members FINAL
+			`SELECT user_id, role FROM org_members
 			 WHERE org_id = 'default' AND email = ? AND is_active = 1
-			 LIMIT 1`, email)
+			 ORDER BY last_seen DESC LIMIT 1`, email)
 		if qErr2 == nil {
 			if rows2.Next() {
 				_ = rows2.Scan(&userID, &role)

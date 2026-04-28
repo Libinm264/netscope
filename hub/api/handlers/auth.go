@@ -306,7 +306,7 @@ func (h *AuthHandler) SetPassword(c *fiber.Ctx) error {
 		if req.OldPassword != "" {
 			var existingHash string
 			rows, err := h.CH.Query(ctx,
-				`SELECT password_hash FROM local_credentials FINAL
+				`SELECT password_hash FROM local_credentials
 				 WHERE org_id = 'default' AND user_id = ?
 				 ORDER BY updated_at DESC LIMIT 1`, targetUserID)
 			if err == nil {
@@ -406,7 +406,7 @@ func (h *AuthHandler) SetupStatus(c *fiber.Ctx) error {
 
 	var count uint64
 	rows, err := h.CH.Query(ctx,
-		`SELECT count() FROM org_members FINAL WHERE org_id = 'default' AND is_active = 1`)
+		`SELECT count() FROM org_members WHERE org_id = 'default' AND is_active = 1`)
 	if err != nil || !rows.Next() {
 		if rows != nil {
 			rows.Close()
@@ -462,7 +462,7 @@ func (h *AuthHandler) SetupAdmin(c *fiber.Ctx) error {
 	// Guard: refuse if any active member already exists.
 	var count uint64
 	rows, err := h.CH.Query(ctx,
-		`SELECT count() FROM org_members FINAL WHERE org_id = 'default' AND is_active = 1`)
+		`SELECT count() FROM org_members WHERE org_id = 'default' AND is_active = 1`)
 	if err == nil && rows.Next() {
 		_ = rows.Scan(&count)
 		rows.Close()
@@ -669,8 +669,9 @@ func (h *AuthHandler) GoogleCallback(c *fiber.Ctx) error {
 
 	if h.CH != nil {
 		rows, err := h.CH.Query(ctx,
-			`SELECT user_id, role, display_name FROM org_members FINAL
-			 WHERE org_id = 'default' AND email = ? AND is_active = 1 LIMIT 1`,
+			`SELECT user_id, role, display_name FROM org_members
+			 WHERE org_id = 'default' AND email = ? AND is_active = 1
+			 ORDER BY last_seen DESC LIMIT 1`,
 			gUser.Email)
 		if err == nil {
 			if rows.Next() {
@@ -695,7 +696,7 @@ func (h *AuthHandler) GoogleCallback(c *fiber.Ctx) error {
 			// Determine role: owner if org has no members yet.
 			var memberCount uint64
 			cntRows, _ := h.CH.Query(ctx,
-				`SELECT count() FROM org_members FINAL WHERE org_id = 'default' AND is_active = 1`)
+				`SELECT count() FROM org_members WHERE org_id = 'default' AND is_active = 1`)
 			if cntRows != nil {
 				if cntRows.Next() {
 					_ = cntRows.Scan(&memberCount)
@@ -727,7 +728,8 @@ func (h *AuthHandler) GoogleCallback(c *fiber.Ctx) error {
 				  is_active, created_at, last_seen, version)
 				 SELECT user_id, org_id, email, display_name, role, sso_provider, sso_subject,
 				        is_active, created_at, ?, version + 1
-				 FROM org_members FINAL WHERE org_id = 'default' AND user_id = ? LIMIT 1`,
+				 FROM org_members WHERE org_id = 'default' AND user_id = ?
+				 ORDER BY last_seen DESC LIMIT 1`,
 				now, userID)
 		}
 		slog.Info("google: existing user signed in", "email", gUser.Email, "role", role)

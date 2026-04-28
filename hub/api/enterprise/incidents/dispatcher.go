@@ -126,7 +126,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, ev SigmaMatchEvent) {
 				 SELECT id, title, severity, status, source, source_id, notes,
 				        if(external_ref = '', ?, concat(external_ref, ', ', ?)),
 				        created_at, now64(), toUInt64(toUnixTimestamp64Milli(now64()))
-				 FROM incidents FINAL WHERE id = ?`,
+				 FROM incidents WHERE id = ? ORDER BY updated_at DESC LIMIT 1`,
 				extRef, extRef, incidentID,
 			)
 		}
@@ -138,7 +138,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, ev SigmaMatchEvent) {
 func (d *Dispatcher) loadConfigs(ctx context.Context) (map[string]string, error) {
 	rows, err := d.ch.Query(ctx,
 		`SELECT integration, config
-		 FROM incident_workflow_config FINAL
+		 FROM incident_workflow_config
 		 WHERE enabled = 1`)
 	if err != nil {
 		return nil, err

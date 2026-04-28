@@ -38,7 +38,7 @@ func (h *SavedQueryHandler) List(c *fiber.Ctx) error {
 	ctx := c.Context()
 	rows, err := h.CH.Query(ctx,
 		`SELECT id, name, description, filters, created_at, updated_at
-		 FROM saved_queries FINAL
+		 FROM saved_queries
 		 WHERE deleted = 0
 		 ORDER BY created_at DESC`)
 	if err != nil {
@@ -100,7 +100,7 @@ func (h *SavedQueryHandler) Create(c *fiber.Ctx) error {
 	if lim > 0 {
 		ctx := c.Context()
 		countRows, err := h.CH.Query(ctx,
-			`SELECT count() FROM saved_queries FINAL WHERE deleted = 0`)
+			`SELECT count() FROM saved_queries WHERE deleted = 0`)
 		if err != nil {
 			return util.InternalError(c, err)
 		}
@@ -163,8 +163,9 @@ func (h *SavedQueryHandler) Update(c *fiber.Ctx) error {
 	// Fetch existing to merge
 	ctx := c.Context()
 	rows, err := h.CH.Query(ctx,
-		`SELECT name, description, filters FROM saved_queries FINAL
-		 WHERE id = ? AND deleted = 0 LIMIT 1`, id)
+		`SELECT name, description, filters FROM saved_queries
+		 WHERE id = ? AND deleted = 0
+		 ORDER BY version DESC LIMIT 1`, id)
 	if err != nil {
 		return util.InternalError(c, err)
 	}
