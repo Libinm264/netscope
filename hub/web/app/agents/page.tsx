@@ -245,12 +245,14 @@ function AddAgentModal({ onClose }: { onClose: () => void }) {
 export default function AgentsPage() {
   const [agents, setAgents]   = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try { setAgents((await fetchAgents()).agents ?? []); }
-    catch { /* ignore */ }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setLoading(false); }
   }, []);
 
@@ -301,6 +303,15 @@ export default function AgentsPage() {
             </button>{" "}
             to see the eBPF install command.
           </div>
+        </div>
+      )}
+
+      {/* API error banner */}
+      {error && (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-lg border border-red-500/30
+                        bg-red-500/[0.07] text-xs text-red-400">
+          <span className="font-medium shrink-0">Failed to load agents:</span>
+          <span className="font-mono break-all">{error}</span>
         </div>
       )}
 
