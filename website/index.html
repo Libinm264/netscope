@@ -3,33 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetScope — Network Observability Platform</title>
-  <meta name="description" content="Real-time packet capture, deep protocol inspection, GeoIP & threat intelligence, and a SaaS hub for fleet-wide visibility. Built with Rust, Go, and React." />
+  <title>NetScope — Network Observability</title>
+  <meta name="description" content="Real-time network visibility for every team. Capture, inspect, and monitor traffic with a lightweight agent, a visual desktop app, and a SaaS hub." />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-  <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" /></noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #060810;
-      --bg2:       #0c1120;
-      --bg3:       #111827;
-      --cyan:      #00d4ff;
-      --cyan-dim:  #00a8cc;
-      --purple:    #7c3aed;
-      --purple-dim:#6d28d9;
-      --green:     #10b981;
-      --yellow:    #f59e0b;
-      --red:       #ef4444;
-      --text:      #e2e8f0;
-      --muted:     #94a3b8;
-      --border:    rgba(255,255,255,0.07);
-      --glow-c:    rgba(0,212,255,0.15);
-      --glow-p:    rgba(124,58,237,0.15);
+      --bg:      #07070f;
+      --surface: #0e0e1a;
+      --border:  rgba(255,255,255,0.08);
+      --text:    #e8eaf0;
+      --muted:   #6b7280;
+      --cyan:    #00d4ff;
+      --cyan-bg: rgba(0,212,255,0.08);
     }
 
     html { scroll-behavior: smooth; }
@@ -39,45 +29,36 @@
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
-      overflow-x: hidden;
-    }
-
-    /* ── CANVAS BACKGROUND ── */
-    #canvas-bg {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      opacity: 0.45;
-      will-change: transform;
-      contain: strict;
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ── NAV ── */
     nav {
       position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
+      inset: 0 0 auto;
+      z-index: 50;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 2rem;
-      height: 64px;
-      background: rgba(6,8,16,0.8);
-      backdrop-filter: blur(16px);
+      height: 60px;
+      background: rgba(7,7,15,0.85);
+      backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
     }
 
     .nav-logo {
       display: flex;
       align-items: center;
-      gap: .6rem;
-      font-weight: 800;
-      font-size: 1.2rem;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 1.05rem;
       text-decoration: none;
       color: var(--text);
+      letter-spacing: -0.01em;
     }
 
-    .nav-logo svg { width: 28px; height: 28px; }
+    .nav-logo img { width: 26px; height: 26px; }
 
     .nav-links {
       display: flex;
@@ -87,849 +68,503 @@
     }
 
     .nav-links a {
+      font-size: 0.875rem;
       color: var(--muted);
       text-decoration: none;
-      font-size: .875rem;
-      font-weight: 500;
-      transition: color .2s;
+      transition: color 0.15s;
     }
 
     .nav-links a:hover { color: var(--text); }
 
     .nav-cta {
       display: flex;
-      gap: .75rem;
-    }
-
-    /* ── BUTTONS ── */
-    .btn {
-      display: inline-flex;
       align-items: center;
-      gap: .5rem;
-      padding: .6rem 1.4rem;
-      border-radius: 8px;
-      font-size: .875rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all .2s;
-      cursor: pointer;
-      border: none;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
-      color: #fff;
-      box-shadow: 0 0 20px var(--glow-c);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 0 30px var(--glow-c), 0 0 30px var(--glow-p);
+      gap: 0.875rem;
     }
 
     .btn-ghost {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
+      font-size: 0.875rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
     }
 
-    .btn-ghost:hover {
-      border-color: var(--cyan);
-      color: var(--cyan);
+    .btn-ghost:hover { color: var(--text); }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.5rem 1rem;
+      background: var(--cyan);
+      color: #07070f;
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: 6px;
+      text-decoration: none;
+      transition: opacity 0.15s;
     }
 
-    .btn-lg {
-      padding: .85rem 2rem;
-      font-size: 1rem;
-      border-radius: 10px;
-    }
+    .btn-primary:hover { opacity: 0.88; }
 
     /* ── SECTIONS ── */
-    section { position: relative; z-index: 1; }
+    section { position: relative; }
 
     .container {
-      max-width: 1200px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 0 2rem;
     }
 
     /* ── HERO ── */
     #hero {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      padding: 160px 0 120px;
       text-align: center;
-      padding: 120px 2rem 80px;
     }
 
-    .hero-badge {
+    .badge {
       display: inline-flex;
       align-items: center;
-      gap: .5rem;
-      background: rgba(0,212,255,0.08);
-      border: 1px solid rgba(0,212,255,0.25);
-      color: var(--cyan);
-      padding: .35rem 1rem;
-      border-radius: 999px;
-      font-size: .8rem;
-      font-weight: 600;
-      letter-spacing: .05em;
-      text-transform: uppercase;
-      margin-bottom: 1.5rem;
-    }
-
-    .hero-badge .dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--cyan);
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: .4; transform: scale(.7); }
-    }
-
-    h1 {
-      font-size: clamp(2.4rem, 6vw, 4.5rem);
-      font-weight: 900;
-      line-height: 1.1;
-      letter-spacing: -.03em;
-      margin-bottom: 1.5rem;
-    }
-
-    .gradient-text {
-      background: linear-gradient(135deg, var(--cyan) 0%, #a78bfa 60%, var(--purple) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-sub {
-      font-size: clamp(1rem, 2vw, 1.25rem);
+      gap: 0.5rem;
+      padding: 0.3rem 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.8rem;
       color: var(--muted);
-      max-width: 640px;
+      margin-bottom: 2.5rem;
+    }
+
+    .badge span { color: var(--cyan); font-weight: 600; }
+
+    #hero h1 {
+      font-size: clamp(2.8rem, 6vw, 4.5rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      color: #fff;
+      margin-bottom: 1.5rem;
+    }
+
+    #hero h1 em {
+      font-style: normal;
+      color: var(--cyan);
+    }
+
+    #hero p {
+      font-size: 1.125rem;
+      color: var(--muted);
+      max-width: 520px;
       margin: 0 auto 2.5rem;
       line-height: 1.7;
     }
 
     .hero-actions {
       display: flex;
+      align-items: center;
+      justify-content: center;
       gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-bottom: 4rem;
-    }
-
-    .hero-badges {
-      display: flex;
-      gap: .75rem;
-      justify-content: center;
+      margin-bottom: 3.5rem;
       flex-wrap: wrap;
     }
 
-    .badge {
+    .btn-outline {
       display: inline-flex;
       align-items: center;
-      gap: .4rem;
-      background: var(--bg3);
+      gap: 0.375rem;
+      padding: 0.5rem 1rem;
       border: 1px solid var(--border);
+      color: var(--text);
+      font-size: 0.875rem;
+      font-weight: 500;
       border-radius: 6px;
-      padding: .35rem .75rem;
-      font-size: .8rem;
-      color: var(--muted);
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
+    }
+
+    .btn-outline:hover { border-color: rgba(255,255,255,0.2); color: #fff; }
+
+    .install-block {
+      display: inline-flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1.25rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
       font-family: 'JetBrains Mono', monospace;
+      font-size: 0.825rem;
     }
 
-    .badge img { height: 14px; }
+    .install-block .prompt { color: var(--muted); user-select: none; }
+    .install-block code { color: var(--text); }
 
-    /* ── STATS BAR ── */
-    #stats {
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-      background: rgba(12,17,32,0.8);
-      padding: 2.5rem 0;
+    .copy-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      padding: 0;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s;
     }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 2rem;
-      text-align: center;
+    .copy-btn:hover { color: var(--text); }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
     }
 
-    .stat-num {
-      font-size: 2.25rem;
-      font-weight: 900;
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      line-height: 1;
-      margin-bottom: .3rem;
+    /* ── PRODUCTS ── */
+    #products {
+      padding: 100px 0;
     }
 
-    .stat-label { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
-
-    /* ── SECTION HEADERS ── */
-    .section-tag {
-      display: inline-block;
-      font-size: .75rem;
-      font-weight: 700;
-      letter-spacing: .12em;
+    .section-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
       color: var(--cyan);
-      margin-bottom: .75rem;
+      margin-bottom: 1rem;
     }
 
-    .section-title {
-      font-size: clamp(1.75rem, 4vw, 2.75rem);
+    .section-heading {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
       font-weight: 800;
-      line-height: 1.2;
-      letter-spacing: -.02em;
+      letter-spacing: -0.03em;
+      color: #fff;
+      line-height: 1.15;
       margin-bottom: 1rem;
     }
 
     .section-sub {
       font-size: 1rem;
       color: var(--muted);
-      max-width: 560px;
+      max-width: 460px;
       line-height: 1.7;
+      margin-bottom: 4rem;
     }
 
-    .section-header { margin-bottom: 3.5rem; }
-
-    /* ── PILLARS ── */
-    #pillars { padding: 6rem 0; }
-
-    .pillars-grid {
+    .products-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .pillar-card {
-      background: var(--bg2);
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      position: relative;
-      overflow: hidden;
-      transition: border-color .3s, transform .3s;
-    }
-
-    .pillar-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at top left, var(--glow-c), transparent 60%);
-      opacity: 0;
-      transition: opacity .3s;
-    }
-
-    .pillar-card:hover { border-color: rgba(0,212,255,0.3); transform: translateY(-4px); }
-    .pillar-card:hover::before { opacity: 1; }
-
-    .pillar-icon {
-      width: 52px; height: 52px;
       border-radius: 12px;
+      overflow: hidden;
+      background: var(--border);
+    }
+
+    .product-card {
+      background: var(--surface);
+      padding: 2.5rem;
+      transition: background 0.2s;
+    }
+
+    .product-card:hover { background: #131325; }
+
+    .product-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: var(--cyan-bg);
+      border: 1px solid rgba(0,212,255,0.15);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 1.25rem;
-      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
     }
 
-    .pillar-icon.cyan { background: rgba(0,212,255,0.12); }
-    .pillar-icon.purple { background: rgba(124,58,237,0.12); }
-    .pillar-icon.green { background: rgba(16,185,129,0.12); }
+    .product-icon svg { width: 20px; height: 20px; color: var(--cyan); }
 
-    .pillar-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: .6rem; }
-    .pillar-card p { font-size: .9rem; color: var(--muted); line-height: 1.7; }
-
-    /* ── FEATURE TABS ── */
-    #features { padding: 6rem 0; background: linear-gradient(180deg, transparent 0%, rgba(12,17,32,0.5) 100%); }
-
-    .tab-buttons {
-      display: flex;
-      gap: .5rem;
-      margin-bottom: 2.5rem;
-      flex-wrap: wrap;
-    }
-
-    .tab-btn {
-      padding: .6rem 1.25rem;
-      border-radius: 8px;
-      font-size: .875rem;
-      font-weight: 600;
-      cursor: pointer;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--muted);
-      transition: all .2s;
-    }
-
-    .tab-btn.active {
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
-      border-color: transparent;
+    .product-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
       color: #fff;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
     }
 
-    .tab-btn:hover:not(.active) { border-color: var(--cyan); color: var(--text); }
+    .product-card p {
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 1.5rem;
+    }
 
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; }
+    .product-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
 
-    .feature-grid {
+    .product-tag .dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: var(--cyan);
+      opacity: 0.6;
+    }
+
+    /* ── FEATURES ── */
+    #features {
+      padding: 100px 0;
+    }
+
+    .features-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.25rem;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--border);
     }
 
     .feature-card {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.4rem;
-      transition: border-color .2s, transform .2s;
+      background: var(--surface);
+      padding: 2rem 2.25rem;
+      transition: background 0.2s;
     }
 
-    .feature-card:hover { border-color: rgba(0,212,255,0.2); transform: translateY(-2px); }
+    .feature-card:hover { background: #131325; }
 
-    .feature-card-head {
-      display: flex;
-      align-items: center;
-      gap: .75rem;
-      margin-bottom: .75rem;
-    }
-
-    .feature-icon {
-      font-size: 1.2rem;
-      width: 38px; height: 38px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      background: rgba(0,212,255,0.08);
-    }
-
-    .feature-card h4 { font-size: .9rem; font-weight: 700; line-height: 1.3; }
-    .feature-card p { font-size: .82rem; color: var(--muted); line-height: 1.6; }
-
-    /* ── ARCHITECTURE ── */
-    #architecture { padding: 6rem 0; }
-
-    .arch-visual {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0;
-    }
-
-    .arch-layer {
-      width: 100%;
-      max-width: 860px;
-      border-radius: 16px;
-      border: 1px solid var(--border);
-      padding: 1.5rem 2rem;
-      position: relative;
-    }
-
-    .arch-layer.layer-desktop {
-      background: linear-gradient(135deg, rgba(0,212,255,0.06) 0%, rgba(12,17,32,0.9) 60%);
-      border-color: rgba(0,212,255,0.25);
-    }
-
-    .arch-layer.layer-agent {
-      background: linear-gradient(135deg, rgba(124,58,237,0.07) 0%, rgba(12,17,32,0.9) 60%);
-      border-color: rgba(124,58,237,0.25);
-    }
-
-    .arch-layer.layer-network {
-      background: rgba(245,158,11,0.05);
-      border-color: rgba(245,158,11,0.2);
-    }
-
-    .arch-layer.layer-hub {
-      background: linear-gradient(135deg, rgba(16,185,129,0.06) 0%, rgba(12,17,32,0.9) 60%);
-      border-color: rgba(16,185,129,0.25);
-    }
-
-    .arch-layer-title {
-      font-size: .75rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .1em;
+    .feature-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: rgba(0,212,255,0.4);
       margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: .5rem;
     }
 
-    .arch-layer-title.cyan { color: var(--cyan); }
-    .arch-layer-title.purple { color: #a78bfa; }
-    .arch-layer-title.yellow { color: var(--yellow); }
-    .arch-layer-title.green { color: var(--green); }
+    .feature-card h4 {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.01em;
+    }
 
-    .arch-cols {
+    .feature-card p {
+      font-size: 0.8375rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── QUICKSTART ── */
+    #quickstart {
+      padding: 100px 0;
+    }
+
+    .qs-inner {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1rem;
+      gap: 4rem;
+      align-items: center;
     }
 
-    @media (max-width: 600px) { .arch-cols { grid-template-columns: 1fr; } }
-
-    .arch-col-label {
-      font-size: .72rem;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-bottom: .6rem;
-    }
-
-    .arch-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: .4rem;
-    }
-
-    .arch-chip {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: .72rem;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      padding: .22rem .55rem;
-      color: var(--text);
-      white-space: nowrap;
-    }
-
-    .arch-connector {
+    .qs-steps {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: .15rem 0;
-    }
-
-    .arch-connector-line {
-      width: 2px;
-      height: 32px;
-      background: linear-gradient(to bottom, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-    }
-
-    .arch-connector-label {
-      font-size: .7rem;
-      color: var(--muted);
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      padding: .2rem .75rem;
-      margin: .2rem 0;
-      white-space: nowrap;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .arch-hub-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: .75rem;
-    }
-
-    @media (max-width: 600px) { .arch-hub-grid { grid-template-columns: 1fr; } }
-
-    .arch-hub-col { }
-
-    /* ── DOWNLOAD ── */
-    #download { padding: 6rem 0; }
-
-    .download-intro {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 2rem;
-      flex-wrap: wrap;
-      margin-bottom: 3rem;
-    }
-
-    .download-platforms {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2.5rem;
-    }
-
-    .dl-card {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1.5rem;
-      display: flex;
-      flex-direction: column;
-      gap: .75rem;
-      transition: all .25s;
-    }
-
-    .dl-card:hover { border-color: rgba(0,212,255,0.3); transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
-
-    .dl-card-head { display: flex; align-items: center; gap: .75rem; }
-
-    .dl-os-icon { font-size: 1.8rem; }
-
-    .dl-os-name { font-size: 1rem; font-weight: 700; }
-    .dl-os-sub  { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
-
-    .dl-variants { display: flex; flex-direction: column; gap: .5rem; }
-
-    .dl-btn {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: .5rem;
-      padding: .6rem .9rem;
-      background: rgba(0,212,255,0.06);
-      border: 1px solid rgba(0,212,255,0.15);
-      border-radius: 8px;
-      text-decoration: none;
-      color: var(--text);
-      font-size: .8rem;
-      font-weight: 600;
-      transition: all .2s;
-    }
-
-    .dl-btn:hover { background: rgba(0,212,255,0.12); border-color: var(--cyan); color: var(--cyan); }
-
-    .dl-btn-ext {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: .72rem;
-      color: var(--muted);
-      background: rgba(255,255,255,0.05);
-      border-radius: 4px;
-      padding: .1rem .4rem;
-    }
-
-    .dl-note {
-      background: rgba(0,212,255,0.04);
-      border: 1px solid rgba(0,212,255,0.1);
-      border-radius: 10px;
-      padding: 1rem 1.25rem;
-      font-size: .82rem;
-      color: var(--muted);
-      display: flex;
-      align-items: flex-start;
-      gap: .6rem;
-    }
-
-    .dl-note svg { flex-shrink: 0; margin-top: 2px; color: var(--cyan); }
-
-    /* ── PROTOCOLS ── */
-    #protocols { padding: 6rem 0; background: rgba(12,17,32,0.5); }
-
-    .protocols-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 1rem;
-    }
-
-    .proto-card {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.25rem;
-      text-align: center;
-      transition: all .2s;
-    }
-
-    .proto-card:hover { border-color: var(--cyan); box-shadow: 0 0 20px var(--glow-c); }
-
-    .proto-name {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: .95rem;
-      font-weight: 700;
-      color: var(--cyan);
-      margin-bottom: .3rem;
-    }
-
-    .proto-desc { font-size: .75rem; color: var(--muted); }
-
-    /* ── CHANGELOG ── */
-    #changelog { padding: 6rem 0; }
-
-    .cl-timeline {
-      position: relative;
-      max-width: 860px;
-      margin: 0 auto;
-    }
-    .cl-timeline::before {
-      content: '';
-      position: absolute;
-      left: 11px;
-      top: 0; bottom: 0;
-      width: 2px;
-      background: linear-gradient(to bottom, var(--cyan), var(--purple), transparent);
-      opacity: .35;
-    }
-    .cl-entry {
-      display: flex;
       gap: 1.75rem;
-      margin-bottom: 2.5rem;
     }
-    .cl-dot {
-      flex-shrink: 0;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      background: var(--bg2);
-      border: 2px solid var(--cyan);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: .6rem;
-      margin-top: .15rem;
-      position: relative;
-      z-index: 1;
-    }
-    .cl-dot.enterprise { border-color: var(--purple); }
-    .cl-body {
-      flex: 1;
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.25rem 1.5rem;
-    }
-    .cl-header {
-      display: flex;
-      align-items: center;
-      gap: .65rem;
-      flex-wrap: wrap;
-      margin-bottom: .75rem;
-    }
-    .cl-version {
-      font-size: .75rem;
-      font-weight: 700;
-      padding: .2rem .65rem;
-      border-radius: 999px;
-      background: rgba(0,212,255,.12);
-      color: var(--cyan);
-      letter-spacing: .04em;
-    }
-    .cl-version.ent {
-      background: rgba(124,58,237,.15);
-      color: #a78bfa;
-    }
-    .cl-date {
-      font-size: .78rem;
-      color: var(--muted);
-    }
-    .cl-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: var(--text);
-      flex: 1;
-    }
-    .cl-items {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: .45rem;
-    }
-    .cl-items li {
-      display: flex;
-      align-items: flex-start;
-      gap: .6rem;
-      font-size: .875rem;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-    .cl-items li::before {
-      content: '→';
-      color: var(--cyan);
-      flex-shrink: 0;
-      margin-top: .05rem;
-    }
-    .cl-items li.ent-item::before { color: #a78bfa; }
-    .cl-items strong { color: var(--text); }
-    .cl-tier-note {
+
+    .qs-step {
       display: flex;
       gap: 1rem;
-      flex-wrap: wrap;
-      margin-top: 1rem;
-      padding-top: .85rem;
-      border-top: 1px solid var(--border);
-      font-size: .75rem;
-      color: var(--muted);
-    }
-    .cl-tier-note span { display: flex; align-items: center; gap: .35rem; }
-
-    /* ── ROADMAP ── */
-    #roadmap { padding: 6rem 0; }
-
-    .roadmap-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
     }
 
-    @media (max-width: 768px) { .roadmap-grid { grid-template-columns: 1fr; } }
-
-    .roadmap-col h3 {
-      font-size: 1rem;
-      font-weight: 700;
-      margin-bottom: 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-    }
-
-    .roadmap-item {
-      display: flex;
-      align-items: flex-start;
-      gap: .75rem;
-      padding: .9rem 1rem;
-      border-radius: 10px;
-      margin-bottom: .6rem;
-      border: 1px solid transparent;
-      transition: all .2s;
-    }
-
-    .roadmap-item.done {
-      background: rgba(16,185,129,0.05);
-      border-color: rgba(16,185,129,0.12);
-    }
-
-    .roadmap-item.coming {
-      background: rgba(124,58,237,0.05);
-      border-color: rgba(124,58,237,0.15);
-    }
-
-    .roadmap-item:hover { transform: translateX(4px); }
-
-    .rm-dot {
-      width: 20px; height: 20px;
+    .qs-step-num {
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
+      border: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: .7rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--cyan);
       flex-shrink: 0;
       margin-top: 2px;
     }
 
-    .rm-dot.done { background: var(--green); color: #fff; }
-    .rm-dot.coming { background: rgba(124,58,237,0.3); border: 1px solid var(--purple); color: var(--purple); }
-
-    .rm-text { font-size: .88rem; font-weight: 500; }
-    .rm-sub { font-size: .78rem; color: var(--muted); margin-top: .15rem; }
-
-    /* ── TECH STACK ── */
-    #techstack { padding: 6rem 0; background: rgba(12,17,32,0.5); }
-
-    .tech-categories {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .tech-col {
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1.5rem;
-    }
-
-    .tech-col-title {
-      font-size: .8rem;
+    .qs-step h4 {
+      font-size: 0.9375rem;
       font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: .1em;
-      color: var(--cyan);
-      margin-bottom: 1rem;
+      color: #fff;
+      margin-bottom: 0.25rem;
+      letter-spacing: -0.01em;
+    }
+
+    .qs-step p {
+      font-size: 0.8375rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .qs-terminal {
+      background: #060610;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .qs-terminal-bar {
       display: flex;
       align-items: center;
-      gap: .5rem;
+      gap: 6px;
+      padding: 0.875rem 1.25rem;
+      border-bottom: 1px solid var(--border);
     }
 
-    .tech-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: .4rem;
-      background: rgba(255,255,255,0.05);
-      border-radius: 6px;
-      padding: .35rem .7rem;
-      font-size: .8rem;
+    .dot-r { width: 10px; height: 10px; border-radius: 50%; background: #ff5f57; }
+    .dot-y { width: 10px; height: 10px; border-radius: 50%; background: #febc2e; }
+    .dot-g { width: 10px; height: 10px; border-radius: 50%; background: #28c840; }
+
+    .qs-code {
+      padding: 1.5rem 1.25rem;
       font-family: 'JetBrains Mono', monospace;
-      color: var(--text);
-      margin: .25rem .25rem .25rem 0;
+      font-size: 0.8rem;
+      line-height: 2;
     }
 
-    /* ── PLATFORMS ── */
-    #platforms { padding: 6rem 0; }
+    .qs-code .c { color: var(--muted); }
+    .qs-code .cmd { color: #e8eaf0; }
+    .qs-code .ok { color: #28c840; }
+    .qs-code .info { color: var(--cyan); }
 
-    .platforms-grid {
+    /* ── PRICING ── */
+    #pricing {
+      padding: 100px 0;
+    }
+
+    .pricing-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
-    }
-
-    @media (max-width: 640px) { .platforms-grid { grid-template-columns: 1fr; } }
-
-    .platform-card {
-      background: var(--bg2);
+      gap: 1px;
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      text-align: center;
-      transition: all .3s;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--border);
     }
 
-    .platform-card:hover { border-color: var(--cyan); box-shadow: 0 0 30px var(--glow-c); transform: translateY(-4px); }
-
-    .platform-icon { font-size: 3rem; margin-bottom: 1rem; }
-    .platform-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: .4rem; }
-    .platform-card p { font-size: .85rem; color: var(--muted); }
-
-    /* ── CTA ── */
-    #cta {
-      padding: 8rem 0;
-      text-align: center;
+    .plan {
+      background: var(--surface);
+      padding: 2.5rem;
       position: relative;
     }
 
-    #cta::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse at center, rgba(0,212,255,0.06) 0%, transparent 70%);
-      pointer-events: none;
+    .plan-popular {
+      background: #0d1128;
     }
 
-    #cta h2 {
-      font-size: clamp(2rem, 4vw, 3.5rem);
-      font-weight: 900;
-      letter-spacing: -.03em;
-      margin-bottom: 1rem;
+    .popular-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      background: var(--cyan-bg);
+      border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 100px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--cyan);
+      margin-bottom: 1.5rem;
     }
 
-    #cta p {
+    .plan-name {
+      font-size: 0.875rem;
+      font-weight: 600;
       color: var(--muted);
-      font-size: 1.1rem;
-      margin-bottom: 2.5rem;
-      max-width: 500px;
-      margin-left: auto;
-      margin-right: auto;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.75rem;
     }
 
-    .cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .plan-price {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 0.375rem;
+    }
+
+    .plan-price sup {
+      font-size: 1.25rem;
+      font-weight: 600;
+      vertical-align: super;
+      line-height: 0;
+    }
+
+    .plan-cadence {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+
+    .plan-divider {
+      height: 1px;
+      background: var(--border);
+      margin-bottom: 1.75rem;
+    }
+
+    .plan-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .plan-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.625rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .plan-features li svg {
+      width: 15px;
+      height: 15px;
+      color: var(--cyan);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .plan-cta {
+      display: block;
+      text-align: center;
+      padding: 0.625rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: opacity 0.15s, background 0.15s;
+    }
+
+    .plan-cta-outline {
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .plan-cta-outline:hover { border-color: rgba(255,255,255,0.2); color: #fff; }
+
+    .plan-cta-filled {
+      background: var(--cyan);
+      color: #07070f;
+    }
+
+    .plan-cta-filled:hover { opacity: 0.88; }
 
     /* ── FOOTER ── */
     footer {
+      padding: 4rem 0;
       border-top: 1px solid var(--border);
-      padding: 2.5rem 0;
-      text-align: center;
-      color: var(--muted);
-      font-size: .82rem;
     }
 
     .footer-inner {
@@ -937,2313 +572,396 @@
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: 1.5rem;
     }
 
-    .footer-links { display: flex; gap: 1.5rem; }
-    .footer-links a { color: var(--muted); text-decoration: none; transition: color .2s; }
-    .footer-links a:hover { color: var(--cyan); }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text);
+      text-decoration: none;
+    }
 
-    /* ── GLOW DIVIDERS ── */
-    .glow-line {
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-      opacity: .3;
-      margin: 0;
+    .footer-logo img { width: 22px; height: 22px; }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+
+    .footer-links a {
+      font-size: 0.8375rem;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .footer-links a:hover { color: var(--text); }
+
+    .footer-copy {
+      font-size: 0.8rem;
+      color: #374151;
     }
 
     /* ── RESPONSIVE ── */
-    @media (max-width: 768px) {
-      nav { padding: 0 1rem; }
+    @media (max-width: 900px) {
+      .products-grid, .features-grid, .pricing-grid { grid-template-columns: 1fr; }
+      .qs-inner { grid-template-columns: 1fr; }
       .nav-links { display: none; }
-      .container { padding: 0 1.25rem; }
     }
 
-    /* ── SCROLL ANIMATIONS ── */
-    .reveal {
-      opacity: 0;
-      transform: translateY(24px);
-      transition: opacity .6s ease, transform .6s ease;
-    }
-
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    /* ── TERMINAL DEMO ── */
-    .terminal {
-      background: #0a0d14;
-      border: 1px solid rgba(0,212,255,0.15);
-      border-radius: 12px;
-      padding: 1.5rem;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: .82rem;
-      line-height: 1.8;
-      overflow-x: auto;
-    }
-
-    .terminal .prompt { color: var(--cyan); }
-    .terminal .cmd { color: var(--text); }
-    .terminal .out { color: var(--green); }
-    .terminal .comment { color: #4b5563; }
-    .terminal .flag { color: #a78bfa; }
-    .terminal .val { color: var(--yellow); }
-
-    .terminal-bar {
-      display: flex;
-      gap: .4rem;
-      margin-bottom: 1rem;
-    }
-
-    .terminal-bar span {
-      width: 12px; height: 12px;
-      border-radius: 50%;
-    }
-
-    .t-red { background: #ff5f57; }
-    .t-yellow { background: #febc2e; }
-    .t-green { background: #28c840; }
-
-    /* ── QUICK INSTALL ── */
-    #quickinstall { padding: 5rem 0; background: rgba(12,17,32,0.6); }
-
-    .qs-tab {
-      padding: .6rem 1.4rem;
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid transparent;
-      color: var(--muted);
-      font-size: .875rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      transition: all .2s;
-      margin-bottom: -1px;
-    }
-    .qs-tab:hover { color: var(--text); }
-    .qs-tab-active {
-      color: var(--cyan);
-      border-bottom-color: var(--cyan);
-    }
-
-    .qi-inner {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 3.5rem;
-      align-items: center;
-    }
-
-    @media (max-width: 900px) { .qi-inner { grid-template-columns: 1fr; } }
-
-    .qi-copy h2 {
-      font-size: 2rem;
-      font-weight: 800;
-      line-height: 1.2;
-      margin-bottom: 1rem;
-    }
-
-    .qi-copy p {
-      color: var(--muted);
-      margin-bottom: 1.75rem;
-      font-size: .95rem;
-      line-height: 1.7;
-    }
-
-    .qi-cmd-box {
-      background: #080e1c;
-      border: 1px solid rgba(0,212,255,0.18);
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    .qi-cmd-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: .65rem 1rem;
-      background: rgba(0,212,255,0.04);
-      border-bottom: 1px solid rgba(0,212,255,0.1);
-    }
-
-    .qi-cmd-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: .7rem;
-      color: var(--muted);
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
-
-    .qi-copy-btn {
-      background: none;
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 5px;
-      color: var(--muted);
-      font-size: .72rem;
-      padding: .2rem .6rem;
-      cursor: pointer;
-      transition: all .2s;
-      font-family: inherit;
-    }
-
-    .qi-copy-btn:hover { border-color: var(--cyan); color: var(--cyan); }
-
-    .qi-cmd-body {
-      padding: 1.1rem 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-    }
-
-    .qi-prompt { color: var(--cyan); font-size: 1rem; }
-
-    .qi-cmd {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: .82rem;
-      color: #a5f3fc;
-      word-break: break-all;
-      flex: 1;
-    }
-
-    .qi-steps {
-      display: flex;
-      flex-direction: column;
-      gap: .75rem;
-      margin-top: 1.5rem;
-    }
-
-    .qi-step {
-      display: flex;
-      align-items: flex-start;
-      gap: .75rem;
-    }
-
-    .qi-step-num {
-      width: 22px; height: 22px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, var(--cyan), var(--purple));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: .65rem;
-      font-weight: 800;
-      color: #fff;
-      flex-shrink: 0;
-      margin-top: 2px;
-    }
-
-    .qi-step-text { font-size: .84rem; color: var(--muted); }
-    .qi-step-text strong { color: var(--text); }
-
-    /* ── DEMO GALLERY ── */
-    #demo { padding: 6rem 0; }
-
-    .demo-tabs {
-      display: flex;
-      gap: .5rem;
-      margin-bottom: 2rem;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0;
-      flex-wrap: wrap;
-    }
-
-    .demo-tab {
-      padding: .6rem 1.1rem .8rem;
-      font-size: .83rem;
-      font-weight: 600;
-      color: var(--muted);
-      cursor: pointer;
-      border: none;
-      background: none;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -1px;
-      transition: all .2s;
-      font-family: inherit;
-    }
-
-    .demo-tab:hover { color: var(--text); }
-    .demo-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
-
-    .demo-panel { display: none; }
-    .demo-panel.active { display: block; }
-
-    .demo-window {
-      background: #060d1f;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 0 60px rgba(0,212,255,0.05), 0 30px 60px rgba(0,0,0,0.5);
-    }
-
-    .demo-titlebar {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      padding: .75rem 1rem;
-      background: rgba(255,255,255,0.03);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .demo-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-    }
-
-    .demo-dot.r { background: #ff5f57; }
-    .demo-dot.y { background: #febc2e; }
-    .demo-dot.g { background: #28c840; }
-
-    .demo-title-label {
-      flex: 1;
-      text-align: center;
-      font-size: .75rem;
-      color: var(--muted);
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .demo-content {
-      padding: 0;
-      min-height: 400px;
-    }
-
-    /* Packet list mockup */
-    .mock-toolbar {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      padding: .6rem .75rem;
-      background: rgba(255,255,255,0.02);
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-    }
-
-    .mock-logo {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: .75rem;
-      font-weight: 700;
-      color: var(--cyan);
-      margin-right: .5rem;
-    }
-
-    .mock-select {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      padding: .25rem .6rem;
-      font-size: .72rem;
-      color: var(--muted);
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .mock-btn {
-      padding: .25rem .65rem;
-      border-radius: 5px;
-      font-size: .72rem;
-      font-weight: 600;
-      border: none;
-      cursor: default;
-      font-family: inherit;
-    }
-
-    .mock-btn.start { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
-    .mock-btn.stop  { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
-    .mock-btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
-
-    .mock-filter {
-      flex: 1;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      padding: .25rem .7rem;
-      font-size: .72rem;
-      color: var(--muted);
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .mock-table { width: 100%; border-collapse: collapse; }
-
-    .mock-table thead th {
-      padding: .45rem .75rem;
-      text-align: left;
-      font-size: .67rem;
-      font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .06em;
-      background: rgba(255,255,255,0.02);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .mock-table tbody tr {
-      border-bottom: 1px solid rgba(255,255,255,0.03);
-      cursor: default;
-      transition: background .1s;
-    }
-
-    .mock-table tbody tr:hover { background: rgba(255,255,255,0.03); }
-    .mock-table tbody tr.selected { background: rgba(0,212,255,0.06); }
-
-    .mock-table tbody td {
-      padding: .38rem .75rem;
-      font-size: .72rem;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-
-    .mock-proto {
-      display: inline-block;
-      padding: .1rem .4rem;
-      border-radius: 3px;
-      font-size: .65rem;
-      font-weight: 700;
-    }
-
-    .mock-proto.http  { background: rgba(99,102,241,0.2); color: #818cf8; }
-    .mock-proto.dns   { background: rgba(245,158,11,0.2); color: #fbbf24; }
-    .mock-proto.tls   { background: rgba(16,185,129,0.2); color: #34d399; }
-    .mock-proto.tcp   { background: rgba(0,212,255,0.12); color: var(--cyan); }
-    .mock-proto.icmp  { background: rgba(239,68,68,0.15); color: #f87171; }
-
-    .mock-status-bar {
-      display: flex;
-      align-items: center;
-      gap: 1.5rem;
-      padding: .35rem .75rem;
-      background: rgba(255,255,255,0.02);
-      border-top: 1px solid var(--border);
-      font-size: .68rem;
-      color: var(--muted);
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .mock-status-dot {
-      display: inline-block;
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      margin-right: .35rem;
-    }
-
-    /* Hub dashboard mockup */
-    .mock-sidebar {
-      width: 160px;
-      background: rgba(255,255,255,0.02);
-      border-right: 1px solid var(--border);
-      padding: .75rem 0;
-      flex-shrink: 0;
-    }
-
-    .mock-sidebar-item {
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-      padding: .45rem .75rem;
-      font-size: .73rem;
-      color: var(--muted);
-      cursor: default;
-      transition: all .1s;
-    }
-
-    .mock-sidebar-item.active {
-      background: rgba(99,102,241,0.1);
-      color: #818cf8;
-      border-left: 2px solid #818cf8;
-    }
-
-    .mock-sidebar-icon { font-size: .8rem; }
-
-    .mock-dashboard-layout {
-      display: flex;
-      height: 400px;
-    }
-
-    .mock-main { flex: 1; overflow: hidden; }
-
-    .mock-stat-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: .5rem;
-      padding: .75rem;
-    }
-
-    .mock-stat {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: .6rem .75rem;
-    }
-
-    .mock-stat-val {
-      font-size: 1.2rem;
-      font-weight: 800;
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--cyan);
-    }
-
-    .mock-stat-label {
-      font-size: .62rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .05em;
-    }
-
-    .mock-chart-area {
-      margin: 0 .75rem;
-      background: rgba(0,212,255,0.03);
-      border: 1px solid rgba(0,212,255,0.1);
-      border-radius: 8px;
-      height: 100px;
-      display: flex;
-      align-items: flex-end;
-      gap: 3px;
-      padding: .5rem .75rem .35rem;
-      overflow: hidden;
-    }
-
-    .mock-bar {
-      flex: 1;
-      background: linear-gradient(to top, rgba(0,212,255,0.6), rgba(0,212,255,0.2));
-      border-radius: 2px 2px 0 0;
-      min-width: 4px;
-    }
-
-    .mock-flows-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: .5rem .75rem;
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .mock-flows-title {
-      font-size: .73rem;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .mock-live-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: .3rem;
-      background: rgba(16,185,129,0.1);
-      border: 1px solid rgba(16,185,129,0.2);
-      border-radius: 4px;
-      padding: .15rem .5rem;
-      font-size: .65rem;
-      color: #34d399;
-    }
-
-    .mock-live-dot {
-      width: 5px; height: 5px;
-      border-radius: 50%;
-      background: #34d399;
-      animation: blink 1.2s ease-in-out infinite;
-    }
-
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-    /* ── PRICING ── */
-    #pricing { padding: 6rem 0; }
-
-    .pricing-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      margin-top: 3rem;
-    }
-
-    .plan-card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 2rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.25rem;
-      position: relative;
-      transition: border-color .25s, box-shadow .25s;
-    }
-    .plan-card:hover {
-      border-color: rgba(124,58,237,.4);
-      box-shadow: 0 0 32px rgba(124,58,237,.12);
-    }
-    .plan-card.popular {
-      border-color: rgba(0,212,255,.35);
-      box-shadow: 0 0 28px rgba(0,212,255,.10);
-    }
-    .plan-popular-badge {
-      position: absolute;
-      top: -12px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(90deg, var(--cyan), var(--purple));
-      color: #fff;
-      font-size: .65rem;
-      font-weight: 700;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-      padding: .2rem .75rem;
-      border-radius: 20px;
-    }
-    .plan-name {
-      font-size: .7rem;
-      font-weight: 700;
-      letter-spacing: .1em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    .plan-price {
-      font-size: 2.5rem;
-      font-weight: 900;
-      line-height: 1;
-      color: var(--text);
-    }
-    .plan-price span {
-      font-size: .9rem;
-      font-weight: 400;
-      color: var(--muted);
-    }
-    .plan-desc {
-      font-size: .85rem;
-      color: var(--muted);
-      line-height: 1.5;
-    }
-    .plan-features {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: .6rem;
-      flex: 1;
-    }
-    .plan-features li {
-      font-size: .82rem;
-      color: var(--text);
-      display: flex;
-      align-items: flex-start;
-      gap: .5rem;
-    }
-    .plan-features li::before {
-      content: '✓';
-      color: var(--cyan);
-      font-size: .8rem;
-      flex-shrink: 0;
-      margin-top: .05rem;
-    }
-    .plan-features li.ent::before { color: var(--purple); }
-    .plan-cta {
-      display: block;
-      text-align: center;
-      padding: .7rem 1.5rem;
-      border-radius: 8px;
-      font-size: .85rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: opacity .2s;
-    }
-    .plan-cta:hover { opacity: .85; }
-    .plan-cta.outline {
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-    .plan-cta.cyan {
-      background: linear-gradient(90deg, var(--cyan-dim), var(--cyan));
-      color: #000;
-    }
-    .plan-cta.purple {
-      background: linear-gradient(90deg, var(--purple-dim), var(--purple));
-      color: #fff;
-    }
-    .pricing-note {
-      text-align: center;
-      color: var(--muted);
-      font-size: .8rem;
-      margin-top: 2rem;
+    @media (max-width: 600px) {
+      #hero { padding: 120px 0 80px; }
+      .section-heading { font-size: 1.75rem; }
+      .install-block { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
 
-<!-- ── ANIMATED CANVAS BACKGROUND ── -->
-<canvas id="canvas-bg"></canvas>
-
 <!-- ── NAV ── -->
 <nav>
-  <a href="#" class="nav-logo">
-    <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="28" height="28" rx="6" fill="#0a0e1a"/>
-      <circle cx="14" cy="14" r="11"  fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".25"/>
-      <circle cx="14" cy="14" r="7.5" fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".35"/>
-      <circle cx="14" cy="14" r="4"   fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".5"/>
-      <line x1="14" y1="3"  x2="14" y2="25" stroke="#00d4ff" stroke-width=".5" opacity=".15"/>
-      <line x1="3"  y1="14" x2="25" y2="14" stroke="#00d4ff" stroke-width=".5" opacity=".15"/>
-      <path d="M14,14 L20,7.5 A8.5,8.5 0 0,1 22.5,14 Z" fill="#00d4ff" opacity=".18"/>
-      <line x1="14" y1="14" x2="20" y2="7.5" stroke="#00d4ff" stroke-width="1" opacity=".7" stroke-linecap="round"/>
-      <circle cx="20" cy="7.5" r="1.8" fill="#00d4ff" opacity=".95"/>
-      <circle cx="20" cy="7.5" r="3.2" fill="#00d4ff" opacity=".18"/>
-      <circle cx="14" cy="14" r="2" fill="#7c3aed"/>
-    </svg>
+  <a href="/" class="nav-logo">
+    <img src="icon.svg" alt="NetScope" />
     NetScope
   </a>
   <ul class="nav-links">
+    <li><a href="#products">Products</a></li>
     <li><a href="#features">Features</a></li>
-    <li><a href="#gallery">Gallery</a></li>
-    <li><a href="#protocols">Protocols</a></li>
-    <li><a href="#changelog">What's New</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#quickinstall">Quick Start</a></li>
     <li><a href="#pricing">Pricing</a></li>
-    <li><a href="#download">Download</a></li>
+    <li><a href="https://github.com/Libinm264/netscope" target="_blank" rel="noopener">GitHub</a></li>
   </ul>
   <div class="nav-cta">
-    <a href="https://github.com/Libinm264/netscope" target="_blank" class="btn btn-ghost">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
-      GitHub
-    </a>
-    <a href="#download" class="btn btn-primary">Download</a>
+    <a href="https://github.com/Libinm264/netscope" class="btn-ghost" target="_blank" rel="noopener">Docs</a>
+    <a href="#quickstart" class="btn-primary">Get started →</a>
   </div>
 </nav>
 
 <!-- ── HERO ── -->
 <section id="hero">
-  <div>
-    <div class="hero-badge">
-      <span class="dot"></span>
-      v0.4 · Community (MIT) + Enterprise (BSL-1.1)
+  <div class="container">
+    <div class="badge">
+      <span>New</span> Desktop app v0.5 now available
     </div>
+
     <h1>
-      Network Observability<br/>
-      <span class="gradient-text">Redefined for Modern Teams</span>
+      Network visibility<br/>
+      for <em>every team.</em>
     </h1>
-    <p class="hero-sub">
-      Real-time packet capture with deep protocol inspection, GeoIP & threat intelligence, and a SaaS hub for fleet-wide visibility — all in one platform built with Rust, Go, and React.
+
+    <p>
+      Capture, inspect, and monitor traffic across your entire fleet —
+      from a single laptop to hundreds of servers.
     </p>
+
     <div class="hero-actions">
-      <a href="https://github.com/Libinm264/netscope/releases" target="_blank" class="btn btn-primary btn-lg">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download Free
-      </a>
-      <a href="https://github.com/Libinm264/netscope" target="_blank" class="btn btn-ghost btn-lg">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.154-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.741 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
+      <a href="#quickstart" class="btn-primary">Start free →</a>
+      <a href="https://github.com/Libinm264/netscope" class="btn-outline" target="_blank" rel="noopener">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.49.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.99 1.03-2.69-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0112 6.8c.85 0 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.6 1.03 2.69 0 3.85-2.34 4.7-4.57 4.94.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10.01 10.01 0 0022 12c0-5.52-4.48-10-10-10z"/></svg>
         View on GitHub
       </a>
     </div>
-    <div class="hero-badges">
-      <span class="badge">🦀 Rust 2021</span>
-      <span class="badge">🐹 Go 1.22</span>
-      <span class="badge">⚛️ React 18</span>
-      <span class="badge">🪟 Tauri 2.x</span>
-      <span class="badge">🗄️ ClickHouse</span>
-      <span class="badge">📡 eBPF</span>
+
+    <div class="install-block">
+      <span class="prompt">$</span>
+      <code>curl -sSL https://netscope.ie/hub-quickstart.sh | sh</code>
+      <button class="copy-btn" onclick="copy(this,'curl -sSL https://netscope.ie/hub-quickstart.sh | sh')" title="Copy">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </button>
     </div>
   </div>
 </section>
 
-<!-- ── STATS ── -->
-<section id="stats">
-  <div class="container">
-    <div class="stats-grid reveal">
-      <div>
-        <div class="stat-num">9+</div>
-        <div class="stat-label">Protocols Decoded</div>
-      </div>
-      <div>
-        <div class="stat-num">3</div>
-        <div class="stat-label">Platforms</div>
-      </div>
-      <div>
-        <div class="stat-num">100k+</div>
-        <div class="stat-label">Rows Without Jank</div>
-      </div>
-      <div>
-        <div class="stat-num">p99</div>
-        <div class="stat-label">Latency Tracking</div>
-      </div>
-      <div>
-        <div class="stat-num">0</div>
-        <div class="stat-label">Cloud Dependencies</div>
-      </div>
-      <div>
-        <div class="stat-num">MIT</div>
-        <div class="stat-label">License</div>
-      </div>
-    </div>
-  </div>
-</section>
+<div class="divider"></div>
 
-<div class="glow-line"></div>
-
-<!-- ── PILLARS ── -->
-<section id="pillars">
+<!-- ── PRODUCTS ── -->
+<section id="products">
   <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Why NetScope</span>
-      <h2 class="section-title">Three tools. One platform.</h2>
-      <p class="section-sub">NetScope ships as three complementary pieces that work standalone or together as a unified observability stack.</p>
-    </div>
-    <div class="pillars-grid">
-      <div class="pillar-card reveal">
-        <div class="pillar-icon cyan">🖥️</div>
-        <h3>Desktop Application</h3>
-        <p>Wireshark-inspired 3-pane UI for macOS, Windows, and Linux. Live capture, GeoIP flags, threat badges, certificate audit, HTTP analytics, and a service dependency map — all without leaving the app.</p>
+    <p class="section-label">Platform</p>
+    <h2 class="section-heading">Three tools.<br/>One platform.</h2>
+    <p class="section-sub">Every piece works standalone. Together they give you complete fleet-wide visibility.</p>
+
+    <div class="products-grid">
+
+      <div class="product-card">
+        <div class="product-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </div>
+        <h3>Desktop App</h3>
+        <p>
+          A visual network explorer for macOS and Windows. Browse live traffic, filter by protocol, and trace connections — no terminal required.
+        </p>
+        <span class="product-tag">
+          <span class="dot"></span> macOS · Windows
+        </span>
       </div>
-      <div class="pillar-card reveal">
-        <div class="pillar-icon purple">⚡</div>
-        <h3>CLI Agent</h3>
-        <p>Headless <code>netscope-agent</code> for servers, containers, and CI environments. eBPF-powered capture on Linux requires no root at runtime. Streams flows to the hub or saves to JSONL.</p>
+
+      <div class="product-card">
+        <div class="product-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01"/></svg>
+        </div>
+        <h3>Capture Agent</h3>
+        <p>
+          A lightweight sensor that runs on Linux, macOS, and Windows. Sends flow data to your hub with zero persistent storage on the host.
+        </p>
+        <span class="product-tag">
+          <span class="dot"></span> Linux · macOS · Windows
+        </span>
       </div>
-      <div class="pillar-card reveal">
-        <div class="pillar-icon green">🌐</div>
+
+      <div class="product-card">
+        <div class="product-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
         <h3>SaaS Hub</h3>
-        <p>Multi-tenant Go API with Kafka ingestion and ClickHouse analytics. Real-time SSE streaming, RBAC, alerting with webhook & SMTP delivery, compliance reports, and a Next.js dashboard.</p>
+        <p>
+          A self-hosted dashboard that aggregates flows from your entire fleet. Search across agents, set alerts, and visualise threats in one place.
+        </p>
+        <span class="product-tag">
+          <span class="dot"></span> Self-hosted · Docker
+        </span>
       </div>
+
     </div>
   </div>
 </section>
 
-<div class="glow-line"></div>
+<div class="divider"></div>
 
 <!-- ── FEATURES ── -->
 <section id="features">
   <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Features</span>
-      <h2 class="section-title">Everything you need to see your network clearly</h2>
-      <p class="section-sub">From kernel-level capture to fleet-wide dashboards — every layer of the stack is covered.</p>
-    </div>
+    <p class="section-label">Capabilities</p>
+    <h2 class="section-heading">Everything you need<br/>to see your network clearly.</h2>
+    <p class="section-sub">Built on Rust and ClickHouse. Handles hundreds of thousands of flows per second without breaking a sweat.</p>
 
-    <div class="tab-buttons reveal">
-      <button class="tab-btn active" onclick="switchTab('desktop', this)">🖥️ Desktop</button>
-      <button class="tab-btn" onclick="switchTab('capture', this)">📡 Capture & Decoding</button>
-      <button class="tab-btn" onclick="switchTab('hub', this)">🌐 Hub & Backend</button>
-      <button class="tab-btn" onclick="switchTab('detection', this)">🔍 Detection</button>
-      <button class="tab-btn" onclick="switchTab('security', this)">🔐 Security</button>
-    </div>
+    <div class="features-grid">
 
-    <!-- Desktop Tab -->
-    <div class="tab-panel active" id="tab-desktop">
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">📋</div>
-            <h4>Virtualised Packet List</h4>
-          </div>
-          <p>Handles 100,000+ rows without jank using TanStack Virtual. Two-line rows show IP plus GeoIP / ASN sub-line. Auto-scrolls during live capture.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🌍</div>
-            <h4>GeoIP Enrichment</h4>
-          </div>
-          <p>MaxMind GeoLite2-City + ASN databases auto-loaded from ~/.netscope/. Country flag emoji and ASN on every row. Offline — no API calls, no rate limits.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">⚠️</div>
-            <h4>Threat Intelligence</h4>
-          </div>
-          <p>Offline CIDR blocklist covering Tor exits, C2 infrastructure, and port heuristics. Color-coded HIGH / MED / LOW badges with full reason breakdown in the detail pane.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🗺️</div>
-            <h4>Service Dependency Map</h4>
-          </div>
-          <p>SVG force-directed graph of all IP-to-IP connections. Nodes sized by flow count, edges colored by protocol. Pan, zoom, hover tooltips with geo & ASN data.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">📊</div>
-            <h4>HTTP Analytics</h4>
-          </div>
-          <p>Per-endpoint p50 / p95 / p99 latency bars, error rates, and request counts. Updates live during capture. Sort by latency or error rate to pinpoint slow endpoints.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🛡️</div>
-            <h4>TLS Certificate Fleet</h4>
-          </div>
-          <p>Sidebar aggregates every TLS cert seen in the session sorted by severity: expired → critical (&lt;7d) → warning (&lt;30d) → valid. Red badge count on toolbar.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">⛓️</div>
-            <h4>Hub Connect Mode</h4>
-          </div>
-          <p>Query historical fleet-wide flows from a running hub directly inside the desktop UI. Hub flows merge with local capture, tagged with a blue badge.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">💾</div>
-            <h4>Session Persistence</h4>
-          </div>
-          <p>Save and load .nscope sessions (SQLite). Sessions survive restart and are forward-compatible — new fields default gracefully when loading older files.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔍</div>
-            <h4>Live Filtering</h4>
-          </div>
-          <p>Protocol shortcuts (http, dns, tls, errors, threats, hub) plus free-text IP/port/keyword search apply instantly. BPF expressions pre-filter at the kernel level.</p>
-        </div>
+      <div class="feature-card">
+        <p class="feature-num">01</p>
+        <h4>Real-time capture</h4>
+        <p>pcap and eBPF capture modes. Sub-millisecond latency from packet to dashboard. Stream live traffic or query historical flows with SQL.</p>
       </div>
-    </div>
 
-    <!-- Capture Tab -->
-    <div class="tab-panel" id="tab-capture">
-      <div class="feature-grid">
-        <div class="feature-card" style="border-color:rgba(0,212,255,0.25);background:linear-gradient(135deg,rgba(0,212,255,0.06) 0%,rgba(12,17,32,0.9) 100%)">
-          <div class="feature-card-head">
-            <div class="feature-icon">📡</div>
-            <h4>eBPF SSL Intercept <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(0,212,255,0.15);color:var(--cyan);vertical-align:middle;margin-left:4px">v0.2</span></h4>
-          </div>
-          <p>Uprobes on <code>SSL_write</code>/<code>SSL_read</code> intercept plaintext <em>before</em> encryption — full HTTP visibility through HTTPS with zero certificate changes. Every flow carries the process name and PID that opened the connection.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔄</div>
-            <h4>TCP Reassembly</h4>
-          </div>
-          <p>Out-of-order segment buffering, retransmission counting, stream fragmentation handling. SYN/FIN/RST state machine per connection keyed by 4-tuple.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🌐</div>
-            <h4>HTTP/1.1 Decoding</h4>
-          </div>
-          <p>Full request/response pairing via httparse. Extracts method, path, host, status, all headers, body preview (512 bytes), and per-request latency.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">⚡</div>
-            <h4>HTTP/2 + gRPC</h4>
-          </div>
-          <p>Binary frame walker with HPACK header decompression. Stream ID pairing, per-stream latency measurement. gRPC service/method extraction from :path and grpc-status.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔒</div>
-            <h4>TLS Handshake Inspection</h4>
-          </div>
-          <p>ClientHello SNI + cipher suites, ServerHello negotiated version, Certificate CN/SANs/expiry, Alert decoding. Detects weak ciphers (RC4, 3DES, NULL, EXPORT).</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔎</div>
-            <h4>DNS Decoding</h4>
-          </div>
-          <p>Query/response pairing from DNS wire format. Supports A, AAAA, CNAME, MX, TXT, PTR record types. Extracts RCODE and TTLs from every answer section.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">📶</div>
-            <h4>ICMP &amp; ARP</h4>
-          </div>
-          <p>Echo request/reply with RTT measurement. ARP who-has/is-at with sender and target IP/MAC pairs. Human-readable type/code strings for all ICMP messages.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🎯</div>
-            <h4>BPF Filters</h4>
-          </div>
-          <p>Pre-filter packets at the kernel level using standard BPF expressions: tcp port 443, host 8.8.8.8, not arp — dramatically reduces CPU overhead at high traffic rates.</p>
-        </div>
+      <div class="feature-card">
+        <p class="feature-num">02</p>
+        <h4>Deep protocol decode</h4>
+        <p>HTTP, DNS, TLS, ICMP, ARP, gRPC, and more. See hostnames, query names, cipher suites — not just source and destination IPs.</p>
       </div>
-    </div>
 
-    <!-- Hub Tab -->
-    <div class="tab-panel" id="tab-hub">
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">📥</div>
-            <h4>Flow Ingestion</h4>
-          </div>
-          <p>Agents POST batches via /api/v1/ingest. Kafka path for high-throughput with direct ClickHouse write as fallback. Async batch writer keeps latency low.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">📡</div>
-            <h4>Real-time SSE Stream</h4>
-          </div>
-          <p>GET /api/v1/flows/stream fans out to all connected dashboard clients instantly. Rate-limited per-client to prevent runaway subscribers from overwhelming the server.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">📈</div>
-            <h4>ClickHouse Analytics</h4>
-          </div>
-          <p>Time-series flow counts, per-endpoint p50/p95/p99 latency, DNS NXDOMAIN rates. Per-minute timeseries with 1h/6h/24h ranges rendered with Recharts in the dashboard.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔔</div>
-            <h4>Smart Alerting</h4>
-          </div>
-          <p>Configurable threshold rules: flows/min, HTTP error rate, DNS NXDOMAIN rate, anomaly σ. Webhook + SMTP delivery with exponential back-off retry (1s → 5s → 30s).</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">📋</div>
-            <h4>Compliance Reports</h4>
-          </div>
-          <p>One-click PCI-DSS, HIPAA, and CIS benchmark report generation from ClickHouse data. Schedule and export to share with auditors and security teams.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔑</div>
-            <h4>RBAC &amp; Scoped Tokens</h4>
-          </div>
-          <p>Admin/viewer roles on API tokens. RequireAdmin middleware gates all write endpoints. Enrolled agents receive a unique viewer-scoped token — never the global admin key.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">📓</div>
-            <h4>Audit Log</h4>
-          </div>
-          <p>Every authenticated API call recorded to audit_events: token ID, role, method, path, status, latency, and client IP. Queryable via GET /api/v1/audit with 90-day TTL.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">☸️</div>
-            <h4>Kubernetes Ready</h4>
-          </div>
-          <p>Helm chart and manifests for deploying hub + ClickHouse + Kafka in-cluster. OpenTelemetry export to any OTLP-compatible backend. CI/CD matrix builds all platforms.</p>
-        </div>
+      <div class="feature-card">
+        <p class="feature-num">03</p>
+        <h4>Process attribution</h4>
+        <p>eBPF mode maps every connection to the process that owns it. Know which binary, PID, and user is talking to the internet.</p>
       </div>
-    </div>
 
-    <!-- Detection Tab -->
-    <div class="tab-panel" id="tab-detection">
-      <div class="feature-grid">
-        <div class="feature-card" style="border-color:rgba(0,212,255,0.25);background:linear-gradient(135deg,rgba(0,212,255,0.06) 0%,rgba(12,17,32,0.9) 100%)">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔍</div>
-            <h4>Sigma Detection Engine <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(0,212,255,0.15);color:var(--cyan);vertical-align:middle;margin-left:4px">v0.4</span></h4>
-          </div>
-          <p>Detection rules evaluated every 5 minutes against live flow data using ClickHouse SQL. 5 built-in rules ship out-of-the-box on every plan — port scans, DNS tunneling, cleartext credentials, shell process networking, and beaconing.</p>
-        </div>
-        <div class="feature-card" style="border-color:rgba(124,58,237,0.25);background:linear-gradient(135deg,rgba(124,58,237,0.06) 0%,rgba(12,17,32,0.9) 100%)">
-          <div class="feature-card-head">
-            <div class="feature-icon">⚡</div>
-            <h4>Custom Rules (Enterprise) <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(124,58,237,0.15);color:#a78bfa;vertical-align:middle;margin-left:4px">Enterprise</span></h4>
-          </div>
-          <p>Write unlimited custom detection queries in ClickHouse SQL. Full access to all flow dimensions — process, K8s namespace, DNS, TLS, geo, threat score. Any rows returned = rule fires and a match event is recorded.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔗</div>
-            <h4>OTel Trace Correlation <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,0.15);color:var(--green);vertical-align:middle;margin-left:4px">Community</span></h4>
-          </div>
-          <p>Every flow carries the W3C <code>traceparent</code> trace-id extracted from observed HTTP headers. Filter the Flow Explorer by trace-id to see every network hop for a given OTel span — correlate your APM traces with raw packets.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔖</div>
-            <h4>Saved Queries <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,0.15);color:var(--green);vertical-align:middle;margin-left:4px">Community</span></h4>
-          </div>
-          <p>Save any combination of Flow Explorer filters (protocol, IPs, trace-id, time range) with a name and recall them instantly. Community plan includes 10 saved queries; Enterprise gets unlimited.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">📊</div>
-            <h4>Match History</h4>
-          </div>
-          <p>Every rule firing is recorded as a match event with the exact result row data serialised to JSON. Filter by rule, severity, or time window. 30-day TTL with ClickHouse MergeTree partition pruning.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">📈</div>
-            <h4>Kafka Consumer Scaling <span style="font-size:.65rem;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(124,58,237,0.15);color:#a78bfa;vertical-align:middle;margin-left:4px">Enterprise</span></h4>
-          </div>
-          <p>Set <code>KAFKA_GROUP_ID</code> to run multiple hub instances in the same consumer group — Kafka partitioning divides the ingest load automatically. Zero code changes required; horizontal scaling in minutes.</p>
-        </div>
+      <div class="feature-card">
+        <p class="feature-num">04</p>
+        <h4>GeoIP &amp; threat intel</h4>
+        <p>Automatic geolocation and AbuseIPDB lookups enrich every flow. Flag suspicious IPs before they become incidents.</p>
       </div>
-    </div>
 
-    <!-- Security Tab -->
-    <div class="tab-panel" id="tab-security">
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔏</div>
-            <h4>API Key Proxy</h4>
-          </div>
-          <p>Server-side Next.js proxy injects HUB_API_KEY from server-only env vars. API keys never reach the browser bundle. SSE stream URL has no api_key= query parameter.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🚫</div>
-            <h4>SSRF Prevention</h4>
-          </div>
-          <p>Webhook URLs are validated against all RFC 1918 private ranges, loopback, link-local, carrier-NAT, and IPv6 private ranges — at create, update, AND fire time (DNS rebinding defence).</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🪝</div>
-            <h4>HMAC Webhook Signatures</h4>
-          </div>
-          <p>Every webhook delivery includes X-NetScope-Signature: sha256=&lt;hmac&gt; computed with a per-rule secret. Verify payloads are authentic before processing in your receiver.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🛡️</div>
-            <h4>Security Headers</h4>
-          </div>
-          <p>X-Content-Type-Options, X-Frame-Options: DENY, X-XSS-Protection, Referrer-Policy, and Permissions-Policy on every API response. Tauri CSP restricted to a minimal allowlist.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🗄️</div>
-            <h4>Credential Safety</h4>
-          </div>
-          <p>Startup fails loudly if PRODUCTION=true and default ClickHouse credentials are in use. CORS wildcard is refused in production mode. METRICS_TOKEN protects Prometheus scraping.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-card-head">
-            <div class="feature-icon">🔒</div>
-            <h4>Parameterised Queries</h4>
-          </div>
-          <p>All ClickHouse queries use parameterised placeholders — no string interpolation. Error messages are sanitised before reaching HTTP responses to prevent information leakage.</p>
-        </div>
+      <div class="feature-card">
+        <p class="feature-num">05</p>
+        <h4>Sigma detection</h4>
+        <p>Write detection rules in standard Sigma format. Get alerted on anomalous DNS, lateral movement, and known-bad IPs in real time.</p>
       </div>
+
+      <div class="feature-card">
+        <p class="feature-num">06</p>
+        <h4>Fleet management</h4>
+        <p>Enroll agents with a one-line command. Monitor heartbeats, push config updates, and manage API tokens from a single dashboard.</p>
+      </div>
+
     </div>
   </div>
 </section>
 
-<div class="glow-line"></div>
+<div class="divider"></div>
 
-<!-- ── TERMINAL DEMO ── -->
-<section id="demo" style="padding: 6rem 0;">
+<!-- ── QUICKSTART ── -->
+<section id="quickstart">
   <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Quick Start</span>
-      <h2 class="section-title">Up and running in minutes</h2>
-      <p class="section-sub">The CLI agent works out of the box. Point it at an interface and start seeing traffic.</p>
-    </div>
-    <div class="terminal reveal">
-      <div class="terminal-bar">
-        <span class="t-red"></span>
-        <span class="t-yellow"></span>
-        <span class="t-green"></span>
-      </div>
-      <div><span class="comment"># List available network interfaces</span></div>
-      <div><span class="prompt">$</span> <span class="cmd">netscope-agent</span> <span class="flag">list-interfaces</span></div>
-      <div><span class="out">  en0   Wi-Fi — 192.168.1.5</span></div>
-      <div><span class="out">  lo0   Loopback — 127.0.0.1</span></div>
-      <br/>
-      <div><span class="comment"># Capture with BPF filter and stream to hub</span></div>
-      <div><span class="prompt">$</span> <span class="cmd">netscope-agent</span> <span class="flag">capture</span> \</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">--interface</span> <span class="val">en0</span> \</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">--filter</span> <span class="val">"tcp port 443 or udp port 53"</span> \</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">--hub-url</span> <span class="val">https://hub.netscope.ie</span> \</div>
-      <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="flag">--api-key</span> <span class="val">ns_your_token_here</span></div>
-      <br/>
-      <div><span class="out">✓ GeoLite2-City loaded (~720ms)</span></div>
-      <div><span class="out">✓ Connected to hub at hub.netscope.ie</span></div>
-      <div><span class="out">✓ Capture started on en0 [BPF: tcp port 443 or udp port 53]</span></div>
-      <div><span class="out">→ TLS  192.168.1.5:52341 → 142.250.80.46:443  [google.com]  cipher=TLS_AES_256_GCM  🇺🇸 AS15169</span></div>
-      <div><span class="out">→ DNS  192.168.1.5:53891 → 8.8.8.8:53  A github.com → 140.82.121.4  ttl=60s</span></div>
-      <div><span class="out">→ TLS  192.168.1.5:52345 → 140.82.121.4:443  [github.com]  cipher=TLS_CHACHA20  🇺🇸 AS36459</span></div>
-    </div>
-  </div>
-</section>
+    <div class="qs-inner">
 
-<!-- ── PROTOCOLS ── -->
-<section id="protocols">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Protocol Support</span>
-      <h2 class="section-title">Deep decode, not just headers</h2>
-      <p class="section-sub">Every protocol is decoded to its semantic layer — not just packets.</p>
-    </div>
-    <div class="protocols-grid reveal">
-      <div class="proto-card">
-        <div class="proto-name">HTTP/1.1</div>
-        <div class="proto-desc">Full req/res pairing, headers, body preview, latency</div>
-      </div>
-      <div class="proto-card">
-        <div class="proto-name">HTTP/2</div>
-        <div class="proto-desc">Binary frames, HPACK, stream pairing, per-stream RTT</div>
-      </div>
-      <div class="proto-card">
-        <div class="proto-name">gRPC</div>
-        <div class="proto-desc">Service/method extraction, grpc-status from trailers</div>
-      </div>
-      <div class="proto-card">
-        <div class="proto-name">TLS 1.2/1.3</div>
-        <div class="proto-desc">SNI, cipher suites, certs, SANs, expiry, alerts</div>
-      </div>
-      <div class="proto-card">
-        <div class="proto-name">DNS</div>
-        <div class="proto-desc">A, AAAA, CNAME, MX, TXT, PTR, RCODE, TTLs</div>
-      </div>
-      <div class="proto-card">
-        <div class="proto-name">TCP</div>
-        <div class="proto-desc">Reassembly, retransmissions, OOO segments, RTT</div>
-      </div>
-      <div class="proto-card">
-        <div class="proto-name">ICMP</div>
-        <div class="proto-desc">Echo req/reply, RTT, type/code human strings</div>
-      </div>
-      <div class="proto-card">
-        <div class="proto-name">ARP</div>
-        <div class="proto-desc">Who-has / is-at, sender + target IP/MAC</div>
-      </div>
-      <div class="proto-card">
-        <div class="proto-name">eBPF</div>
-        <div class="proto-desc">Kernel-level capture, no root required (Linux)</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="glow-line"></div>
-
-<!-- ── ARCHITECTURE ── -->
-<section id="architecture">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Architecture</span>
-      <h2 class="section-title">Every layer designed to scale</h2>
-      <p class="section-sub">From kernel-level eBPF capture to ClickHouse analytics — a coherent data path from bytes to insight.</p>
-    </div>
-
-    <div class="arch-visual reveal">
-
-      <!-- Layer 1: Desktop -->
-      <div class="arch-layer layer-desktop">
-        <div class="arch-layer-title cyan">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
-          NetScope Desktop &nbsp;·&nbsp; macOS / Windows / Linux
-        </div>
-        <div class="arch-cols">
-          <div>
-            <div class="arch-col-label">React Frontend</div>
-            <div class="arch-chips">
-              <span class="arch-chip">PacketListPane</span>
-              <span class="arch-chip">ServiceMapPane</span>
-              <span class="arch-chip">AnalyticsPane</span>
-              <span class="arch-chip">CertSidebar</span>
-              <span class="arch-chip">HubConnectModal</span>
-              <span class="arch-chip">FilterBar</span>
-              <span class="arch-chip">HexDumpPane</span>
-              <span class="arch-chip">Zustand store</span>
-            </div>
-          </div>
-          <div>
-            <div class="arch-col-label">Tauri Backend (Rust)</div>
-            <div class="arch-chips">
-              <span class="arch-chip">GeoIP reader</span>
-              <span class="arch-chip">Threat scorer</span>
-              <span class="arch-chip">Hub client</span>
-              <span class="arch-chip">SQLite sessions</span>
-              <span class="arch-chip">SharedState</span>
-              <span class="arch-chip">IPC commands</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Connector 1 -->
-      <div class="arch-connector">
-        <div class="arch-connector-line"></div>
-        <div class="arch-connector-label">spawns OS thread</div>
-        <div class="arch-connector-line"></div>
-      </div>
-
-      <!-- Layer 2: Rust Agent -->
-      <div class="arch-layer layer-agent">
-        <div class="arch-layer-title purple">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          Rust Agent Crates
-        </div>
-        <div class="arch-cols">
-          <div>
-            <div class="arch-col-label">Capture</div>
-            <div class="arch-chips">
-              <span class="arch-chip">capture</span>
-              <span class="arch-chip">tcp_stream</span>
-              <span class="arch-chip">ebpf-loader</span>
-            </div>
-          </div>
-          <div>
-            <div class="arch-col-label">Parse &amp; Emit</div>
-            <div class="arch-chips">
-              <span class="arch-chip">parser (HTTP/1.1)</span>
-              <span class="arch-chip">http2 + gRPC</span>
-              <span class="arch-chip">dns · tls · icmp · arp</span>
-              <span class="arch-chip">proto (shared types)</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Connector 2 -->
-      <div class="arch-connector">
-        <div class="arch-connector-line"></div>
-        <div class="arch-connector-label">raw frames</div>
-        <div class="arch-connector-line"></div>
-      </div>
-
-      <!-- Layer 3: Network -->
-      <div class="arch-layer layer-network">
-        <div class="arch-layer-title yellow">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
-          Network Interface &nbsp;·&nbsp; libpcap / Npcap / eBPF kernel program
-        </div>
-        <div class="arch-chips">
-          <span class="arch-chip">en0 (Wi-Fi)</span>
-          <span class="arch-chip">eth0 (Ethernet)</span>
-          <span class="arch-chip">BPF filter</span>
-          <span class="arch-chip">promiscuous mode</span>
-          <span class="arch-chip">eBPF (Linux, no root)</span>
-        </div>
-      </div>
-
-      <!-- Connector 3 -->
-      <div class="arch-connector">
-        <div class="arch-connector-line"></div>
-        <div class="arch-connector-label">HTTPS &nbsp;·&nbsp; POST /api/v1/ingest</div>
-        <div class="arch-connector-line"></div>
-      </div>
-
-      <!-- Layer 4: Hub -->
-      <div class="arch-layer layer-hub">
-        <div class="arch-layer-title green">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-          NetScope Hub &nbsp;·&nbsp; Go API + ClickHouse + Kafka + Next.js 14
-        </div>
-        <div class="arch-hub-grid">
-          <div class="arch-hub-col">
-            <div class="arch-col-label">Ingestion</div>
-            <div class="arch-chips">
-              <span class="arch-chip">Kafka producer</span>
-              <span class="arch-chip">ClickHouse writer</span>
-              <span class="arch-chip">SSE fan-out</span>
-              <span class="arch-chip">GeoIP enrichment</span>
-            </div>
-          </div>
-          <div class="arch-hub-col">
-            <div class="arch-col-label">Security &amp; Ops</div>
-            <div class="arch-chips">
-              <span class="arch-chip">RBAC tokens</span>
-              <span class="arch-chip">Audit log (90d)</span>
-              <span class="arch-chip">SSRF protection</span>
-              <span class="arch-chip">Rate limiting</span>
-            </div>
-          </div>
-          <div class="arch-hub-col">
-            <div class="arch-col-label">Next.js Dashboard</div>
-            <div class="arch-chips">
-              <span class="arch-chip">FlowsChart</span>
-              <span class="arch-chip">ProtocolChart</span>
-              <span class="arch-chip">AlertsPage</span>
-              <span class="arch-chip">AuditLog viewer</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /arch-visual -->
-  </div>
-</section>
-
-<div class="glow-line"></div>
-
-<!-- ── CHANGELOG ── -->
-<section id="changelog">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Changelog</span>
-      <h2 class="section-title">What's New in v0.4</h2>
-      <p class="section-sub">Enterprise Readiness — four priority phases shipped. Community gets more power; Enterprise gets the full stack.</p>
-    </div>
-
-    <div class="cl-timeline reveal">
-
-      <!-- P4 — Detection & Analytics -->
-      <div class="cl-entry">
-        <div class="cl-dot enterprise">🔍</div>
-        <div class="cl-body">
-          <div class="cl-header">
-            <span class="cl-version ent">v0.4 · P4</span>
-            <span class="cl-date">April 2026</span>
-            <span class="cl-title">Detection &amp; Analytics</span>
-          </div>
-          <ul class="cl-items">
-            <li class="ent-item"><strong>Sigma detection engine</strong> — 5 built-in rules shipped to all tiers; CRUD for custom rules + 30-day match history (Enterprise).</li>
-            <li><strong>Saved queries</strong> — bookmark up to 10 flow filter presets (Community); unlimited (Enterprise).</li>
-            <li><strong>OTel trace correlation</strong> — filter flows by <code>trace_id</code>; link to your Jaeger/Tempo backend directly from the flow table.</li>
-            <li class="ent-item"><strong>Long-term S3/GCS export</strong> — scheduled hourly or daily Parquet export to AWS S3, GCS, MinIO, or Cloudflare R2. Export runs inside ClickHouse — zero data through the hub process (Enterprise).</li>
-            <li><strong>Cluster labels</strong> — tag agents with a logical cluster name (e.g. <code>prod-eu</code>) and filter flows by cluster.</li>
-          </ul>
-          <div class="cl-tier-note">
-            <span><span style="color:var(--cyan)">●</span> Community (MIT)</span>
-            <span><span style="color:#a78bfa">●</span> Enterprise (BSL-1.1)</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- P3 — Integrations & Export -->
-      <div class="cl-entry">
-        <div class="cl-dot enterprise">🔗</div>
-        <div class="cl-body">
-          <div class="cl-header">
-            <span class="cl-version ent">v0.4 · P3</span>
-            <span class="cl-date">April 2026</span>
-            <span class="cl-title">Integrations &amp; Export</span>
-          </div>
-          <ul class="cl-items">
-            <li class="ent-item"><strong>SIEM sinks</strong> — push flows to Splunk HEC, Elasticsearch, or a generic webhook in real time (Enterprise).</li>
-            <li class="ent-item"><strong>Audit log export</strong> — scheduled CSV/JSON exports of the access audit trail (Enterprise).</li>
-            <li class="ent-item"><strong>Kafka consumer groups</strong> — configurable <code>KAFKA_GROUP_ID</code> for horizontally-scaled hub deployments (Enterprise).</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- P1/P2 — Multi-Tenancy & SSO -->
-      <div class="cl-entry">
-        <div class="cl-dot enterprise">🏢</div>
-        <div class="cl-body">
-          <div class="cl-header">
-            <span class="cl-version ent">v0.4 · P1–P2</span>
-            <span class="cl-date">March 2026</span>
-            <span class="cl-title">Multi-Tenancy, RBAC &amp; SSO</span>
-          </div>
-          <ul class="cl-items">
-            <li class="ent-item"><strong>Organisations + invite links</strong> — create isolated tenants, invite members via one-time token (Enterprise).</li>
-            <li class="ent-item"><strong>RBAC</strong> — Owner / Admin / Viewer roles with per-route enforcement (Enterprise).</li>
-            <li class="ent-item"><strong>OIDC &amp; SAML SSO</strong> — plug in Okta, Azure AD, Google Workspace, or any standards-compliant IdP (Enterprise).</li>
-            <li class="ent-item"><strong>SCIM 2.0</strong> — automated user provisioning/deprovisioning from your IdP (Enterprise).</li>
-            <li><strong>You badge + self-remove guard</strong> — identity-aware member list UI shipped to all tiers.</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- v0.3 -->
-      <div class="cl-entry">
-        <div class="cl-dot">🧠</div>
-        <div class="cl-body">
-          <div class="cl-header">
-            <span class="cl-version">v0.3</span>
-            <span class="cl-date">Q1 2026</span>
-            <span class="cl-title">Intelligence Layer</span>
-          </div>
-          <ul class="cl-items">
-            <li><strong>GeoIP enrichment</strong> — MaxMind-free ASN + country lookup on every flow.</li>
-            <li><strong>Threat intelligence</strong> — AbuseIPDB integration with configurable score thresholds.</li>
-            <li><strong>Process tracking</strong> — eBPF-sourced PID + process name on every connection.</li>
-            <li><strong>Alert rules</strong> — threshold and regex-based alerts with notification webhooks.</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- v0.2 -->
-      <div class="cl-entry">
-        <div class="cl-dot">⚡</div>
-        <div class="cl-body">
-          <div class="cl-header">
-            <span class="cl-version">v0.2</span>
-            <span class="cl-date">Q4 2025</span>
-            <span class="cl-title">eBPF Engine</span>
-          </div>
-          <ul class="cl-items">
-            <li><strong>Linux eBPF capture</strong> — kernel-level packet interception without libpcap overhead.</li>
-            <li><strong>SSL/TLS intercept</strong> — eBPF uprobe on OpenSSL for plaintext visibility.</li>
-            <li><strong>Kubernetes context</strong> — pod name + namespace injected into every flow.</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- v0.1 -->
-      <div class="cl-entry">
-        <div class="cl-dot">🚀</div>
-        <div class="cl-body">
-          <div class="cl-header">
-            <span class="cl-version">v0.1</span>
-            <span class="cl-date">Q3 2025</span>
-            <span class="cl-title">Initial Release</span>
-          </div>
-          <ul class="cl-items">
-            <li><strong>Rust capture agent</strong> — cross-platform libpcap with deep DPI on 30+ protocols.</li>
-            <li><strong>Go hub API</strong> — ClickHouse-backed flow store, REST API, Kafka ingest.</li>
-            <li><strong>React dashboard</strong> — real-time flow table, protocol breakdown, GeoIP map.</li>
-            <li><strong>macOS desktop app</strong> — Tauri-based native UI for local packet inspection.</li>
-          </ul>
-        </div>
-      </div>
-
-    </div><!-- /cl-timeline -->
-  </div>
-</section>
-
-<div class="glow-line"></div>
-
-<!-- ── ROADMAP ── -->
-<section id="roadmap">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Roadmap</span>
-      <h2 class="section-title">Built in the open. Growing fast.</h2>
-      <p class="section-sub">v0.1–v0.3 shipped. v0.4 Enterprise Readiness P1–P4 done. v0.5 Windows &amp; Fleet next.</p>
-    </div>
-    <div class="roadmap-grid">
-      <!-- Done -->
-      <div class="reveal">
-        <h3><span style="color:var(--green)">✓</span> Shipped</h3>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">Phase 1 — Rust CLI agent</div>
-            <div class="rm-sub">libpcap capture, HTTP/1.1 + DNS parsers, TCP reassembler</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">Phase 2 — Tauri desktop GUI</div>
-            <div class="rm-sub">Virtualised packet list, hex dump, detail tree, session persistence, CI</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">Phase 3 — SaaS Hub</div>
-            <div class="rm-sub">Go/Fiber REST API, Kafka, ClickHouse analytics, Next.js 14 dashboard</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">Phase 4 — Protocol expansion</div>
-            <div class="rm-sub">TLS handshake parsing, TCP retransmissions, ICMP, ARP</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">Phase 5 — Analytics &amp; export</div>
-            <div class="rm-sub">Service dependency map, HTTP endpoint analytics, OpenTelemetry export</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">Phase 6 — Enterprise features</div>
-            <div class="rm-sub">Fleet management, TLS cert viewer, anomaly detection, RBAC</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">Phase 7 — Alerting &amp; Kubernetes</div>
-            <div class="rm-sub">Webhook alert rules, compliance reports (PCI-DSS, HIPAA, CIS), Helm chart</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">Phase 8 — eBPF agent + enrichment</div>
-            <div class="rm-sub">Kernel-side eBPF capture, GeoIP + threat intelligence hub and desktop</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">Phase 9 — Production foundation</div>
-            <div class="rm-sub">HTTP/2 + gRPC decoder, scoped agent tokens, audit log, alert retry, SSE rate limit</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">Desktop upgrade + security hardening</div>
-            <div class="rm-sub">GeoIP, threat badges, Hub Connect, cert sidebar, analytics map; SSRF, HMAC, proxy, CSP</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Coming soon -->
-      <div class="reveal">
-        <h3><span style="color:var(--cyan)">⟳</span> In Progress &amp; Coming</h3>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">v0.2 — eBPF Engine</div>
-            <div class="rm-sub">SSL plaintext intercept · Per-process attribution (PID + name) · Process column in hub dashboard</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">v0.3 — Intelligence Layer</div>
-            <div class="rm-sub">Threat intel feeds · Per-process network policy engine · K8s pod enrichment · Agent fleet page</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">v0.4 P1–P3 — Enterprise Readiness (Hub)</div>
-            <div class="rm-sub">Multi-tenant RBAC · SAML 2.0 + OIDC SSO · SCIM 2.0 provisioning · Session management · Invite &amp; password-reset flows · SIEM sinks (Splunk, Elastic, Datadog, Loki) · Audit log export (CEF/LEEF/JSON)</div>
-          </div>
-        </div>
-        <div class="roadmap-item done">
-          <div class="rm-dot done">✓</div>
-          <div>
-            <div class="rm-text">v0.4 P4 — Detection &amp; Analytics</div>
-            <div class="rm-sub">Sigma detection engine (5 built-in rules) · Custom rules (Enterprise) · OTel trace_id correlation · Kafka group scaling · Saved queries (Community: 10 max; Enterprise: unlimited)</div>
-          </div>
-        </div>
-        <div class="roadmap-item coming">
-          <div class="rm-dot coming">→</div>
-          <div>
-            <div class="rm-text">v0.5 — Windows &amp; Fleet (Enterprise)</div>
-            <div class="rm-sub">Windows agent via Npcap · Signed binaries (Authenticode + notarization) · eBPF for Go &amp; Python TLS · Remote config push · S3/GCS long-term storage</div>
-          </div>
-        </div>
-        <div class="roadmap-item coming">
-          <div class="rm-dot coming">→</div>
-          <div>
-            <div class="rm-text">OTel trace → packet drill-down</div>
-            <div class="rm-sub">Click a slow span in your trace viewer and jump directly to the correlated flows in the hub</div>
-          </div>
-        </div>
-        <div class="roadmap-item coming">
-          <div class="rm-dot coming">→</div>
-          <div>
-            <div class="rm-text">Cloud provider connectors</div>
-            <div class="rm-sub">VPC Flow Logs from AWS / GCP / Azure ingested directly into the hub</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ── QUICK INSTALL ── -->
-<section id="quickinstall">
-  <div class="container">
-
-    <div class="section-header reveal" style="text-align:center;">
-      <span class="section-tag">Get Started</span>
-      <h2 class="section-title">Up and running<br><span class="gradient-text">in under 2 minutes</span></h2>
-      <p class="section-sub" style="margin:0 auto;">One command to spin up the hub. One command to connect an agent. That's it.</p>
-    </div>
-
-    <!-- Step tabs -->
-    <div class="reveal" style="display:flex; gap:.5rem; margin-bottom:2rem; border-bottom:1px solid var(--border); padding-bottom:0;">
-      <button id="qs-tab-hub"   class="qs-tab qs-tab-active"  onclick="qsSwitch('hub')">
-        <span style="font-size:1rem;">🖥</span> Step 1 · Self-host the Hub
-      </button>
-      <button id="qs-tab-agent" class="qs-tab"                onclick="qsSwitch('agent')">
-        <span style="font-size:1rem;">🤖</span> Step 2 · Connect an Agent
-      </button>
-    </div>
-
-    <!-- ── Panel: Hub ────────────────────────────────────────────────────── -->
-    <div id="qs-panel-hub" class="qi-inner reveal">
-      <div class="qi-copy">
-        <h3 style="font-size:1.4rem;font-weight:800;margin-bottom:.75rem;">Self-host the Hub</h3>
-        <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.7;">
-          One command pulls pre-built Docker images for ClickHouse, Kafka, the Go API, and the Next.js dashboard — and starts everything. Only Docker required.
-        </p>
-
-        <div class="qi-cmd-box" id="hub-install-box">
-          <div class="qi-cmd-bar">
-            <span class="qi-cmd-label">Linux / macOS — requires Docker</span>
-            <button class="qi-copy-btn" onclick="copyCmd('hub-cmd','hub-copy-btn')" id="hub-copy-btn">Copy</button>
-          </div>
-          <div class="qi-cmd-body">
-            <span class="qi-prompt">$</span>
-            <code class="qi-cmd" id="hub-cmd">curl -sSL https://netscope.ie/hub-quickstart.sh | sh</code>
-          </div>
-        </div>
-
-        <div class="qi-steps" style="margin-top:1.25rem;">
-          <div class="qi-step">
-            <div class="qi-step-num">1</div>
-            <div class="qi-step-text"><strong>Generates a random API key</strong> — no manual config needed.</div>
-          </div>
-          <div class="qi-step">
-            <div class="qi-step-num">2</div>
-            <div class="qi-step-text"><strong>Pulls images from GHCR</strong> — ClickHouse, Kafka, API, and dashboard. No build step.</div>
-          </div>
-          <div class="qi-step">
-            <div class="qi-step-num">3</div>
-            <div class="qi-step-text"><strong>Dashboard is live at <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px;">http://localhost</code></strong> — connect agents and see flows instantly.</div>
-          </div>
-        </div>
-
-        <div style="margin-top:1.5rem; padding:.9rem 1.1rem; background:rgba(124,58,237,0.06); border:1px solid rgba(124,58,237,0.2); border-radius:10px; font-size:.82rem; color:var(--muted);">
-          <strong style="color:var(--text);">Want a custom domain + HTTPS?</strong>
-          Add <code style="font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px;">DOMAIN=hub.example.com</code> before the command — Caddy handles the Let's Encrypt cert automatically.
-        </div>
-      </div>
-
-      <div class="reveal" style="position:relative;">
-        <div class="terminal-window" style="border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(124,58,237,0.12)">
-          <div class="t-bar">
-            <span class="t-dot t-red"></span><span class="t-dot t-yellow"></span><span class="t-dot t-green"></span>
-            <span style="flex:1;text-align:center;font-size:.75rem;color:var(--muted)">hub-quickstart — bash</span>
-          </div>
-          <div class="t-body" style="font-size:.78rem;padding:1.25rem 1.5rem">
-            <div class="t-line" style="margin-bottom:.5rem"><span class="t-prompt">$</span> <span class="t-cmd">curl -sSL https://netscope.ie/hub-quickstart.sh | sh</span></div>
-            <div class="t-line" style="color:var(--cyan); font-weight:700; margin:.4rem 0;">NetScope Hub Quickstart</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  Docker 27.3.1</div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span>  Downloading compose files…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  Files downloaded</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  API key generated</div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span>  Pulling latest Docker images…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  Images ready</div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span>  Starting NetScope Hub…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  Stack started</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  API is healthy</div>
-            <div class="t-line" style="margin-top:.75rem; color:var(--green); font-weight:700;">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
-            <div class="t-line" style="color:var(--text); font-weight:700;">  NetScope Hub is running!</div>
-            <div class="t-line" style="color:var(--green); font-weight:700;">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</div>
-            <div class="t-line" style="margin-top:.4rem;">  Dashboard  <span style="color:var(--cyan)">http://localhost</span></div>
-            <div class="t-line">  API Key    <span style="color:var(--yellow)">a3f9c2e1…</span></div>
-            <div class="t-line" style="margin-top:1rem"><span class="t-prompt">$</span> <span class="t-cursor">▋</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Panel: Agent ──────────────────────────────────────────────────── -->
-    <div id="qs-panel-agent" class="qi-inner reveal" style="display:none;">
-      <div class="qi-copy">
-        <h3 style="font-size:1.4rem;font-weight:800;margin-bottom:.75rem;">Connect an Agent</h3>
-        <p style="color:var(--muted);font-size:.9rem;margin-bottom:1.5rem;line-height:1.7;">
-          Deploy the headless capture agent on any Linux or macOS server. It auto-registers with your Hub and starts streaming flows within seconds.
-        </p>
-
-        <div class="qi-cmd-box" id="install-box">
-          <div class="qi-cmd-bar">
-            <span class="qi-cmd-label">Linux / macOS</span>
-            <button class="qi-copy-btn" onclick="copyCmd('install-cmd','agent-copy-btn')" id="agent-copy-btn">Copy</button>
-          </div>
-          <div class="qi-cmd-body">
-            <span class="qi-prompt">$</span>
-            <code class="qi-cmd" id="install-cmd">curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=https://hub.example.com sh</code>
-          </div>
-        </div>
-
-        <div class="qi-steps" style="margin-top:1.25rem;">
-          <div class="qi-step">
-            <div class="qi-step-num">1</div>
-            <div class="qi-step-text"><strong>Downloads &amp; installs the binary</strong> — auto-detects your OS and architecture (macOS Intel/ARM, Linux x86_64/ARM64).</div>
-          </div>
-          <div class="qi-step">
-            <div class="qi-step-num">2</div>
-            <div class="qi-step-text"><strong>Writes config</strong> — saves <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px;">~/.config/netscope/agent.env</code> with your hub URL and API key. On Linux, also installs and starts a systemd service automatically.</div>
-          </div>
-          <div class="qi-step">
-            <div class="qi-step-num">3</div>
-            <div class="qi-step-text"><strong>Start capturing</strong> — on macOS run <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px;">sudo netscope-agent capture --interface en0 --output hub --hub-url … --api-key …</code> and flows appear in the dashboard instantly.</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="reveal" style="position:relative;">
-        <div class="terminal-window" style="border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(0,212,255,0.1)">
-          <div class="t-bar">
-            <span class="t-dot t-red"></span><span class="t-dot t-yellow"></span><span class="t-dot t-green"></span>
-            <span style="flex:1;text-align:center;font-size:.75rem;color:var(--muted)">netscope-agent — bash</span>
-          </div>
-          <div class="t-body" style="font-size:.78rem;padding:1.25rem 1.5rem">
-            <div class="t-line" style="margin-bottom:.5rem"><span class="t-prompt">$</span> <span class="t-cmd">curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=http://localhost HUB_API_KEY=a3f9… sh</span></div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span>  Fetching latest release version…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  Version: v0.1.0</div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span>  Downloading netscope-agent-v0.1.0-x86_64-apple-darwin.tar.gz…</div>
-            <div class="t-line"><span style="color:var(--cyan)">→</span>  Extracting…</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  Installed: /usr/local/bin/netscope-agent 0.1.0</div>
-            <div class="t-line"><span style="color:var(--green)">✓</span>  Config written: ~/.config/netscope/agent.env</div>
-            <div class="t-line" style="margin-top:.75rem; color:var(--muted); font-size:.75rem;">Done! Run: netscope-agent list-interfaces</div>
-            <div class="t-line" style="margin-top:.75rem;"><span class="t-prompt">$</span> <span class="t-cmd">sudo netscope-agent capture --interface en0 --output hub --hub-url http://localhost:8080 --api-key a3f9…</span></div>
-            <div class="t-line"><span style="color:var(--green)">INFO</span> Starting capture on <span style="color:#f0abfc">en0</span></div>
-            <div class="t-line"><span style="color:var(--green)">INFO</span> Hub client initialised · streaming flows…</div>
-            <div class="t-line" style="margin-top:1rem"><span class="t-prompt">$</span> <span class="t-cursor">▋</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<div class="glow-line"></div>
-
-<!-- ── DEMO GALLERY ── -->
-<section id="gallery">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Product Preview</span>
-      <h2 class="section-title">See it in action</h2>
-      <p class="section-sub">From raw packets to fleet-wide compliance — everything in one place.</p>
-    </div>
-
-    <div class="reveal">
-      <div class="demo-tabs">
-        <button class="demo-tab active" onclick="switchDemo('desktop')">Desktop App</button>
-        <button class="demo-tab" onclick="switchDemo('hub')">Hub Dashboard</button>
-        <button class="demo-tab" onclick="switchDemo('alerts')">Alerts &amp; Rules</button>
-      </div>
-
-      <!-- Desktop App Mockup -->
-      <div class="demo-panel active" id="demo-desktop">
-        <div class="demo-window">
-          <div class="demo-titlebar">
-            <span class="demo-dot r"></span><span class="demo-dot y"></span><span class="demo-dot g"></span>
-            <span class="demo-title-label">NetScope Desktop — en0 — 1,247 flows</span>
-          </div>
-          <div class="demo-content">
-            <div class="mock-toolbar">
-              <span class="mock-logo">⬤ NetScope</span>
-              <span class="mock-select">en0 — Wi-Fi</span>
-              <span class="mock-btn stop">■ Stop</span>
-              <span class="mock-btn ghost">🗑</span>
-              <div style="width:1px;height:18px;background:var(--border);margin:0 .25rem"></div>
-              <span class="mock-filter">bpf: host 192.168.1.0/24 and not port 443</span>
-              <div style="width:1px;height:18px;background:var(--border);margin:0 .25rem"></div>
-              <span class="mock-btn ghost" style="color:#60a5fa">⬤ Hub ●</span>
-              <span class="mock-btn ghost">🔒</span>
-              <span class="mock-btn ghost">💾</span>
-              <span class="mock-btn ghost">📁</span>
-            </div>
-            <table class="mock-table">
-              <thead>
-                <tr>
-                  <th>Time</th><th>Source</th><th>Destination</th><th>Proto</th>
-                  <th>Length</th><th>Info</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="selected">
-                  <td>14:23:01.442</td><td>192.168.1.42:52341</td><td>93.184.216.34:80</td>
-                  <td><span class="mock-proto http">HTTP</span></td><td>1,240 B</td>
-                  <td style="color:#a5b4fc">GET /index.html → 200 OK (42ms)</td>
-                </tr>
-                <tr>
-                  <td>14:23:01.651</td><td>192.168.1.42:54102</td><td>8.8.8.8:53</td>
-                  <td><span class="mock-proto dns">DNS</span></td><td>68 B</td>
-                  <td>A example.com → 93.184.216.34</td>
-                </tr>
-                <tr>
-                  <td>14:23:02.003</td><td>192.168.1.42:55210</td><td>142.250.185.46:443</td>
-                  <td><span class="mock-proto tls">TLS</span></td><td>5,840 B</td>
-                  <td style="color:#34d399">TLS 1.3 · SNI: google.com · AES-256-GCM</td>
-                </tr>
-                <tr>
-                  <td>14:23:02.119</td><td>10.0.0.1:443</td><td>192.168.1.42:55214</td>
-                  <td><span class="mock-proto tcp">TCP</span></td><td>3,200 B</td>
-                  <td>PSH·ACK seq=1 ack=1 retx=2</td>
-                </tr>
-                <tr>
-                  <td>14:23:02.445</td><td>192.168.1.42:0</td><td>8.8.8.8:0</td>
-                  <td><span class="mock-proto icmp">ICMP</span></td><td>84 B</td>
-                  <td style="color:#fbbf24">Echo Request id=3021 seq=1 · RTT 12ms</td>
-                </tr>
-                <tr>
-                  <td>14:23:02.881</td><td>192.168.1.100:8080</td><td>192.168.1.42:48023</td>
-                  <td><span class="mock-proto http">HTTP</span></td><td>428 B</td>
-                  <td style="color:#f87171">POST /api/login → 401 Unauthorized (8ms) ⚠</td>
-                </tr>
-              </tbody>
-            </table>
-            <div class="mock-status-bar">
-              <span><span class="mock-status-dot" style="background:var(--red);display:inline-block"></span>Capturing</span>
-              <span>1,247 flows</span>
-              <span>↑ 4.2 MB/s</span>
-              <span>↓ 12.8 MB/s</span>
-              <span style="margin-left:auto;color:#f87171">⚠ 2 critical certs expiring</span>
-            </div>
-          </div>
-        </div>
-        <p style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--muted)">Live packet capture with deep protocol decoding — HTTP, TLS, DNS, TCP, ICMP, ARP, HTTP/2 &amp; gRPC</p>
-      </div>
-
-      <!-- Hub Dashboard Mockup -->
-      <div class="demo-panel" id="demo-hub">
-        <div class="demo-window">
-          <div class="demo-titlebar">
-            <span class="demo-dot r"></span><span class="demo-dot y"></span><span class="demo-dot g"></span>
-            <span class="demo-title-label">NetScope Hub — Dashboard</span>
-          </div>
-          <div class="demo-content">
-            <div class="mock-dashboard-layout">
-              <div class="mock-sidebar">
-                <div style="padding:.5rem .75rem .75rem;font-size:.7rem;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:.5rem">
-                  <span style="font-weight:800;color:var(--text)">⬤ NetScope</span><br>
-                  <span style="font-size:.65rem">Hub</span>
-                </div>
-                <div class="mock-sidebar-item active"><span class="mock-sidebar-icon">⬛</span>Dashboard</div>
-                <div class="mock-sidebar-item"><span class="mock-sidebar-icon">≡</span>Flows</div>
-                <div class="mock-sidebar-item"><span class="mock-sidebar-icon">⬡</span>Services</div>
-                <div class="mock-sidebar-item"><span class="mock-sidebar-icon">📊</span>Analytics</div>
-                <div class="mock-sidebar-item"><span class="mock-sidebar-icon">⬤</span>Agents</div>
-                <div class="mock-sidebar-item"><span class="mock-sidebar-icon">🔒</span>Certs</div>
-                <div class="mock-sidebar-item"><span class="mock-sidebar-icon">🔔</span>Alerts</div>
-                <div class="mock-sidebar-item"><span class="mock-sidebar-icon">✓</span>Compliance</div>
-              </div>
-              <div class="mock-main">
-                <div class="mock-stat-row">
-                  <div class="mock-stat">
-                    <div class="mock-stat-val" style="color:var(--cyan)">48.2K</div>
-                    <div class="mock-stat-label">Total Flows</div>
-                  </div>
-                  <div class="mock-stat">
-                    <div class="mock-stat-val" style="color:var(--green)">342</div>
-                    <div class="mock-stat-label">Flows/min</div>
-                  </div>
-                  <div class="mock-stat">
-                    <div class="mock-stat-val" style="color:#a78bfa">7</div>
-                    <div class="mock-stat-label">Active Agents</div>
-                  </div>
-                  <div class="mock-stat">
-                    <div class="mock-stat-val" style="color:var(--yellow)">3</div>
-                    <div class="mock-stat-label">Cert Warnings</div>
-                  </div>
-                </div>
-                <div style="padding:0 .75rem">
-                  <div style="font-size:.7rem;color:var(--muted);margin-bottom:.4rem;font-family:'JetBrains Mono',monospace">FLOW RATE — 1h</div>
-                  <div class="mock-chart-area">
-                    <div class="mock-bar" style="height:30%"></div>
-                    <div class="mock-bar" style="height:45%"></div>
-                    <div class="mock-bar" style="height:38%"></div>
-                    <div class="mock-bar" style="height:62%"></div>
-                    <div class="mock-bar" style="height:55%"></div>
-                    <div class="mock-bar" style="height:70%"></div>
-                    <div class="mock-bar" style="height:48%"></div>
-                    <div class="mock-bar" style="height:82%"></div>
-                    <div class="mock-bar" style="height:75%"></div>
-                    <div class="mock-bar" style="height:60%"></div>
-                    <div class="mock-bar" style="height:90%"></div>
-                    <div class="mock-bar" style="height:78%"></div>
-                    <div class="mock-bar" style="height:65%"></div>
-                    <div class="mock-bar" style="height:88%"></div>
-                    <div class="mock-bar" style="height:72%"></div>
-                    <div class="mock-bar" style="height:95%"></div>
-                  </div>
-                </div>
-                <div class="mock-flows-header" style="margin-top:.5rem">
-                  <span class="mock-flows-title">Recent Flows</span>
-                  <span class="mock-live-badge"><span class="mock-live-dot"></span>Live</span>
-                </div>
-                <table class="mock-table">
-                  <tbody>
-                    <tr>
-                      <td style="color:#94a3b8">14:23:01</td>
-                      <td>prod-web-01</td>
-                      <td>10.0.0.42 → 93.184.216.34</td>
-                      <td><span class="mock-proto http">HTTP</span></td>
-                      <td style="color:#a5b4fc">GET / 200</td>
-                    </tr>
-                    <tr>
-                      <td style="color:#94a3b8">14:23:02</td>
-                      <td>prod-api-02</td>
-                      <td>10.0.0.15 → 8.8.8.8</td>
-                      <td><span class="mock-proto dns">DNS</span></td>
-                      <td>api.stripe.com</td>
-                    </tr>
-                    <tr>
-                      <td style="color:#94a3b8">14:23:02</td>
-                      <td>prod-web-01</td>
-                      <td>10.0.0.42 → 185.86.0.1</td>
-                      <td><span class="mock-proto tls">TLS</span></td>
-                      <td style="color:#fbbf24">⚠ expiring in 4d</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-        <p style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--muted)">Centralised fleet dashboard — real-time SSE stream, 90-day ClickHouse retention, multi-agent overview</p>
-      </div>
-
-      <!-- Alerts Mockup -->
-      <div class="demo-panel" id="demo-alerts">
-        <div class="demo-window">
-          <div class="demo-titlebar">
-            <span class="demo-dot r"></span><span class="demo-dot y"></span><span class="demo-dot g"></span>
-            <span class="demo-title-label">NetScope Hub — Alerts</span>
-          </div>
-          <div class="demo-content" style="padding:.75rem">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
-              <span style="font-size:.85rem;font-weight:700;color:var(--text)">Alert Rules</span>
-              <span class="mock-btn start" style="padding:.25rem .75rem;cursor:default">+ New Rule</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.5rem">
-              <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem">
-                <div>
-                  <span style="font-size:.8rem;font-weight:600;color:var(--text)">High flow rate</span>
-                  <span style="margin:0 .5rem;font-size:.7rem;color:var(--muted)">flows_per_minute &gt; 500 over 5 min</span>
-                  <span style="background:rgba(99,102,241,0.15);color:#818cf8;border-radius:4px;padding:.1rem .4rem;font-size:.65rem;font-weight:700">Slack</span>
-                </div>
-                <span style="display:flex;align-items:center;gap:.3rem;font-size:.7rem;color:var(--green)">⬤ enabled</span>
-              </div>
-              <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem">
-                <div>
-                  <span style="font-size:.8rem;font-weight:600;color:var(--text)">HTTP error spike</span>
-                  <span style="margin:0 .5rem;font-size:.7rem;color:var(--muted)">http_error_rate &gt; 10% over 3 min</span>
-                  <span style="background:rgba(239,68,68,0.12);color:#f87171;border-radius:4px;padding:.1rem .4rem;font-size:.65rem;font-weight:700">PagerDuty</span>
-                </div>
-                <span style="display:flex;align-items:center;gap:.3rem;font-size:.7rem;color:var(--green)">⬤ enabled</span>
-              </div>
-              <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem">
-                <div>
-                  <span style="font-size:.8rem;font-weight:600;color:var(--text)">DNS NXDOMAIN burst</span>
-                  <span style="margin:0 .5rem;font-size:.7rem;color:var(--muted)">dns_nxdomain_rate &gt; 20% over 5 min</span>
-                  <span style="background:rgba(245,158,11,0.15);color:#fbbf24;border-radius:4px;padding:.1rem .4rem;font-size:.65rem;font-weight:700">Webhook</span>
-                </div>
-                <span style="display:flex;align-items:center;gap:.3rem;font-size:.7rem;color:var(--muted)">⬭ paused</span>
-              </div>
-            </div>
-            <div style="font-size:.8rem;font-weight:700;color:var(--text);margin-bottom:.5rem">Recent Fired Events</div>
-            <table class="mock-table">
-              <thead><tr>
-                <th>Time</th><th>Rule</th><th>Metric</th><th>Value</th><th>Delivered</th>
-              </tr></thead>
-              <tbody>
-                <tr>
-                  <td>14:20:00</td>
-                  <td style="color:#818cf8">High flow rate</td>
-                  <td style="color:var(--muted)">flows_per_minute</td>
-                  <td style="color:var(--red)">547.2</td>
-                  <td style="color:var(--green)">✓ Slack</td>
-                </tr>
-                <tr>
-                  <td>13:45:10</td>
-                  <td style="color:#f87171">HTTP error spike</td>
-                  <td style="color:var(--muted)">http_error_rate</td>
-                  <td style="color:var(--red)">23.4%</td>
-                  <td style="color:var(--green)">✓ PagerDuty</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <p style="text-align:center;margin-top:1rem;font-size:.8rem;color:var(--muted)">Rule-based alerting with Slack, PagerDuty, OpsGenie, Teams, email, and generic webhooks — HMAC-signed</p>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<div class="glow-line"></div>
-
-<!-- ── DOWNLOAD ── -->
-<section id="download">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Download</span>
-      <h2 class="section-title">Runs everywhere your team does</h2>
-      <p class="section-sub">Pre-built binaries for every major platform. No account. No subscription.</p>
-    </div>
-
-    <!-- Version badge -->
-    <div class="reveal" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:2rem;">
-      <div style="display:flex; align-items:center; gap:.75rem;">
-        <span style="
-          background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3);
-          color: var(--green); border-radius:999px; padding:.3rem .9rem;
-          font-size:.8rem; font-weight:700; letter-spacing:.05em;
-        ">✦ v0.4.0 — Latest Release</span>
-        <span style="color:var(--muted); font-size:.82rem;">Community (MIT) · Enterprise (BSL-1.1) · No telemetry · No account required</span>
-      </div>
-      <a href="https://github.com/Libinm264/netscope/releases" target="_blank"
-         style="color:var(--cyan); font-size:.82rem; text-decoration:none; display:flex; align-items:center; gap:.35rem;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
-        All releases &amp; changelogs →
-      </a>
-    </div>
-
-    <div class="download-platforms reveal">
-
-      <!-- macOS Apple Silicon -->
-      <div class="dl-card">
-        <div class="dl-card-head">
-          <div class="dl-os-icon">🍎</div>
-          <div>
-            <div class="dl-os-name">macOS</div>
-            <div class="dl-os-sub">Apple Silicon · M1 / M2 / M3 / M4</div>
-          </div>
-        </div>
-        <div class="dl-variants">
-          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_aarch64.dmg"
-             class="dl-btn" target="_blank">
-            <span>NetScope (ARM64)</span>
-            <span class="dl-btn-ext">.dmg</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- macOS Intel -->
-      <div class="dl-card">
-        <div class="dl-card-head">
-          <div class="dl-os-icon">🍎</div>
-          <div>
-            <div class="dl-os-name">macOS</div>
-            <div class="dl-os-sub">Intel · x86_64</div>
-          </div>
-        </div>
-        <div class="dl-variants">
-          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_x64.dmg"
-             class="dl-btn" target="_blank">
-            <span>NetScope (x64)</span>
-            <span class="dl-btn-ext">.dmg</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- Windows -->
-      <div class="dl-card">
-        <div class="dl-card-head">
-          <div class="dl-os-icon">🪟</div>
-          <div>
-            <div class="dl-os-name">Windows</div>
-            <div class="dl-os-sub">Windows 10 / 11 · x64 · Requires Npcap</div>
-          </div>
-        </div>
-        <div class="dl-variants">
-          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_x64-setup.exe"
-             class="dl-btn" target="_blank">
-            <span>Installer (NSIS)</span>
-            <span class="dl-btn-ext">.exe</span>
-          </a>
-          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_x64_en-US.msi"
-             class="dl-btn" target="_blank">
-            <span>MSI Package</span>
-            <span class="dl-btn-ext">.msi</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- Linux -->
-      <div class="dl-card">
-        <div class="dl-card-head">
-          <div class="dl-os-icon">🐧</div>
-          <div>
-            <div class="dl-os-name">Linux</div>
-            <div class="dl-os-sub">x86_64 · Ubuntu / Debian / Fedora / Any distro</div>
-          </div>
-        </div>
-        <div class="dl-variants">
-          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_amd64.AppImage"
-             class="dl-btn" target="_blank">
-            <span>AppImage (portable)</span>
-            <span class="dl-btn-ext">.AppImage</span>
-          </a>
-          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope_0.1.0_amd64.deb"
-             class="dl-btn" target="_blank">
-            <span>Debian / Ubuntu</span>
-            <span class="dl-btn-ext">.deb</span>
-          </a>
-          <a href="https://github.com/Libinm264/netscope/releases/download/v0.1.0/NetScope-0.1.0-1.x86_64.rpm"
-             class="dl-btn" target="_blank">
-            <span>Fedora / RHEL</span>
-            <span class="dl-btn-ext">.rpm</span>
-          </a>
-        </div>
-      </div>
-
-    </div><!-- /download-platforms -->
-
-    <!-- CLI Agent note -->
-    <div class="dl-note reveal">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <div>
-        <strong style="color:var(--text)">Build from source or deploy the CLI agent</strong> — the headless <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px">netscope-agent</code> binary ships in the same release and is ideal for servers, containers, and CI environments.
-        Run <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px">cargo build --release</code> in <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px">agent/</code> or grab the binary from the <a href="https://github.com/Libinm264/netscope/releases/latest" target="_blank" style="color:var(--cyan)">Releases page</a>.
-      </div>
-    </div>
+        <p class="section-label">Quick start</p>
+        <h2 class="section-heading">Up and running<br/>in two minutes.</h2>
+        <p class="section-sub" style="margin-bottom:0">No Kubernetes. No configuration files. One command starts the full stack.</p>
 
-    <!-- macOS Gatekeeper note -->
-    <div class="dl-note reveal" style="margin-top:.75rem; background:rgba(245,158,11,0.04); border-color:rgba(245,158,11,0.15);">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <div style="color:var(--muted)">
-        <strong style="color:var(--yellow)">macOS tip:</strong> If Gatekeeper blocks the app, run
-        <code style="font-family:'JetBrains Mono',monospace;font-size:.8rem;background:rgba(255,255,255,.06);padding:.1rem .4rem;border-radius:4px">xattr -cr /Applications/NetScope.app</code> in Terminal.
-        On <strong>Windows</strong>, install <a href="https://npcap.com" target="_blank" style="color:var(--cyan)">Npcap</a> first and run as Administrator for packet capture.
+        <div class="qs-steps" style="margin-top:2.5rem">
+          <div class="qs-step">
+            <div class="qs-step-num">1</div>
+            <div>
+              <h4>Install the hub</h4>
+              <p>Runs ClickHouse, Kafka, the API, and the dashboard in Docker. Generates a random API key automatically.</p>
+            </div>
+          </div>
+          <div class="qs-step">
+            <div class="qs-step-num">2</div>
+            <div>
+              <h4>Enrol an agent</h4>
+              <p>Create an enrollment token in the dashboard, then run the one-liner on any target machine.</p>
+            </div>
+          </div>
+          <div class="qs-step">
+            <div class="qs-step-num">3</div>
+            <div>
+              <h4>Watch flows arrive</h4>
+              <p>Traffic appears in the live feed within seconds. Use the Flows page to search, filter, and investigate.</p>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
 
-  </div>
-</section>
+      <div class="qs-terminal">
+        <div class="qs-terminal-bar">
+          <div class="dot-r"></div>
+          <div class="dot-y"></div>
+          <div class="dot-g"></div>
+        </div>
+        <div class="qs-code">
+          <div class="c"># Start the hub</div>
+          <div><span class="c">$ </span><span class="cmd">curl -sSL https://netscope.ie/hub-quickstart.sh | sh</span></div>
+          <br/>
+          <div class="ok">  ✓  Docker 29.4.0</div>
+          <div class="ok">  ✓  Files downloaded</div>
+          <div class="ok">  ✓  Images ready</div>
+          <div class="info">  →  Starting NetScope Hub...</div>
+          <div class="ok">  ✓  Dashboard ready at http://localhost</div>
+          <br/>
+          <div class="c"># Enrol an agent (copy from dashboard)</div>
+          <div><span class="c">$ </span><span class="cmd">curl -sSL "http://localhost/install?token=..." | INTERFACE=eth0 sh</span></div>
+          <br/>
+          <div class="ok">  ✓  Agent enrolled</div>
+          <div class="ok">  ✓  Heartbeat registered</div>
+          <div class="info">  →  Capturing on eth0...</div>
+        </div>
+      </div>
 
-<div class="glow-line"></div>
-
-<!-- ── TECH STACK ── -->
-<section id="techstack">
-  <div class="container">
-    <div class="section-header reveal">
-      <span class="section-tag">Technology</span>
-      <h2 class="section-title">Best-in-class stack, carefully chosen</h2>
-      <p class="section-sub">No bloat. Every dependency earns its place.</p>
-    </div>
-    <div class="tech-categories reveal">
-      <div class="tech-col">
-        <div class="tech-col-title">🦀 Rust Agent &amp; Desktop Backend</div>
-        <span class="tech-pill">tokio</span>
-        <span class="tech-pill">pcap</span>
-        <span class="tech-pill">etherparse</span>
-        <span class="tech-pill">httparse</span>
-        <span class="tech-pill">hpack</span>
-        <span class="tech-pill">maxminddb</span>
-        <span class="tech-pill">ipnet</span>
-        <span class="tech-pill">reqwest</span>
-        <span class="tech-pill">sqlx</span>
-        <span class="tech-pill">serde</span>
-        <span class="tech-pill">tracing</span>
-        <span class="tech-pill">clap</span>
-      </div>
-      <div class="tech-col">
-        <div class="tech-col-title">🪟 Desktop App</div>
-        <span class="tech-pill">Tauri 2.x</span>
-        <span class="tech-pill">React 18</span>
-        <span class="tech-pill">TypeScript</span>
-        <span class="tech-pill">Zustand</span>
-        <span class="tech-pill">TanStack Virtual</span>
-        <span class="tech-pill">Tailwind CSS</span>
-        <span class="tech-pill">Lucide React</span>
-        <span class="tech-pill">Vite 6</span>
-        <span class="tech-pill">shadcn/ui</span>
-      </div>
-      <div class="tech-col">
-        <div class="tech-col-title">🐹 Hub Backend</div>
-        <span class="tech-pill">Go 1.22</span>
-        <span class="tech-pill">Fiber v2</span>
-        <span class="tech-pill">ClickHouse</span>
-        <span class="tech-pill">Apache Kafka</span>
-        <span class="tech-pill">franz-go</span>
-        <span class="tech-pill">MaxMind GeoIP2</span>
-        <span class="tech-pill">net/smtp</span>
-        <span class="tech-pill">Prometheus</span>
-      </div>
-      <div class="tech-col">
-        <div class="tech-col-title">🌐 Hub Dashboard</div>
-        <span class="tech-pill">Next.js 14</span>
-        <span class="tech-pill">App Router</span>
-        <span class="tech-pill">Recharts</span>
-        <span class="tech-pill">TypeScript</span>
-        <span class="tech-pill">Tailwind CSS</span>
-        <span class="tech-pill">SSE streaming</span>
-      </div>
     </div>
   </div>
 </section>
 
-<div class="glow-line"></div>
+<div class="divider"></div>
 
 <!-- ── PRICING ── -->
 <section id="pricing">
   <div class="container">
-    <div style="text-align:center; margin-bottom:1rem;">
-      <span class="section-tag">Pricing</span>
-    </div>
-    <h2 style="text-align:center; font-size:clamp(1.75rem,3.5vw,2.5rem); font-weight:800; line-height:1.2; margin-bottom:.75rem;">
-      Open-source core. <span class="gradient-text">Enterprise power.</span>
-    </h2>
-    <p style="text-align:center; color:var(--muted); font-size:clamp(.9rem,1.5vw,1.05rem); max-width:560px; margin:0 auto;">
-      Start free with the full community feature set. Upgrade when your team needs SSO, multi-tenancy, and compliance tooling.
-    </p>
+    <p class="section-label">Pricing</p>
+    <h2 class="section-heading">Start free.<br/>Scale when you need to.</h2>
+    <p class="section-sub">All plans include the desktop app, the capture agent, and the self-hosted hub.</p>
 
     <div class="pricing-grid">
 
       <!-- Community -->
-      <div class="plan-card">
-        <div>
-          <p class="plan-name">Community</p>
-          <p class="plan-price">Free <span>forever</span></p>
-        </div>
-        <p class="plan-desc">Self-hosted. MIT licensed. No telemetry, no usage limits on packet capture.</p>
+      <div class="plan">
+        <p class="plan-name">Community</p>
+        <div class="plan-price">Free</div>
+        <p class="plan-cadence">forever · open source</p>
+        <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li>Up to 10 agents</li>
-          <li>HTTP / DNS / TLS / ICMP deep inspection</li>
-          <li>eBPF SSL intercept (Linux ≥ 5.8)</li>
-          <li>GeoIP &amp; threat intelligence</li>
-          <li>Kubernetes pod attribution</li>
-          <li>Desktop app (macOS, Windows, Linux)</li>
-          <li>90-day data retention</li>
-          <li>Email / password login</li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Up to 10 agents
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            HTTP · DNS · TLS · ICMP · eBPF
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Desktop app
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Self-hosted hub
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Community support
+          </li>
         </ul>
-        <a href="https://github.com/Libinm264/netscope/releases" target="_blank" class="plan-cta outline">
-          Download free →
-        </a>
+        <a href="#quickstart" class="plan-cta plan-cta-outline">Get started →</a>
       </div>
 
       <!-- Team -->
-      <div class="plan-card popular">
-        <span class="plan-popular-badge">Most Popular</span>
-        <div>
-          <p class="plan-name">Team</p>
-          <p class="plan-price">$149 <span>/ month</span></p>
-        </div>
-        <p class="plan-desc">Everything in Community, plus the identity and compliance features growing teams need.</p>
+      <div class="plan plan-popular">
+        <div class="popular-badge">Most popular</div>
+        <p class="plan-name">Team</p>
+        <div class="plan-price"><sup>$</sup>149</div>
+        <p class="plan-cadence">per month · billed annually</p>
+        <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li>Up to 50 agents</li>
-          <li>Everything in Community</li>
-          <li>SSO — SAML 2.0 &amp; OIDC</li>
-          <li>Multi-tenant organisations</li>
-          <li>SCIM 2.0 user provisioning</li>
-          <li>Audit log export (CEF / JSON)</li>
-          <li>Custom data retention periods</li>
-          <li>Priority email support</li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Up to 50 agents
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Everything in Community
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            SSO (SAML · OIDC)
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            SCIM provisioning
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Email + Slack alerts
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            90-day retention
+          </li>
         </ul>
-        <a href="mailto:hello@netscope.ie?subject=NetScope%20Team%20Plan" class="plan-cta cyan">
-          Get started →
-        </a>
+        <a href="mailto:hello@netscope.ie" class="plan-cta plan-cta-filled">Contact sales →</a>
       </div>
 
       <!-- Enterprise -->
-      <div class="plan-card">
-        <div>
-          <p class="plan-name">Enterprise</p>
-          <p class="plan-price" style="font-size:1.8rem;">Custom</p>
-        </div>
-        <p class="plan-desc">Unlimited scale, custom contracts, and dedicated support for large deployments.</p>
+      <div class="plan">
+        <p class="plan-name">Enterprise</p>
+        <div class="plan-price">Custom</div>
+        <p class="plan-cadence">volume · on-prem · SLAs</p>
+        <div class="plan-divider"></div>
         <ul class="plan-features">
-          <li class="ent">Unlimited agents</li>
-          <li class="ent">Everything in Team</li>
-          <li class="ent">Custom RBAC roles</li>
-          <li class="ent">PII redaction on eBPF captures</li>
-          <li class="ent">OpenTelemetry trace correlation</li>
-          <li class="ent">Sigma rule engine (custom rules)</li>
-          <li class="ent">SOC 2 / ISO 27001 compliance reports</li>
-          <li class="ent">Dedicated Slack channel &amp; SLA</li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Unlimited agents
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Everything in Team
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Custom RBAC
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            PII redaction
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            OpenTelemetry export
+          </li>
+          <li>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Dedicated support &amp; SLAs
+          </li>
         </ul>
-        <a href="mailto:hello@netscope.ie?subject=NetScope%20Enterprise" class="plan-cta purple">
-          Contact us →
-        </a>
+        <a href="mailto:hello@netscope.ie" class="plan-cta plan-cta-outline">Talk to us →</a>
       </div>
 
-    </div>
-
-    <p class="pricing-note">
-      All plans are self-hosted — your data never leaves your infrastructure.
-      Team &amp; Enterprise licenses are issued as JWT keys applied via the hub <code style="font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,.07);padding:.1rem .4rem;border-radius:4px">ENTERPRISE_LICENSE_KEY</code> env var.
-    </p>
-  </div>
-</section>
-
-<div class="glow-line"></div>
-
-<!-- ── CTA ── -->
-<section id="cta">
-  <div class="container">
-    <h2>Start seeing your network clearly.<br/><span class="gradient-text">Today. For free.</span></h2>
-    <p>Download the desktop app, deploy the CLI agent, or self-host the hub. MIT licensed. No telemetry. No lock-in.</p>
-    <div class="cta-actions">
-      <a href="#download" class="btn btn-primary btn-lg">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download Free
-      </a>
-      <a href="https://github.com/Libinm264/netscope" target="_blank" class="btn btn-ghost btn-lg">
-        View Source on GitHub
-      </a>
     </div>
   </div>
 </section>
@@ -3252,164 +970,30 @@
 <footer>
   <div class="container">
     <div class="footer-inner">
-      <div style="display:flex; align-items:center; gap:.5rem; font-weight:700; color:var(--text);">
-        <svg width="22" height="22" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#0a0e1a"/><circle cx="14" cy="14" r="11" fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".25"/><circle cx="14" cy="14" r="7.5" fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".35"/><circle cx="14" cy="14" r="4" fill="none" stroke="#00d4ff" stroke-width=".8" opacity=".5"/><line x1="14" y1="3" x2="14" y2="25" stroke="#00d4ff" stroke-width=".5" opacity=".15"/><line x1="3" y1="14" x2="25" y2="14" stroke="#00d4ff" stroke-width=".5" opacity=".15"/><path d="M14,14 L20,7.5 A8.5,8.5 0 0,1 22.5,14 Z" fill="#00d4ff" opacity=".18"/><line x1="14" y1="14" x2="20" y2="7.5" stroke="#00d4ff" stroke-width="1" opacity=".7" stroke-linecap="round"/><circle cx="20" cy="7.5" r="1.8" fill="#00d4ff" opacity=".95"/><circle cx="14" cy="14" r="2" fill="#7c3aed"/></svg>
+      <a href="/" class="footer-logo">
+        <img src="icon.svg" alt="NetScope" />
         NetScope
-      </div>
-      <div class="footer-links">
-        <a href="https://github.com/Libinm264/netscope" target="_blank">GitHub</a>
-        <a href="https://github.com/Libinm264/netscope/releases" target="_blank">Releases</a>
-        <a href="https://github.com/Libinm264/netscope/blob/main/README.md" target="_blank">Docs</a>
-        <a href="#pricing">Pricing</a>
-        <a href="https://github.com/Libinm264/netscope/blob/main/LICENSE" target="_blank">License</a>
-      </div>
-      <div>Built with Rust · Go · React · ClickHouse &nbsp;·&nbsp; Community: MIT &nbsp;·&nbsp; Enterprise: BSL-1.1</div>
+      </a>
+      <ul class="footer-links">
+        <li><a href="#products">Products</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="https://github.com/Libinm264/netscope" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="mailto:hello@netscope.ie">Contact</a></li>
+      </ul>
+      <p class="footer-copy">© 2025 NetScope</p>
     </div>
   </div>
 </footer>
 
-<!-- ── SCRIPTS ── -->
 <script>
-  // ── Network particle canvas ──
-  const canvas = document.getElementById('canvas-bg');
-  const ctx = canvas.getContext('2d');
-  let W, H, nodes, animId, lastFrame = 0;
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-  const NODE_COUNT = isMobile ? 25 : 42;
-  const CONNECT_DIST = isMobile ? 100 : 140;
-  const TARGET_FPS = isMobile ? 20 : 30;
-  const FRAME_MS = 1000 / TARGET_FPS;
-
-  function resize() {
-    W = canvas.width  = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-  }
-
-  function initNodes() {
-    nodes = Array.from({ length: NODE_COUNT }, () => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      vx: (Math.random() - .5) * .35,
-      vy: (Math.random() - .5) * .35,
-      r: Math.random() * 2 + 1,
-      color: Math.random() > .7 ? 'rgba(124,58,237,0.7)' : 'rgba(0,212,255,0.7)',
-    }));
-  }
-
-  function draw(ts) {
-    animId = requestAnimationFrame(draw);
-    if (document.hidden) return;
-    if (ts - lastFrame < FRAME_MS) return;
-    lastFrame = ts;
-
-    ctx.clearRect(0, 0, W, H);
-
-    for (let i = 0; i < nodes.length; i++) {
-      const a = nodes[i];
-      a.x += a.vx; a.y += a.vy;
-      if (a.x < 0 || a.x > W) a.vx *= -1;
-      if (a.y < 0 || a.y > H) a.vy *= -1;
-
-      for (let j = i + 1; j < nodes.length; j++) {
-        const b = nodes[j];
-        const dx = a.x - b.x, dy = a.y - b.y;
-        const dist2 = dx * dx + dy * dy;
-        if (dist2 < CONNECT_DIST * CONNECT_DIST) {
-          const alpha = (1 - Math.sqrt(dist2) / CONNECT_DIST) * 0.3;
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.strokeStyle = `rgba(0,212,255,${alpha})`;
-          ctx.lineWidth = .5;
-          ctx.stroke();
-        }
-      }
-
-      ctx.beginPath();
-      ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2);
-      ctx.fillStyle = a.color;
-      ctx.fill();
-    }
-  }
-
-  let resizeTimer;
-  window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => { resize(); initNodes(); }, 150);
-  });
-  resize(); initNodes(); requestAnimationFrame(draw);
-
-  // ── Tab switching ──
-  function switchTab(id, btn) {
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + id).classList.add('active');
-    btn.classList.add('active');
-  }
-
-  // ── Scroll reveal ──
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-  }, { threshold: 0.1 });
-
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-  // ── Animated counter ──
-  function animateCounters() {
-    document.querySelectorAll('.stat-num').forEach(el => {
-      const target = el.textContent;
-      const num = parseFloat(target);
-      if (isNaN(num)) return;
-      const suffix = target.replace(num.toString(), '');
-      const prefix = '';
-      let start = 0;
-      const step = num / 40;
-      const interval = setInterval(() => {
-        start += step;
-        if (start >= num) { el.textContent = target; clearInterval(interval); return; }
-        el.textContent = prefix + (Number.isInteger(num) ? Math.floor(start) : start.toFixed(1)) + suffix;
-      }, 30);
-    });
-  }
-
-  const statsObserver = new IntersectionObserver(entries => {
-    if (entries[0].isIntersecting) { animateCounters(); statsObserver.disconnect(); }
-  }, { threshold: 0.5 });
-
-  const statsEl = document.getElementById('stats');
-  if (statsEl) statsObserver.observe(statsEl);
-
-  // ── Demo tab switching ──
-  function switchDemo(id) {
-    document.querySelectorAll('.demo-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.demo-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('demo-' + id).classList.add('active');
-    event.target.classList.add('active');
-  }
-
-  // ── Quick-install copy buttons ──
-  function copyCmd(cmdId, btnId) {
-    const cmd = document.getElementById(cmdId).textContent;
-    const btn = document.getElementById(btnId);
-    navigator.clipboard.writeText(cmd).then(() => {
-      btn.textContent = 'Copied!';
-      btn.style.color = 'var(--green)';
-      btn.style.borderColor = 'var(--green)';
-      setTimeout(() => {
-        btn.textContent = 'Copy';
-        btn.style.color = '';
-        btn.style.borderColor = '';
-      }, 2000);
-    });
-  }
-
-  // ── Quick Start tab switcher ──
-  function qsSwitch(tab) {
-    ['hub', 'agent'].forEach(t => {
-      document.getElementById('qs-panel-' + t).style.display = t === tab ? '' : 'none';
-      document.getElementById('qs-tab-' + t).classList.toggle('qs-tab-active', t === tab);
+  function copy(btn, text) {
+    navigator.clipboard.writeText(text).then(() => {
+      const original = btn.innerHTML;
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+      setTimeout(() => { btn.innerHTML = original; }, 1800);
     });
   }
 </script>
+
 </body>
 </html>
