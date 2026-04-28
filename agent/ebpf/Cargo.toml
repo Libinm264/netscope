@@ -1,7 +1,7 @@
 # BPF kernel programs — compiled to bpfel-unknown-none, NOT a workspace member.
 [package]
 name = "netscope-ebpf"
-version = "0.1.0"
+version = "0.5.0"
 edition = "2021"
 publish = false
 
