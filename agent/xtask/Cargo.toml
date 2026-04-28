@@ -1,5 +1,4 @@
 # Build helper — run with `cargo xtask <command>` from the agent workspace root.
-# NOT a member of the parent workspace.
 [package]
 name = "xtask"
 version = "0.5.0"

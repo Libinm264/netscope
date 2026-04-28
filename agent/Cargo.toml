@@ -1,6 +1,7 @@
 [workspace]
 members = [
     ".",
+    "xtask",
     "crates/capture",
     "crates/capture-windows",
     "crates/parser",
@@ -9,7 +10,7 @@ members = [
     "crates/ebpf-common",
     "crates/ebpf-loader",
 ]
-# xtask and ebpf/ are intentionally excluded — they use a different build target.
+# ebpf/ is intentionally excluded — it targets bpfel-unknown-none via its own .cargo/config.toml.
 resolver = "2"
 
 [workspace.dependencies]
