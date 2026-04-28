@@ -107,9 +107,17 @@ func (h *StatsHandler) Stats(c *fiber.Ctx) error {
 		slog.Warn("stats: top_talkers query", "err", err)
 	}
 
-	// Active agents (last seen within 5 minutes) ──────────────────────────────
+	// Active agents (distinct agent_ids seen within the last 5 minutes).
+	// Use a subquery that groups by agent_id before counting so that multiple
+	// raw rows for the same agent (pre-merge on ReplacingMergeTree) are not
+	// double-counted, keeping this consistent with the Agents-page list query.
 	if rows, err := h.CH.Query(ctx,
-		"SELECT count() FROM agents WHERE last_seen > now() - INTERVAL 5 MINUTE",
+		`SELECT count() FROM (
+			SELECT agent_id
+			FROM agents
+			WHERE last_seen > now() - INTERVAL 5 MINUTE
+			GROUP BY agent_id
+		)`,
 	); err == nil {
 		defer rows.Close()
 		if rows.Next() {
