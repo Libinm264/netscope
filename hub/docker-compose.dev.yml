@@ -1,0 +1,26 @@
+# NetScope Hub — local development overrides
+# ──────────────────────────────────────────────────────────────────────────────
+# Use this file to build the api and web services from local source instead of
+# pulling pre-built images from GHCR.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d
+#
+# Or add an alias to your shell:
+#   alias dcdev='docker compose -f docker-compose.yml -f docker-compose.dev.yml'
+#   dcdev up --build -d
+# ──────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  api:
+    image: ""   # clear the GHCR image so Docker uses the build context
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+
+  web:
+    image: ""   # clear the GHCR image so Docker uses the build context
+    build:
+      context: ./web
+      dockerfile: Dockerfile

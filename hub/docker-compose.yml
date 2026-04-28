@@ -69,11 +69,11 @@ services:
 
   # ── Go / Fiber API ────────────────────────────────────────────────────────
   api:
-    build:
-      context: ./api
-      dockerfile: Dockerfile
-    # Pull a pre-built image instead of building locally (CI / production):
-    # image: ghcr.io/libinm264/netscope-hub-api:latest
+    image: ghcr.io/libinm264/netscope-hub-api:latest
+    # Build locally instead of pulling from GHCR (for development):
+    # build:
+    #   context: ./api
+    #   dockerfile: Dockerfile
     ports:
       - "127.0.0.1:8080:8080"   # Direct access (localhost only)
     environment:
@@ -112,11 +112,11 @@ services:
 
   # ── Next.js Web Dashboard ─────────────────────────────────────────────────
   web:
-    build:
-      context: ./web
-      dockerfile: Dockerfile
-    # Pull a pre-built image instead of building locally (CI / production):
-    # image: ghcr.io/libinm264/netscope-hub-web:latest
+    image: ghcr.io/libinm264/netscope-hub-web:latest
+    # Build locally instead of pulling from GHCR (for development):
+    # build:
+    #   context: ./web
+    #   dockerfile: Dockerfile
     ports:
       - "127.0.0.1:3000:3000"   # Direct access (localhost only)
     environment:
