@@ -336,8 +336,8 @@ export default function App() {
                   { id: "analytics",  label: "Analytics",   Icon: BarChart2 },
                   { id: "servicemap", label: "Service Map", Icon: Network   },
                   { id: "fleet",      label: "Fleet",       Icon: Globe     },
-                ]
-              ).map(({ id, label, Icon }: { id: BottomTab; label: string; Icon: typeof Binary }) => (
+                ] as Array<{ id: BottomTab; label: string; Icon: typeof Binary }>
+              ).map(({ id, label, Icon }) => (
                 <button
                   key={id}
                   onClick={() => setBottomTab(id)}
