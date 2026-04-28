@@ -16,12 +16,12 @@
 //! We use a per-CPU scratch array (one slot per CPU, no lock needed in
 //! BPF context) so the event lives in map memory, not on the stack.
 
-use aya_bpf::{
+use aya_ebpf::{
     helpers::{bpf_get_current_comm, bpf_get_current_pid_tgid, bpf_probe_read_user},
     macros::{map, uprobe, uretprobe},
     maps::{HashMap, PerCpuArray, PerfEventArray},
     programs::{ProbeContext, RetProbeContext},
-    BpfContext,
+    EbpfContext,
 };
 use ebpf_common::{
     ProbeStateKey, SslDirection, SslEvent, SslProbeState, COMM_LEN, SSL_DATA_MAX,

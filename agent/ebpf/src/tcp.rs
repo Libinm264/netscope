@@ -16,7 +16,7 @@
 //! These have been stable since Linux 4.x for x86-64 / aarch64.
 //! See: include/net/sock.h → struct sock_common.
 
-use aya_bpf::{
+use aya_ebpf::{
     helpers::{bpf_get_current_comm, bpf_get_current_pid_tgid, bpf_probe_read_kernel},
     macros::{kprobe, kretprobe, map},
     maps::{HashMap, PerfEventArray},
