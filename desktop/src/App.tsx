@@ -19,6 +19,7 @@ import { ServiceMapPane } from "@/components/ServiceMapPane";
 import { FleetPane } from "@/components/FleetPane";
 import { OtelTracePanel } from "@/components/OtelTracePanel";
 import { OnboardingWizard, ONBOARDING_KEY } from "@/components/OnboardingWizard";
+import { UpdateBanner } from "@/components/UpdateBanner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { FlowDto } from "@/types/flow";
@@ -289,6 +290,9 @@ export default function App() {
           <FileDown className="h-3.5 w-3.5" />
         </Button>
       </div>
+
+      {/* ── Update banner ────────────────────────────────────────────────────── */}
+      <UpdateBanner />
 
       {/* ── GeoIP banner ─────────────────────────────────────────────────────── */}
       <GeoIpBanner />

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "NetScope",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "identifier": "io.netscope.desktop",
   "build": {
     "frontendDist": "../dist",
@@ -24,6 +24,14 @@
     ],
     "security": {
       "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src ipc: http://ipc.localhost; media-src 'none'; object-src 'none'; frame-ancestors 'none'"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "RWSNz4bt/WBeAHRYVgYrv3L3VLfuBYCP/e7zYVqIuIcUIriz/NrB6Mgr",
+      "endpoints": [
+        "https://github.com/Libinm264/netscope/releases/latest/download/latest.json"
+      ]
     }
   },
   "bundle": {
