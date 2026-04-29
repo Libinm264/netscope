@@ -21,7 +21,6 @@ use aya_ebpf::{
     macros::{map, uprobe, uretprobe},
     maps::{HashMap, PerCpuArray, PerfEventArray},
     programs::{ProbeContext, RetProbeContext},
-    EbpfContext,
 };
 use ebpf_common::{
     ProbeStateKey, SslDirection, SslEvent, SslProbeState, COMM_LEN, SSL_DATA_MAX,
@@ -30,8 +29,6 @@ use ebpf_common::{
 // ── BPF maps ──────────────────────────────────────────────────────────────────
 
 /// Per-CPU scratch buffer for assembling SslEvents before output.
-/// One slot per CPU; safe to use without locking because BPF probes are
-/// non-preemptible on a given CPU.
 #[map]
 static mut SSL_EVENT_SCRATCH: PerCpuArray<SslEvent> =
     PerCpuArray::with_max_entries(1, 0);
@@ -59,14 +56,10 @@ fn pid_tgid_key() -> ProbeStateKey {
 
 #[inline(always)]
 fn current_comm() -> [u8; COMM_LEN] {
-    let mut comm = [0u8; COMM_LEN];
-    let _ = bpf_get_current_comm(&mut comm);
-    comm
+    // New aya-ebpf API: bpf_get_current_comm() takes no argument, returns Result.
+    bpf_get_current_comm().unwrap_or([0u8; COMM_LEN])
 }
 
-/// Look up the most recent TCP connection for this PID and return (src_ip,
-/// dst_ip, src_port, dst_port).  Returns zeroes if the PID has no recorded
-/// connection (e.g. the process opened TLS before our probe was attached).
 #[inline(always)]
 fn conn_for_pid(pid: u32) -> (u32, u32, u16, u16) {
     match unsafe { crate::tcp::PID_CONN.get(&pid) } {
@@ -76,9 +69,6 @@ fn conn_for_pid(pid: u32) -> (u32, u32, u16, u16) {
 }
 
 // ── SSL_write ─────────────────────────────────────────────────────────────────
-//
-// Signature: int SSL_write(SSL *ssl, const void *buf, int num)
-//   arg0 = ssl*, arg1 = buf*, arg2 = num (bytes to write)
 
 #[uprobe]
 pub fn ssl_write_entry(ctx: ProbeContext) -> u32 {
@@ -102,14 +92,13 @@ pub fn ssl_write_return(ctx: RetProbeContext) -> u32 {
     };
     unsafe { WRITE_STATE.remove(&key).ok() };
 
-    // Return value is the number of bytes actually written (> 0 on success).
-    let ret: i64 = ctx.ret().unwrap_or(0);
+    // New aya-ebpf API: ret() requires an explicit type parameter.
+    let ret: i64 = ctx.ret::<i64>().unwrap_or(0);
     if ret <= 0 {
         return 0;
     }
     let data_len = (ret as usize).min(SSL_DATA_MAX) as u32;
 
-    // Get per-CPU scratch slot — lives in map memory, not on the BPF stack.
     let event_ptr = match unsafe { SSL_EVENT_SCRATCH.get_ptr_mut(0) } {
         Some(p) => p,
         None    => return 0,
@@ -130,12 +119,14 @@ pub fn ssl_write_return(ctx: RetProbeContext) -> u32 {
         e.dst_port  = dst_port;
         e.data_len  = data_len;
 
-        // Read plaintext from userspace buffer into the map-backed event.
-        bpf_probe_read_user(
-            e.data.as_mut_ptr() as *mut _,
-            data_len,
-            state.buf_ptr as *const _,
-        ).ok();
+        // New aya-ebpf API: bpf_probe_read_user<T>(src) reads sizeof(T) bytes.
+        // Read the full SSL_DATA_MAX-byte array; the recipient uses data_len to
+        // know how many bytes are meaningful.
+        if let Ok(buf) = bpf_probe_read_user::<[u8; SSL_DATA_MAX]>(
+            state.buf_ptr as *const [u8; SSL_DATA_MAX],
+        ) {
+            e.data = buf;
+        }
 
         SSL_EVENTS.output(&ctx, &*event_ptr, 0);
     }
@@ -143,9 +134,6 @@ pub fn ssl_write_return(ctx: RetProbeContext) -> u32 {
 }
 
 // ── SSL_read ──────────────────────────────────────────────────────────────────
-//
-// Signature: int SSL_read(SSL *ssl, void *buf, int num)
-// The decrypted bytes are placed into buf on return; return value = byte count.
 
 #[uprobe]
 pub fn ssl_read_entry(ctx: ProbeContext) -> u32 {
@@ -169,8 +157,7 @@ pub fn ssl_read_return(ctx: RetProbeContext) -> u32 {
     };
     unsafe { READ_STATE.remove(&key).ok() };
 
-    // Return value is the number of plaintext bytes available in the buffer.
-    let ret: i64 = ctx.ret().unwrap_or(0);
+    let ret: i64 = ctx.ret::<i64>().unwrap_or(0);
     if ret <= 0 {
         return 0;
     }
@@ -196,11 +183,11 @@ pub fn ssl_read_return(ctx: RetProbeContext) -> u32 {
         e.dst_port  = dst_port;
         e.data_len  = data_len;
 
-        bpf_probe_read_user(
-            e.data.as_mut_ptr() as *mut _,
-            data_len,
-            state.buf_ptr as *const _,
-        ).ok();
+        if let Ok(buf) = bpf_probe_read_user::<[u8; SSL_DATA_MAX]>(
+            state.buf_ptr as *const [u8; SSL_DATA_MAX],
+        ) {
+            e.data = buf;
+        }
 
         SSL_EVENTS.output(&ctx, &*event_ptr, 0);
     }
