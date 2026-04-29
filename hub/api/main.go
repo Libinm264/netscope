@@ -17,6 +17,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/netscope/hub-api/alerting"
+	"github.com/netscope/hub-api/baseline"
 	"github.com/netscope/hub-api/clickhouse"
 	"github.com/netscope/hub-api/cloud"
 	"github.com/netscope/hub-api/config"
@@ -413,6 +414,14 @@ func main() {
 	}
 	storageH := &handlers.StorageHandler{CH: chClient, License: lic}
 
+	// ── v0.6: Behavioral Baseline + Anomaly Detection ────────────────────────
+	baselineEngine := baseline.New(chClient)
+	if chClient != nil {
+		baselineEngine.Start()
+		defer baselineEngine.Stop()
+		slog.Info("baseline engine started")
+	}
+
 	// ── v0.5: Cloud VPC Flow Log Ingestion ────────────────────────────────────
 	cloudIngester := cloud.New(chClient, lic)
 	cloudIngester.Start()
@@ -427,6 +436,7 @@ func main() {
 	complianceScheduler.Start()
 	defer complianceScheduler.Stop()
 	complianceReportH := &handlers.ComplianceReportHandler{CH: chClient, License: lic}
+	anomalyH          := &handlers.AnomalyHandler{CH: chClient}
 
 	// ── v0.5: Incident Workflow (Enterprise) ──────────────────────────────────
 	incidentDispatcher := incidents.New(chClient, lic)
@@ -525,6 +535,11 @@ func main() {
 	v1.Patch( "/cloud/sources/:id",          apiLimit, entAdmin,                 cloudH.Update)
 	v1.Delete("/cloud/sources/:id",          apiLimit, entAdmin,                 cloudH.Delete)
 	v1.Get(   "/cloud/sources/:id/log",      apiLimit,           cloudH.PullLog)
+
+	// ── v0.6: Behavioral baseline + anomaly detection (Community)
+	v1.Get("/anomalies",                     apiLimit,           anomalyH.List)
+	v1.Get("/anomalies/stats",               apiLimit,           anomalyH.Stats)
+	v1.Get("/baseline",                      apiLimit,           anomalyH.GetBaseline)
 
 	// ── v0.5: Multi-Cluster Fleet Overview (Community)
 	v1.Get("/fleet/clusters",                apiLimit,           fleetH.Clusters)
@@ -1102,6 +1117,39 @@ func runMigrations(ch *clickhouse.Client) error {
 			version      UInt64                 DEFAULT 1
 		) ENGINE = ReplacingMergeTree(version)
 		ORDER BY (created_at, id)`,
+
+		// Phase 31 (v0.6): Traffic baselines — 7-day rolling mean/stddev
+		`CREATE TABLE IF NOT EXISTS traffic_baselines (
+			agent_id        String,
+			protocol        LowCardinality(String),
+			hour_of_week    UInt8,
+			flow_count_mean  Float64 DEFAULT 0,
+			flow_count_std   Float64 DEFAULT 0,
+			bytes_in_mean    Float64 DEFAULT 0,
+			bytes_out_mean   Float64 DEFAULT 0,
+			sample_count     UInt32  DEFAULT 0,
+			computed_at      DateTime64(3, 'UTC') DEFAULT now64(),
+			version          UInt64  DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY (agent_id, protocol, hour_of_week)`,
+
+		// Phase 32 (v0.6): Anomaly events — Z-score outliers
+		`CREATE TABLE IF NOT EXISTS anomaly_events (
+			id           UUID    DEFAULT generateUUIDv4(),
+			agent_id     String,
+			hostname     LowCardinality(String) DEFAULT '',
+			protocol     LowCardinality(String),
+			anomaly_type LowCardinality(String) DEFAULT 'spike',
+			z_score      Float64 DEFAULT 0,
+			observed     Float64 DEFAULT 0,
+			expected     Float64 DEFAULT 0,
+			description  String  DEFAULT '',
+			severity     LowCardinality(String) DEFAULT 'low',
+			detected_at  DateTime64(3, 'UTC') DEFAULT now64()
+		) ENGINE = MergeTree()
+		PARTITION BY toYYYYMM(detected_at)
+		ORDER BY (detected_at, agent_id)
+		TTL toDateTime(detected_at) + INTERVAL 30 DAY`,
 
 		// Phase 30: Incident workflow config (per-integration credentials)
 		`CREATE TABLE IF NOT EXISTS incident_workflow_config (

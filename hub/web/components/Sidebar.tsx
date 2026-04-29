@@ -6,7 +6,7 @@ import {
   Network, LayoutDashboard, List, Server, Bell, GitFork, BarChart3,
   ShieldCheck, ClipboardList, Shield, ShieldAlert, ScanSearch,
   Settings, Building2, Users, Users2, KeyRound, Zap, ChevronDown,
-  Plug, Map, Cloud, Globe, Siren, FileBarChart2,
+  Plug, Map, Cloud, Globe, Siren, FileBarChart2, Activity,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useState } from "react";
@@ -24,6 +24,7 @@ const NAV_MAIN = [
   { href: "/policies",   label: "Policies",   icon: ShieldAlert },
   { href: "/compliance", label: "Compliance", icon: ClipboardList },
   { href: "/sigma",      label: "Detection",  icon: ScanSearch },
+  { href: "/anomalies",  label: "Anomalies",  icon: Activity },
   { href: "/incidents",  label: "Incidents",  icon: Siren },
   { href: "/fleet",      label: "Fleet",      icon: Globe },
   { href: "/cloud",      label: "Cloud Flows", icon: Cloud },
@@ -153,7 +154,7 @@ export function Sidebar({ user }: SidebarProps) {
             picture={user.picture}
           />
         ) : (
-          <p className="text-[11px] text-slate-600 px-2">NetScope v0.5.0</p>
+          <p className="text-[11px] text-slate-600 px-2">NetScope v0.6.0</p>
         )}
       </div>
     </aside>

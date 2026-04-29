@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Network, Server, Zap, ArrowRight, Terminal } from "lucide-react";
+import { Network, Server, Zap, ArrowRight, Terminal, Activity, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { StatsCards } from "@/components/StatsCards";
 import { LiveFeed } from "@/components/LiveFeed";
 import { ProtocolChart } from "@/components/ProtocolChart";
 import { FlowsChart } from "@/components/FlowsChart";
-import { fetchStats } from "@/lib/api";
+import { fetchStats, fetchAnomalyStats, type AnomalyStats } from "@/lib/api";
 
 // ── Onboarding guide shown when no flows have been captured yet ───────────────
 
@@ -111,20 +111,60 @@ function OnboardingGuide() {
   );
 }
 
+// ── Anomaly summary widget ────────────────────────────────────────────────────
+
+function AnomalyWidget({ stats }: { stats: AnomalyStats | null }) {
+  if (!stats) return null;
+  const hasAnomalies = stats.total_24h > 0;
+  return (
+    <Link href="/anomalies" className="block rounded-xl border border-white/[0.06]
+                                       bg-white/[0.02] hover:bg-white/[0.04]
+                                       transition-colors p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-indigo-400" />
+          <span className="text-sm font-medium text-slate-200">Anomaly Detection</span>
+        </div>
+        {hasAnomalies && (
+          <TrendingUp className="h-3.5 w-3.5 text-red-400" />
+        )}
+      </div>
+      <div className="flex items-end gap-2">
+        <span className={`text-3xl font-bold tabular-nums ${hasAnomalies ? "text-red-400" : "text-slate-500"}`}>
+          {stats.total_24h}
+        </span>
+        <span className="text-xs text-slate-500 mb-1">anomalies in 24h</span>
+      </div>
+      {hasAnomalies && (
+        <div className="flex gap-3 mt-3 text-xs">
+          {stats.high > 0   && <span className="text-red-400">● {stats.high} high</span>}
+          {stats.medium > 0 && <span className="text-amber-400">● {stats.medium} medium</span>}
+          {stats.low > 0    && <span className="text-blue-400">● {stats.low} low</span>}
+        </div>
+      )}
+      {!hasAnomalies && (
+        <p className="text-xs text-slate-600 mt-1">No anomalies detected</p>
+      )}
+    </Link>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [hasFlows, setHasFlows] = useState<boolean | null>(null); // null = loading
+  const [hasFlows,      setHasFlows]      = useState<boolean | null>(null);
+  const [anomalyStats,  setAnomalyStats]  = useState<AnomalyStats | null>(null);
 
   useEffect(() => {
     fetchStats()
       .then((s) => setHasFlows(s.total_flows > 0))
-      .catch(() => setHasFlows(true)); // on error, show the dashboard anyway
+      .catch(() => setHasFlows(true));
+    fetchAnomalyStats()
+      .then(setAnomalyStats)
+      .catch(() => null);
   }, []);
 
-  // Loading state — avoid flash
   if (hasFlows === null) return null;
-
   if (!hasFlows) return <OnboardingGuide />;
 
   return (
@@ -136,7 +176,8 @@ export default function DashboardPage() {
           <FlowsChart />
           <LiveFeed />
         </div>
-        <div>
+        <div className="space-y-6">
+          <AnomalyWidget stats={anomalyStats} />
           <ProtocolChart />
         </div>
       </div>

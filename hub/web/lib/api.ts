@@ -992,3 +992,61 @@ export async function fetchSigmaMatches(params?: {
 }): Promise<{ matches: SigmaMatch[] }> {
   return get("/enterprise/sigma/matches", params as Record<string, string | number>);
 }
+
+// ── v0.6 Behavioral Baseline + Anomaly Detection ─────────────────────────────
+
+export type AnomalySeverity = "low" | "medium" | "high";
+export type AnomalyType = "spike" | "drop";
+
+export interface AnomalyEvent {
+  id: string;
+  agent_id: string;
+  hostname: string;
+  protocol: string;
+  anomaly_type: AnomalyType;
+  z_score: number;
+  observed: number;
+  expected: number;
+  description: string;
+  severity: AnomalySeverity;
+  detected_at: string;
+}
+
+export interface AnomalyStats {
+  total_24h: number;
+  high: number;
+  medium: number;
+  low: number;
+  last_seen: string | null;
+}
+
+export interface BaselineEntry {
+  agent_id: string;
+  protocol: string;
+  hour_of_week: number;  // 0–167 (Mon 00:00 = 0 … Sun 23:00 = 167)
+  flow_count_mean: number;
+  flow_count_std: number;
+  bytes_in_mean: number;
+  bytes_out_mean: number;
+  sample_count: number;
+}
+
+export async function fetchAnomalies(params?: {
+  hours?: number;
+  agent_id?: string;
+  severity?: AnomalySeverity;
+  limit?: number;
+}): Promise<{ events: AnomalyEvent[]; hours: number; total: number }> {
+  return get("/anomalies", params as Record<string, string | number>);
+}
+
+export async function fetchAnomalyStats(): Promise<AnomalyStats> {
+  return get("/anomalies/stats");
+}
+
+export async function fetchBaseline(params?: {
+  agent_id?: string;
+  protocol?: string;
+}): Promise<{ baseline: BaselineEntry[]; total: number }> {
+  return get("/baseline", params as Record<string, string | number>);
+}
