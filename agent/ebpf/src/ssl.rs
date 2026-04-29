@@ -92,8 +92,8 @@ pub fn ssl_write_return(ctx: RetProbeContext) -> u32 {
     };
     unsafe { WRITE_STATE.remove(&key).ok() };
 
-    // New aya-ebpf API: ret() requires an explicit type parameter.
-    let ret: i64 = ctx.ret::<i64>().unwrap_or(0);
+    // aya-ebpf: ret() returns T directly (no Result wrapper).
+    let ret: i64 = ctx.ret::<i64>();
     if ret <= 0 {
         return 0;
     }
@@ -157,7 +157,7 @@ pub fn ssl_read_return(ctx: RetProbeContext) -> u32 {
     };
     unsafe { READ_STATE.remove(&key).ok() };
 
-    let ret: i64 = ctx.ret::<i64>().unwrap_or(0);
+    let ret: i64 = ctx.ret::<i64>();
     if ret <= 0 {
         return 0;
     }

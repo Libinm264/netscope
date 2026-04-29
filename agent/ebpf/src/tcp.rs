@@ -66,8 +66,8 @@ pub fn tcp_connect_return(ctx: RetProbeContext) -> u32 {
     };
     unsafe { TCP_STATE.remove(&key).ok() };
 
-    // New aya-ebpf API: ret() requires an explicit type parameter.
-    let retval: i32 = ctx.ret::<i32>().unwrap_or(-1);
+    // aya-ebpf: ret() returns T directly (no Result wrapper).
+    let retval: i32 = ctx.ret::<i32>();
 
     // New aya-ebpf API: bpf_probe_read_kernel<T>(src) reads exactly sizeof(T) bytes.
     let dst_ip: u32 = unsafe {
