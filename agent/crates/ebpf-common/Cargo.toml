@@ -12,7 +12,10 @@ name = "ebpf_common"
 default = ["userspace"]
 # Enable when compiling for the BPF target (no_std, no alloc)
 bpf = []
-# Enable when compiling for userspace (std available)
-userspace = []
+# Enable when compiling for userspace (std available).
+# Pulls in aya so we can impl aya::Pod for the shared event types.
+userspace = ["dep:aya"]
 
 [dependencies]
+# Optional: only needed in userspace builds for the Pod trait impls.
+aya = { version = "0.13", optional = true }
