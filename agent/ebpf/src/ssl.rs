@@ -17,7 +17,7 @@
 //! BPF context) so the event lives in map memory, not on the stack.
 
 use aya_ebpf::{
-    helpers::{bpf_get_current_comm, bpf_get_current_pid_tgid, bpf_probe_read_user},
+    helpers::{bpf_get_current_comm, bpf_get_current_pid_tgid, bpf_probe_read_user_buf},
     macros::{map, uprobe, uretprobe},
     maps::{HashMap, PerCpuArray, PerfEventArray},
     programs::{ProbeContext, RetProbeContext},
@@ -119,14 +119,12 @@ pub fn ssl_write_return(ctx: RetProbeContext) -> u32 {
         e.dst_port  = dst_port;
         e.data_len  = data_len;
 
-        // New aya-ebpf API: bpf_probe_read_user<T>(src) reads sizeof(T) bytes.
-        // Read the full SSL_DATA_MAX-byte array; the recipient uses data_len to
-        // know how many bytes are meaningful.
-        if let Ok(buf) = bpf_probe_read_user::<[u8; SSL_DATA_MAX]>(
-            state.buf_ptr as *const [u8; SSL_DATA_MAX],
-        ) {
-            e.data = buf;
-        }
+        // Read plaintext directly into the per-CPU scratch buffer's data field
+        // (which lives in BPF map memory, not on the stack).
+        // bpf_probe_read_user_buf(src, &mut dst_slice) calls the raw
+        // bpf_probe_read_user helper with dst as the output pointer — no
+        // [u8; SSL_DATA_MAX] temporary is created on the 512-byte BPF stack.
+        let _ = bpf_probe_read_user_buf(state.buf_ptr as *const u8, &mut e.data);
 
         SSL_EVENTS.output(&ctx, &*event_ptr, 0);
     }
@@ -183,11 +181,8 @@ pub fn ssl_read_return(ctx: RetProbeContext) -> u32 {
         e.dst_port  = dst_port;
         e.data_len  = data_len;
 
-        if let Ok(buf) = bpf_probe_read_user::<[u8; SSL_DATA_MAX]>(
-            state.buf_ptr as *const [u8; SSL_DATA_MAX],
-        ) {
-            e.data = buf;
-        }
+        // Same as ssl_write_return: read directly into map memory, not stack.
+        let _ = bpf_probe_read_user_buf(state.buf_ptr as *const u8, &mut e.data);
 
         SSL_EVENTS.output(&ctx, &*event_ptr, 0);
     }
