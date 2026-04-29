@@ -71,6 +71,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
+            ~/.cargo/bin/bpf-linker
           key: ${{ runner.os }}-${{ matrix.target }}-ebpf-${{ hashFiles('agent/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-${{ matrix.target }}-ebpf-
 
@@ -86,6 +87,11 @@ jobs:
             libpcap-dev \
             linux-headers-$(uname -r) \
             llvm clang libelf-dev
+
+      # ── bpf-linker (BPF ELF linker required by aya / cargo xtask) ───────────
+      # Cached in ~/.cargo/bin — only rebuilt when Cargo.lock changes.
+      - name: Install bpf-linker
+        run: which bpf-linker || cargo install bpf-linker
 
       # ── Step 1: Build BPF kernel programs ────────────────────────────────────
       # Produces: agent/ebpf/target/bpfel-unknown-none/release/netscope-ebpf
