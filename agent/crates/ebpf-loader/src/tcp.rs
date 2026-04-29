@@ -4,7 +4,7 @@
 
 use anyhow::{Context, Result};
 use aya::{
-    maps::AsyncPerfEventArray,
+    maps::{AsyncPerfEventArray, MapData},
     programs::KProbe,
     util::online_cpus,
     Ebpf,
@@ -57,13 +57,14 @@ pub async fn attach(ebpf: &mut Ebpf, tx: mpsc::Sender<EbpfEvent>) -> Result<()> 
     }
 
     // Pump perf events
-    let tcp_events: AsyncPerfEventArray<TcpConnectEvent> =
+    let tcp_events: AsyncPerfEventArray<MapData> =
         AsyncPerfEventArray::try_from(
             ebpf.take_map("TCP_EVENTS").context("TCP_EVENTS map missing")?,
         )
         .context("TCP_EVENTS is not a PerfEventArray")?;
 
-    let cpus = online_cpus().context("Failed to enumerate CPUs")?;
+    let cpus = online_cpus()
+        .map_err(|(msg, e)| anyhow::anyhow!("online_cpus: {}: {}", msg, e))?;
     for cpu_id in cpus {
         let mut buf = tcp_events.open(cpu_id, None)?;
         let tx2 = tx.clone();

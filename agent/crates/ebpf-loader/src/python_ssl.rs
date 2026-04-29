@@ -25,7 +25,6 @@ use tokio::sync::mpsc;
 use tracing::{info, warn};
 
 use crate::EbpfEvent;
-use super::ssl;
 
 const PYTHON_WRITE_SYMBOL: &str = "_ssl_write";
 const PYTHON_READ_SYMBOL:  &str = "_ssl_read";
@@ -35,7 +34,7 @@ const PYTHON_READ_SYMBOL:  &str = "_ssl_read";
 /// Returns the count of libraries successfully instrumented.
 pub async fn attach_all(
     ebpf: &mut Ebpf,
-    tx: mpsc::Sender<EbpfEvent>,
+    _tx: mpsc::Sender<EbpfEvent>,
 ) -> Result<usize> {
     let ssl_libs = discover_python_ssl_libs();
     if ssl_libs.is_empty() {
@@ -72,8 +71,7 @@ pub async fn attach_all(
         attached += 1;
     }
 
-    // Pump events from the shared SSL_EVENTS perf array.
-    ssl::pump_perf_events(ebpf, tx).await?;
+    // SSL_EVENTS is shared with OpenSSL probes; ssl::attach() already pumps it.
 
     Ok(attached)
 }

@@ -6,7 +6,7 @@ use std::path::Path;
 
 use anyhow::{bail, Context, Result};
 use aya::{
-    maps::AsyncPerfEventArray,
+    maps::{AsyncPerfEventArray, MapData},
     programs::UProbe,
     util::online_cpus,
     Ebpf,
@@ -85,12 +85,17 @@ pub async fn attach(
     attach_uprobe(ebpf, "ssl_read_entry",   libssl_path, "SSL_read",  false)?;
     attach_uprobe(ebpf, "ssl_read_return",  libssl_path, "SSL_read",  true)?;
 
-    // Pump events from the perf ring into the channel
-    let ssl_events: AsyncPerfEventArray<SslEvent> =
+    // Pump events from the perf ring into the channel.
+    // aya 0.13: take_map yields Map (wrapping MapData); AsyncPerfEventArray is
+    // always typed as MapData at construction — we cast raw bytes manually below.
+    let ssl_events: AsyncPerfEventArray<MapData> =
         AsyncPerfEventArray::try_from(ebpf.take_map("SSL_EVENTS").context("SSL_EVENTS map missing")?)
             .context("SSL_EVENTS is not a PerfEventArray")?;
 
-    let cpus = online_cpus().context("Failed to enumerate online CPUs")?;
+    // online_cpus() returns Result<_, (&str, io::Error)> which doesn't impl
+    // StdError, so we can't use .context() — map_err manually.
+    let cpus = online_cpus()
+        .map_err(|(msg, e)| anyhow::anyhow!("online_cpus: {}: {}", msg, e))?;
     for cpu_id in cpus {
         let mut buf = ssl_events.open(cpu_id, None)?;
         let tx2 = tx.clone();

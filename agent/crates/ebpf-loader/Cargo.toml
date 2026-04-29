@@ -17,6 +17,7 @@ reqwest          = { version = "0.12", default-features = false, features = ["js
 uuid             = { version = "1", features = ["v4"] }
 chrono           = { workspace = true }
 libc             = "0.2"
+bytes            = "1"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["test-util"] }

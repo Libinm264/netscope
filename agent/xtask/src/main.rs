@@ -44,10 +44,16 @@ fn build_ebpf(release: bool) -> Result<()> {
 
     // bpfel-unknown-none is a Tier 3 target — no prebuilt rust-std exists.
     // -Z build-std=core (in ebpf/.cargo/config.toml) compiles core from rust-src.
+    // Route the BPF build output into the main agent workspace target dir so
+    // that ebpf-loader can embed it with a stable include_bytes! path:
+    //   agent/target/bpfel-unknown-none/{debug|release}/netscope-ebpf
+    let target_dir = workspace_root.join("target");
+
     let mut cmd = Command::new("cargo");
     cmd.current_dir(&ebpf_dir)
         .env("CARGO_CFG_BPF", "1")
-        .args(["+nightly", "build", "--target", "bpfel-unknown-none", "-Z", "build-std=core"]);
+        .args(["+nightly", "build", "--target", "bpfel-unknown-none", "-Z", "build-std=core"])
+        .args(["--target-dir", target_dir.to_str().context("target-dir path is not valid UTF-8")?]);
 
     if release {
         cmd.arg("--release");

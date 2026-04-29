@@ -22,20 +22,13 @@ use std::{
 
 use anyhow::{Context, Result};
 use aya::{
-    maps::AsyncPerfEventArray,
     programs::UProbe,
-    util::online_cpus,
     Ebpf,
 };
-use bytes::BytesMut;
 use tokio::sync::mpsc;
 use tracing::{debug, info, warn};
 
-use crate::{EbpfEvent, SslFlowEvent};
-use ssl::decode_ssl_event;
-
-// Re-use the SSL event decoder since Go TLS events have the same shape.
-use super::ssl;
+use crate::EbpfEvent;
 
 const GO_WRITE_SYMBOL: &str = "crypto/tls.(*Conn).Write";
 const GO_READ_SYMBOL:  &str = "crypto/tls.(*Conn).Read";
@@ -45,7 +38,7 @@ const GO_READ_SYMBOL:  &str = "crypto/tls.(*Conn).Read";
 /// Returns the count of processes successfully instrumented.
 pub async fn attach_all(
     ebpf: &mut Ebpf,
-    tx: mpsc::Sender<EbpfEvent>,
+    _tx: mpsc::Sender<EbpfEvent>,
 ) -> Result<usize> {
     let go_binaries = discover_go_binaries();
     if go_binaries.is_empty() {
@@ -100,9 +93,9 @@ pub async fn attach_all(
         attached += 1;
     }
 
-    // Pump events from the shared SSL_EVENTS perf array (same as OpenSSL probes).
-    // The Go TLS BPF programs write into the same map.
-    ssl::pump_perf_events(ebpf, tx).await?;
+    // Note: SSL_EVENTS is shared with the OpenSSL probes. ssl::attach() already
+    // took the map and started pumping it — Go TLS events arrive on the same
+    // perf ring and are delivered through that existing pump.
 
     Ok(attached)
 }

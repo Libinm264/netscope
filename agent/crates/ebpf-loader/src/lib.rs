@@ -16,9 +16,9 @@ mod ssl;
 mod tcp;
 
 use anyhow::{Context, Result};
-use aya::{include_loaded_ebpf, Ebpf};
+use aya::Ebpf;
 use tokio::sync::mpsc;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 pub use ebpf_common::SslDirection;
 pub use ssl::SslFlowEvent;
@@ -69,9 +69,12 @@ pub async fn start(
     let (tx, rx) = mpsc::channel(cfg.channel_capacity);
 
     // Load the BPF ELF compiled by `cargo xtask build-ebpf`.
+    // The BPF ELF is built by `cargo xtask build-ebpf --release` which writes
+    // to agent/target/bpfel-unknown-none/release/netscope-ebpf.
+    // CARGO_MANIFEST_DIR = agent/crates/ebpf-loader  → ../../ = agent/
     let mut ebpf = Ebpf::load(include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../../target/bpfel-unknown-none/release/netscope-ebpf"
+        "/../../target/bpfel-unknown-none/release/netscope-ebpf"
     )))
     .context("Failed to load BPF object — run `cargo xtask build-ebpf --release` first")?;
 
