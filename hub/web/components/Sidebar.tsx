@@ -13,8 +13,9 @@ import { useState } from "react";
 import { UserMenu } from "@/components/UserMenu";
 
 const NAV_MAIN = [
-  { href: "/",           label: "Dashboard",  icon: LayoutDashboard },
-  { href: "/flows",      label: "Flows",      icon: List },
+  { href: "/",             label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/dashboards",   label: "My Dashboards", icon: LayoutDashboard },
+  { href: "/flows",        label: "Flows",       icon: List },
   { href: "/services",   label: "Services",   icon: GitFork },
   { href: "/analytics",  label: "Analytics",  icon: BarChart3 },
   { href: "/agents",     label: "Agents",     icon: Server },

@@ -553,6 +553,15 @@ func main() {
 	// ── v0.6: AI Security Copilot (Community — requires ANTHROPIC_API_KEY)
 	v1.Post("/copilot/chat",                 apiLimit,           copilotH.Chat)
 
+	// ── G4: Custom Dashboard Builder
+	dashH := &handlers.DashboardHandler{CH: chClient}
+	v1.Get(   "/dashboards",          apiLimit,                            dashH.List)
+	v1.Post(  "/dashboards",          apiLimit, middleware.RequireAdmin(), dashH.Create)
+	v1.Get(   "/dashboards/:id",      apiLimit,                            dashH.Get)
+	v1.Put(   "/dashboards/:id",      apiLimit, middleware.RequireAdmin(), dashH.Update)
+	v1.Delete("/dashboards/:id",      apiLimit, middleware.RequireAdmin(), dashH.Delete)
+	v1.Get(   "/flows/top-talkers",   apiLimit,                            dashH.TopTalkers)
+
 	// ── v0.5: Multi-Cluster Fleet Overview (Community)
 	v1.Get("/fleet/clusters",                apiLimit,           fleetH.Clusters)
 	v1.Get("/fleet/search",                  apiLimit,           fleetH.Search)
@@ -1162,6 +1171,19 @@ func runMigrations(ch *clickhouse.Client) error {
 		PARTITION BY toYYYYMM(detected_at)
 		ORDER BY (detected_at, agent_id)
 		TTL toDateTime(detected_at) + INTERVAL 30 DAY`,
+
+		// G4: Custom dashboards
+		`CREATE TABLE IF NOT EXISTS dashboards (
+			id          String,
+			name        String,
+			description String  DEFAULT '',
+			widgets     String  DEFAULT '[]',
+			is_deleted  UInt8   DEFAULT 0,
+			created_at  DateTime64(3, 'UTC') DEFAULT now64(),
+			updated_at  DateTime64(3, 'UTC') DEFAULT now64(),
+			version     UInt64  DEFAULT 1
+		) ENGINE = ReplacingMergeTree(version)
+		ORDER BY id`,
 
 		// Phase 30: Incident workflow config (per-integration credentials)
 		`CREATE TABLE IF NOT EXISTS incident_workflow_config (
