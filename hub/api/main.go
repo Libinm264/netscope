@@ -414,6 +414,14 @@ func main() {
 	}
 	storageH := &handlers.StorageHandler{CH: chClient, License: lic}
 
+	// ── v0.6: AI Security Copilot ────────────────────────────────────────────
+	copilotH := &handlers.CopilotHandler{CH: chClient, AnthropicKey: cfg.AnthropicKey}
+	if cfg.AnthropicKey != "" {
+		slog.Info("AI Copilot enabled")
+	} else {
+		slog.Info("AI Copilot disabled — set ANTHROPIC_API_KEY to enable")
+	}
+
 	// ── v0.6: Behavioral Baseline + Anomaly Detection ────────────────────────
 	baselineEngine := baseline.New(chClient)
 	if chClient != nil {
@@ -540,6 +548,9 @@ func main() {
 	v1.Get("/anomalies",                     apiLimit,           anomalyH.List)
 	v1.Get("/anomalies/stats",               apiLimit,           anomalyH.Stats)
 	v1.Get("/baseline",                      apiLimit,           anomalyH.GetBaseline)
+
+	// ── v0.6: AI Security Copilot (Community — requires ANTHROPIC_API_KEY)
+	v1.Post("/copilot/chat",                 apiLimit,           copilotH.Chat)
 
 	// ── v0.5: Multi-Cluster Fleet Overview (Community)
 	v1.Get("/fleet/clusters",                apiLimit,           fleetH.Clusters)

@@ -108,6 +108,13 @@ type Config struct {
 	// Leave both empty to hide the Google button on the login page.
 	GoogleClientID     string
 	GoogleClientSecret string
+
+	// ── v0.6: AI Security Copilot ─────────────────────────────────────────────
+
+	// AnthropicKey is the Anthropic API key used by the AI Security Copilot
+	// (ANTHROPIC_API_KEY env var).  Leave empty to disable the /copilot/chat
+	// endpoint — the UI will show a "not configured" message.
+	AnthropicKey string
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -151,6 +158,8 @@ func Load() *Config {
 
 		GoogleClientID:     getEnv("GOOGLE_CLIENT_ID", ""),
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+
+		AnthropicKey: getEnv("ANTHROPIC_API_KEY", ""),
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")

@@ -6,7 +6,7 @@ import {
   Network, LayoutDashboard, List, Server, Bell, GitFork, BarChart3,
   ShieldCheck, ClipboardList, Shield, ShieldAlert, ScanSearch,
   Settings, Building2, Users, Users2, KeyRound, Zap, ChevronDown,
-  Plug, Map, Cloud, Globe, Siren, FileBarChart2, Activity,
+  Plug, Map, Cloud, Globe, Siren, FileBarChart2, Activity, Sparkles,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useState } from "react";
@@ -92,8 +92,27 @@ export function Sidebar({ user }: SidebarProps) {
           );
         })}
 
+        {/* AI Copilot button */}
+        <div className="pt-2 pb-1">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("open-copilot"))}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm
+                       text-indigo-400 hover:text-indigo-300
+                       bg-indigo-500/[0.08] hover:bg-indigo-500/[0.14]
+                       border border-indigo-500/[0.15] hover:border-indigo-500/30
+                       transition-all"
+          >
+            <Sparkles size={16} />
+            <span>AI Copilot</span>
+            <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded
+                             bg-indigo-500/20 text-indigo-300 font-medium border border-indigo-500/20">
+              NEW
+            </span>
+          </button>
+        </div>
+
         {/* Settings group */}
-        <div className="pt-2">
+        <div className="pt-1">
           <button
             onClick={() => setSettingsOpen(o => !o)}
             className={clsx(

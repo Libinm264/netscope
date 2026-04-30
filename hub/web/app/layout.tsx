@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
+import { CopilotPanel } from "@/components/CopilotPanel";
 
 export const metadata: Metadata = {
   title: "NetScope Hub",
@@ -68,6 +69,7 @@ export default async function RootLayout({
         <main className="flex-1 overflow-auto ml-[220px]">
           {children}
         </main>
+        <CopilotPanel />
       </body>
     </html>
   );
