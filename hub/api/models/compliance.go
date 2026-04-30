@@ -51,7 +51,7 @@ type TopTalker struct {
 type ComplianceSummary struct {
 	TotalConnections    uint64 `json:"total_connections"`
 	ExternalConnections uint64 `json:"external_connections"`
-	TLSIssues           int    `json:"tls_issues"`
+	TLSIssues           uint64 `json:"tls_issues"`
 	TopTalkerCount      int    `json:"top_talker_count"`
 	Window              string `json:"window"`
 }

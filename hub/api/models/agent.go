@@ -12,7 +12,7 @@ type Agent struct {
 	OS           string    `json:"os"`
 	CaptureMode  string    `json:"capture_mode"`
 	EbpfEnabled  bool      `json:"ebpf_enabled"`
-	FlowCount1h  int64     `json:"flow_count_1h"`
+	FlowCount1h  uint64    `json:"flow_count_1h"`
 	// Cluster is an optional logical grouping label (e.g. "prod-eu", "staging-us").
 	// Set via AGENT_CLUSTER env var on the agent or the enrollment token label prefix.
 	Cluster      string    `json:"cluster,omitempty"`

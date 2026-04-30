@@ -60,7 +60,7 @@ func (h *ComplianceHandler) Summary(c *fiber.Ctx) error {
 		SELECT count() FROM tls_certs
 		WHERE expired = 1
 	`)
-	tlsIssues := 0
+	var tlsIssues uint64
 	if err == nil {
 		if certRows.Next() {
 			if err := certRows.Scan(&tlsIssues); err != nil {
