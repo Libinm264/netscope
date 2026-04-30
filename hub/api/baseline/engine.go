@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/netscope/hub-api/clickhouse"
@@ -352,5 +353,7 @@ func capitalize(s string) string {
 	if s == "" {
 		return s
 	}
-	return string(s[0]-32) + s[1:]
+	// Use strings.ToUpper so this is correct for any ASCII letter, not just
+	// lowercase ASCII (s[0]-32 is unsafe for non-lowercase or non-ASCII input).
+	return strings.ToUpper(s[:1]) + s[1:]
 }

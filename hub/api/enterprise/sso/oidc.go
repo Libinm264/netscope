@@ -40,6 +40,7 @@ type OIDCHandler struct {
 	AppURL       string // Go hub's public URL, used to construct the callback URI
 	FrontendURL  string // Next.js origin, used as default post-login redirect
 	ClientSecret string // value of SSO_CLIENT_SECRET env var
+	SecureCookie bool   // add Secure flag to session cookies in production
 
 	mu     sync.Mutex
 	states map[string]pendingState
@@ -47,7 +48,7 @@ type OIDCHandler struct {
 
 // NewOIDCHandler creates an OIDCHandler and starts the background state-cleanup ticker.
 func NewOIDCHandler(ch *clickhouse.Client, sess *sessions.Store, lic *license.License,
-	appURL, frontendURL, clientSecret string) *OIDCHandler {
+	appURL, frontendURL, clientSecret string, secureCookie bool) *OIDCHandler {
 
 	h := &OIDCHandler{
 		CH:           ch,
@@ -56,6 +57,7 @@ func NewOIDCHandler(ch *clickhouse.Client, sess *sessions.Store, lic *license.Li
 		AppURL:       appURL,
 		FrontendURL:  frontendURL,
 		ClientSecret: clientSecret,
+		SecureCookie: secureCookie,
 		states:       make(map[string]pendingState),
 	}
 	go h.cleanupStates()
@@ -259,6 +261,7 @@ func (h *OIDCHandler) Callback(c *fiber.Ctx) error {
 		Path:     "/",
 		HTTPOnly: true,
 		SameSite: "Lax",
+		Secure:   h.SecureCookie,
 		Expires:  expiresAt,
 	})
 

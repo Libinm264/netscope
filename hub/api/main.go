@@ -381,8 +381,9 @@ func main() {
 		DemoEnabled:        cfg.DemoEnabled,
 		GoogleClientID:     cfg.GoogleClientID,
 		GoogleClientSecret: cfg.GoogleClientSecret,
+		SecureCookie:       cfg.Production,
 	}
-	inviteH  := &handlers.InviteHandler{CH: chClient, Sessions: sessionStore, SMTP: smtpCfg, FrontendURL: cfg.FrontendURL}
+	inviteH  := &handlers.InviteHandler{CH: chClient, Sessions: sessionStore, SMTP: smtpCfg, FrontendURL: cfg.FrontendURL, SecureCookie: cfg.Production}
 	scimH    := &scim.Handler{CH: chClient, License: lic, BearerToken: cfg.SCIMBearerToken}
 
 	// ── SIEM sink dispatcher ──────────────────────────────────────────────────
@@ -453,9 +454,9 @@ func main() {
 	incidentH := &handlers.IncidentHandler{CH: chClient, License: lic}
 
 	oidcH    := sso.NewOIDCHandler(chClient, sessionStore, lic,
-		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret)
+		cfg.AppURL, cfg.FrontendURL, cfg.SSOClientSecret, cfg.Production)
 	samlH    := sso.NewSAMLHandler(chClient, sessionStore, lic,
-		cfg.AppURL, cfg.FrontendURL)
+		cfg.AppURL, cfg.FrontendURL, cfg.Production)
 
 	// ── Public auth endpoints (no API key required) ───────────────────────────
 	app.Get( "/api/v1/enterprise/auth/me",                   apiLimit, authH.Me)

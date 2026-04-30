@@ -528,10 +528,26 @@ func validateSQL(sql string) error {
 	return nil
 }
 
-// injectLimit appends LIMIT n to the query if no LIMIT clause is present.
+// injectLimit appends LIMIT n to the query if the outer SELECT has no LIMIT.
+// It scans at parenthesis depth 0 only, so a LIMIT inside a subquery does not
+// prevent the outer query from being capped — closing the previous blind-spot.
 func injectLimit(sql string, n int) string {
-	if strings.Contains(strings.ToUpper(sql), "LIMIT") {
-		return sql
+	upper := strings.ToUpper(sql)
+	depth := 0
+	for i := 0; i < len(upper); i++ {
+		switch upper[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+		}
+		// Match "LIMIT" at the outermost level only (depth == 0).
+		if depth == 0 && strings.HasPrefix(upper[i:], "LIMIT") {
+			// Confirm it is a word boundary (preceded by whitespace or start).
+			if i == 0 || upper[i-1] == ' ' || upper[i-1] == '\t' || upper[i-1] == '\n' {
+				return sql // outer LIMIT already present
+			}
+		}
 	}
 	return strings.TrimRight(sql, " \t\n\r;") + fmt.Sprintf(" LIMIT %d", n)
 }

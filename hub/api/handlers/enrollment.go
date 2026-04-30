@@ -3,6 +3,8 @@ package handlers
 import (
 	"fmt"
 	"log/slog"
+	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -13,6 +15,20 @@ import (
 	"github.com/netscope/hub-api/models"
 	"github.com/netscope/hub-api/util"
 )
+
+// tokenRE accepts only the characters that appear in UUIDs and hex tokens.
+var tokenRE = regexp.MustCompile(`^[0-9a-fA-F\-]+$`)
+
+// sanitizeShellURL parses raw as a URL and returns only the scheme+host
+// portion, preventing shell injection via crafted query parameters.
+// Returns an empty string if the URL is malformed or uses a non-HTTP scheme.
+func sanitizeShellURL(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
+}
 
 // EnrollmentHandler manages enrollment tokens and the agent enrol flow.
 type EnrollmentHandler struct {
@@ -208,8 +224,21 @@ func (h *EnrollmentHandler) Enroll(c *fiber.Ctx) error {
 // InstallScript handles GET /install — returns a shell install script parameterised
 // with the enrollment token from the ?token= query param.
 func (h *EnrollmentHandler) InstallScript(c *fiber.Ctx) error {
-	token := c.Query("token", "YOUR_ENROLLMENT_TOKEN")
-	hubURL := c.Query("hub", fmt.Sprintf("http://%s", c.Hostname()))
+	rawToken := c.Query("token", "YOUR_ENROLLMENT_TOKEN")
+	// Only allow characters that appear in UUIDs and hex tokens to prevent
+	// shell injection; fall back to a safe placeholder for display purposes.
+	token := rawToken
+	if rawToken != "YOUR_ENROLLMENT_TOKEN" && !tokenRE.MatchString(rawToken) {
+		token = "INVALID_TOKEN"
+	}
+
+	// Sanitize the hub URL: parse and reconstruct from components so that an
+	// attacker cannot inject shell metacharacters via the ?hub= parameter.
+	rawHub := c.Query("hub", fmt.Sprintf("http://%s", c.Hostname()))
+	hubURL := sanitizeShellURL(rawHub)
+	if hubURL == "" {
+		hubURL = fmt.Sprintf("http://%s", c.Hostname())
+	}
 
 	script := fmt.Sprintf(`#!/bin/sh
 # NetScope Agent — one-line install

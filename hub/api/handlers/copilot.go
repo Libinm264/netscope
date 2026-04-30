@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -50,6 +51,24 @@ func (h *CopilotHandler) Chat(c *fiber.Ctx) error {
 			fiber.Map{"error": "messages must not be empty"})
 	}
 
+	// Validate each message: role must be "user" or "assistant", content must be
+	// non-empty and ≤ 8 KB to limit prompt-injection surface area.
+	const maxMsgBytes = 8 * 1024
+	for i, m := range req.Messages {
+		if m.Role != "user" && m.Role != "assistant" {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				fiber.Map{"error": fmt.Sprintf("message[%d]: role must be 'user' or 'assistant'", i)})
+		}
+		if m.Content == "" {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				fiber.Map{"error": fmt.Sprintf("message[%d]: content must not be empty", i)})
+		}
+		if len(m.Content) > maxMsgBytes {
+			return c.Status(fiber.StatusBadRequest).JSON(
+				fiber.Map{"error": fmt.Sprintf("message[%d]: content exceeds 8 KB limit", i)})
+		}
+	}
+
 	// Validate last message is from user.
 	if req.Messages[len(req.Messages)-1].Role != "user" {
 		return c.Status(fiber.StatusBadRequest).JSON(
@@ -71,14 +90,22 @@ func (h *CopilotHandler) Chat(c *fiber.Ctx) error {
 	client := copilot.New(h.AnthropicKey, h.CH)
 	eventCh := make(chan copilot.StreamEvent, 64)
 
+	// Create a cancellable context so the Chat goroutine stops when the client
+	// disconnects — prevents a goroutine leak when the buffered channel is full.
+	ctx, cancel := context.WithCancel(context.Background())
+
 	// Run the chat loop in a goroutine; close eventCh when done.
 	go func() {
 		defer close(eventCh)
-		client.Chat(c.Context(), msgs, eventCh)
+		client.Chat(ctx, msgs, eventCh)
 	}()
 
 	// Stream events to the client.
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+		// Always cancel the context when the stream writer exits so the Chat
+		// goroutine receives the signal and terminates its Anthropic HTTP call.
+		defer cancel()
+
 		for ev := range eventCh {
 			data, err := json.Marshal(ev)
 			if err != nil {
@@ -87,7 +114,13 @@ func (h *CopilotHandler) Chat(c *fiber.Ctx) error {
 			}
 			_, writeErr := fmt.Fprintf(w, "data: %s\n\n", data)
 			if writeErr != nil {
-				// Client disconnected.
+				// Client disconnected: cancel() fires via defer.
+				// Drain remaining buffered events in the background so the Chat
+				// goroutine can unblock from any pending channel send and exit.
+				go func() {
+					for range eventCh { //nolint:revive
+					}
+				}()
 				return
 			}
 			w.Flush()

@@ -29,11 +29,12 @@ import (
 // An ephemeral RSA key is generated at startup; log the SP certificate so
 // operators can register it with the IdP.
 type SAMLHandler struct {
-	CH          *clickhouse.Client
-	Sessions    *sessions.Store
-	License     *license.License
-	AppURL      string
-	FrontendURL string
+	CH           *clickhouse.Client
+	Sessions     *sessions.Store
+	License      *license.License
+	AppURL       string
+	FrontendURL  string
+	SecureCookie bool // add Secure flag to session cookies in production
 
 	spKey  *rsa.PrivateKey
 	spCert *x509.Certificate
@@ -45,7 +46,7 @@ type SAMLHandler struct {
 // NewSAMLHandler creates a SAMLHandler, generates an ephemeral SP key pair,
 // and logs the SP certificate for IdP registration.
 func NewSAMLHandler(ch *clickhouse.Client, sess *sessions.Store, lic *license.License,
-	appURL, frontendURL string) *SAMLHandler {
+	appURL, frontendURL string, secureCookie bool) *SAMLHandler {
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
@@ -76,14 +77,15 @@ func NewSAMLHandler(ch *clickhouse.Client, sess *sessions.Store, lic *license.Li
 	slog.Info("SAML SP certificate generated — register with your IdP:\n" + string(certPEM))
 
 	h := &SAMLHandler{
-		CH:          ch,
-		Sessions:    sess,
-		License:     lic,
-		AppURL:      appURL,
-		FrontendURL: frontendURL,
-		spKey:       key,
-		spCert:      cert,
-		states:      make(map[string]pendingState),
+		CH:           ch,
+		Sessions:     sess,
+		License:      lic,
+		AppURL:       appURL,
+		FrontendURL:  frontendURL,
+		SecureCookie: secureCookie,
+		spKey:        key,
+		spCert:       cert,
+		states:       make(map[string]pendingState),
 	}
 	go h.cleanupStates()
 	return h
@@ -325,6 +327,7 @@ func (h *SAMLHandler) Callback(c *fiber.Ctx) error {
 		Path:     "/",
 		HTTPOnly: true,
 		SameSite: "Lax",
+		Secure:   h.SecureCookie,
 		Expires:  expiresAt,
 	})
 

@@ -19,10 +19,11 @@ import (
 // These endpoints are public (no prior auth required) because the caller
 // is identified by a short-lived single-use token.
 type InviteHandler struct {
-	CH          *clickhouse.Client
-	Sessions    *sessions.Store
-	SMTP        alerting.SMTPConfig
-	FrontendURL string
+	CH           *clickhouse.Client
+	Sessions     *sessions.Store
+	SMTP         alerting.SMTPConfig
+	FrontendURL  string
+	SecureCookie bool
 }
 
 // ── Invite acceptance ─────────────────────────────────────────────────────────
@@ -140,6 +141,7 @@ func (h *InviteHandler) AcceptInvite(c *fiber.Ctx) error {
 		Path:     "/",
 		HTTPOnly: true,
 		SameSite: "Lax",
+		Secure:   h.SecureCookie,
 		Expires:  expiresAt,
 	})
 

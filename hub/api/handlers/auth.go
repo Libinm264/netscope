@@ -33,6 +33,10 @@ type AuthHandler struct {
 	GoogleClientID     string
 	GoogleClientSecret string
 
+	// SecureCookie adds the Secure flag to session cookies so they are only
+	// sent over HTTPS.  Always true in production (PRODUCTION=true).
+	SecureCookie bool
+
 	// in-memory CSRF state store for OAuth2 flows
 	oauthStateMu sync.Mutex
 	oauthStates  map[string]oauthStateEntry
@@ -155,6 +159,7 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 		Expires:  time.Unix(0, 0),
 		HTTPOnly: true,
 		SameSite: "Lax",
+			Secure:   h.SecureCookie,
 		Path:     "/",
 	})
 
@@ -249,6 +254,7 @@ func (h *AuthHandler) LocalLogin(c *fiber.Ctx) error {
 		Path:     "/",
 		HTTPOnly: true,
 		SameSite: "Lax",
+			Secure:   h.SecureCookie,
 		Expires:  expiresAt,
 	})
 
@@ -389,6 +395,7 @@ func (h *AuthHandler) DemoLogin(c *fiber.Ctx) error {
 		Path:     "/",
 		HTTPOnly: true,
 		SameSite: "Lax",
+			Secure:   h.SecureCookie,
 		Expires:  expiresAt,
 	})
 
@@ -545,6 +552,7 @@ func (h *AuthHandler) SetupAdmin(c *fiber.Ctx) error {
 		Path:     "/",
 		HTTPOnly: true,
 		SameSite: "Lax",
+			Secure:   h.SecureCookie,
 		Expires:  expiresAt,
 	})
 
@@ -772,6 +780,7 @@ func (h *AuthHandler) GoogleCallback(c *fiber.Ctx) error {
 		Path:     "/",
 		HTTPOnly: true,
 		SameSite: "Lax",
+			Secure:   h.SecureCookie,
 		Expires:  expiresAt,
 	})
 

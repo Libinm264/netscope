@@ -115,6 +115,10 @@ type Config struct {
 	// (ANTHROPIC_API_KEY env var).  Leave empty to disable the /copilot/chat
 	// endpoint — the UI will show a "not configured" message.
 	AnthropicKey string
+
+	// Production is true when the PRODUCTION=true env var is set.
+	// Enables stricter security defaults: Secure cookies, startup guards, etc.
+	Production bool
 }
 
 // Load reads configuration from environment variables, optionally loading a
@@ -160,6 +164,7 @@ func Load() *Config {
 		GoogleClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
 
 		AnthropicKey: getEnv("ANTHROPIC_API_KEY", ""),
+		Production:   os.Getenv("PRODUCTION") == "true",
 	}
 
 	brokerStr := getEnv("KAFKA_BROKERS", "redpanda:9092")
