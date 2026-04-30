@@ -231,7 +231,12 @@ impl HubClient {
         capture_mode: &str,
         ebpf_enabled: bool,
     ) -> anyhow::Result<()> {
-        let os = std::env::consts::OS.to_string();
+        // std::env::consts::OS returns "macos" on Apple platforms but the hub
+        // validates against the kernel name "darwin".  Normalise here.
+        let os = match std::env::consts::OS {
+            "macos" => "darwin",
+            other   => other,
+        }.to_string();
         let body = serde_json::json!({
             "agent_id":    self.agent_id,
             "hostname":    self.hostname,
