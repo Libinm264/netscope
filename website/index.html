@@ -4,620 +4,426 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NetScope — See Everything on Your Network</title>
-  <meta name="description" content="Real-time packet capture, deep protocol decode, GeoIP & threat intel, and a fleet-wide SaaS hub. Built with Rust and ClickHouse. One command to deploy." />
+  <meta name="description" content="Real-time packet capture, deep protocol decode, GeoIP & threat intel, and a fleet-wide SaaS hub. Built with Rust and ClickHouse." />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --bg:       #06060e;
-      --bg2:      #0a0a18;
-      --bg3:      #0f0f22;
-      --surface:  #111128;
-      --border:   rgba(255,255,255,0.07);
-      --border2:  rgba(255,255,255,0.12);
-      --text:     #e2e8f0;
-      --muted:    #64748b;
-      --muted2:   #94a3b8;
-      --cyan:     #00d4ff;
-      --cyan-dim: rgba(0,212,255,0.1);
-      --cyan-glow:rgba(0,212,255,0.18);
-      --green:    #34d399;
-      --purple:   #a78bfa;
-      --orange:   #fb923c;
-      --yellow:   #fbbf24;
-    }
-
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Inter', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-    }
-
-    /* ─── UTILITIES ─────────────────────────────────────── */
-    .container { max-width: 1120px; margin: 0 auto; padding: 0 2rem; }
-    .mono { font-family: 'JetBrains Mono', monospace; }
-
-    .tag {
-      display: inline-flex; align-items: center; gap: .375rem;
-      padding: .25rem .75rem; border-radius: 100px;
-      font-size: .75rem; font-weight: 600;
-      border: 1px solid rgba(0,212,255,.2);
-      background: var(--cyan-dim); color: var(--cyan);
-    }
-
-    .divider { height: 1px; background: var(--border); }
-
-    /* ─── NAV ───────────────────────────────────────────── */
-    nav {
-      position: fixed; inset: 0 0 auto; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 2rem; height: 60px;
-      background: rgba(6,6,14,.9); backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .nav-logo {
-      display: flex; align-items: center; gap: .5rem;
-      font-weight: 800; font-size: 1.05rem; letter-spacing: -.02em;
-      text-decoration: none; color: #fff;
-    }
-    .nav-logo img { width: 26px; height: 26px; }
-
-    .nav-links { display: flex; gap: 1.75rem; list-style: none; }
-    .nav-links a {
-      font-size: .875rem; color: var(--muted); text-decoration: none;
-      transition: color .15s;
-    }
-    .nav-links a:hover { color: var(--text); }
-
-    .nav-right { display: flex; align-items: center; gap: 1rem; }
-
-    .btn {
-      display: inline-flex; align-items: center; gap: .375rem;
-      padding: .5rem 1.125rem; border-radius: 8px;
-      font-size: .875rem; font-weight: 600; text-decoration: none;
-      transition: all .15s; white-space: nowrap;
-    }
-    .btn-ghost { color: var(--muted); }
-    .btn-ghost:hover { color: var(--text); }
-    .btn-outline {
-      border: 1px solid var(--border2); color: var(--text);
-    }
-    .btn-outline:hover { border-color: rgba(255,255,255,.25); background: rgba(255,255,255,.04); }
-    .btn-cyan {
-      background: var(--cyan); color: #06060e;
-      box-shadow: 0 0 24px rgba(0,212,255,.3);
-    }
-    .btn-cyan:hover { opacity: .9; box-shadow: 0 0 32px rgba(0,212,255,.4); }
-
-    /* ─── HERO ──────────────────────────────────────────── */
-    #hero {
-      position: relative; padding: 160px 0 80px; text-align: center;
-      overflow: hidden;
-    }
-
-    /* subtle dot grid */
-    #hero::before {
-      content: '';
-      position: absolute; inset: 0; z-index: 0;
-      background-image: radial-gradient(circle, rgba(255,255,255,.06) 1px, transparent 1px);
-      background-size: 32px 32px;
-    }
-
-    /* central glow */
-    #hero::after {
-      content: '';
-      position: absolute; z-index: 0;
-      width: 900px; height: 500px;
-      background: radial-gradient(ellipse at center, rgba(0,212,255,.1) 0%, transparent 65%);
-      top: 0; left: 50%; transform: translateX(-50%);
-      pointer-events: none;
-    }
-
-    #hero > .container { position: relative; z-index: 1; }
-
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: .5rem;
-      padding: .3rem .9rem; border-radius: 100px;
-      border: 1px solid var(--border2);
-      font-size: .78rem; color: var(--muted2);
-      margin-bottom: 2rem;
-    }
-    .hero-badge strong { color: var(--cyan); font-weight: 600; }
-
-    #hero h1 {
-      font-size: clamp(3rem, 7vw, 5.25rem);
-      font-weight: 900; letter-spacing: -.04em;
-      line-height: 1.04; color: #fff;
-      margin-bottom: 1.5rem;
-    }
-
-    #hero h1 .hl {
-      background: linear-gradient(135deg, var(--cyan) 0%, #60a5fa 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-sub {
-      font-size: 1.125rem; color: var(--muted2); max-width: 540px;
-      margin: 0 auto 2.5rem; line-height: 1.75;
-    }
-
-    .hero-actions {
-      display: flex; align-items: center; justify-content: center;
-      gap: .875rem; margin-bottom: 2.75rem; flex-wrap: wrap;
-    }
-
-    .hero-cmd {
-      display: inline-flex; align-items: center; gap: .875rem;
-      padding: .7rem 1.25rem;
-      background: rgba(0,0,0,.5); border: 1px solid var(--border2);
-      border-radius: 10px; font-family: 'JetBrains Mono', monospace;
-      font-size: .825rem; margin-bottom: 3.5rem;
-    }
-    .hero-cmd .prompt { color: var(--cyan); }
-    .hero-cmd code { color: var(--muted2); }
-    .copy-btn {
-      background: none; border: none; cursor: pointer;
-      color: var(--muted); padding: 0;
-      display: flex; align-items: center; transition: color .15s;
-    }
-    .copy-btn:hover { color: var(--cyan); }
-
-    /* ── HERO MOCKUP ── */
-    .hero-mockup {
-      max-width: 860px; margin: 0 auto;
-      background: var(--bg2); border: 1px solid var(--border2);
-      border-radius: 14px; overflow: hidden;
-      box-shadow: 0 0 0 1px rgba(0,212,255,.05), 0 40px 80px rgba(0,0,0,.6), 0 0 60px rgba(0,212,255,.06);
-    }
-
-    .mockup-titlebar {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: .8rem 1.25rem;
-      border-bottom: 1px solid var(--border);
-      background: rgba(0,0,0,.25);
-    }
-
-    .mockup-dots { display: flex; gap: 6px; }
-    .mockup-dots span {
-      width: 11px; height: 11px; border-radius: 50%;
-    }
-    .d1 { background: #ff5f57; }
-    .d2 { background: #febc2e; }
-    .d3 { background: #28c840; }
-
-    .mockup-title {
-      font-size: .78rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;
-    }
-
-    .live-pill {
-      display: flex; align-items: center; gap: .35rem;
-      font-size: .72rem; color: var(--green); font-weight: 600;
-    }
-    .live-dot {
-      width: 7px; height: 7px; border-radius: 50%; background: var(--green);
-      animation: pulse-live 2s ease infinite;
-    }
-    @keyframes pulse-live {
-      0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52,211,153,.4); }
-      50%      { opacity: .7; box-shadow: 0 0 0 5px rgba(52,211,153,0); }
-    }
-
-    .mockup-stats {
-      display: flex; gap: 0; border-bottom: 1px solid var(--border);
-    }
-    .mockup-stat {
-      flex: 1; padding: .75rem 1.25rem; border-right: 1px solid var(--border);
-    }
-    .mockup-stat:last-child { border-right: none; }
-    .mockup-stat .label { font-size: .68rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .2rem; }
-    .mockup-stat .value { font-size: 1.1rem; font-weight: 700; color: #fff; font-family: 'JetBrains Mono', monospace; }
-    .mockup-stat .value.cyan { color: var(--cyan); }
-
-    .mockup-table { width: 100%; border-collapse: collapse; }
-    .mockup-table th {
-      text-align: left; font-size: .68rem; color: var(--muted);
-      text-transform: uppercase; letter-spacing: .06em;
-      padding: .6rem 1rem; border-bottom: 1px solid var(--border);
-      font-weight: 500; background: rgba(0,0,0,.15);
-    }
-    .mockup-table td {
-      padding: .55rem 1rem; font-size: .8rem;
-      border-bottom: 1px solid rgba(255,255,255,.03);
-      font-family: 'JetBrains Mono', monospace;
-      color: var(--muted2);
-      white-space: nowrap;
-    }
-    .mockup-table tr:last-child td { border-bottom: none; }
-    .mockup-table tr { transition: background .1s; }
-    .mockup-table tr:hover td { background: rgba(255,255,255,.02); color: var(--text); }
-
-    .proto {
-      display: inline-block; padding: .15rem .45rem;
-      border-radius: 4px; font-size: .68rem; font-weight: 700;
-      letter-spacing: .04em;
-    }
-    .proto-dns  { background: rgba(167,139,250,.15); color: var(--purple); }
-    .proto-tls  { background: rgba(0,212,255,.12);  color: var(--cyan); }
-    .proto-http { background: rgba(52,211,153,.12); color: var(--green); }
-    .proto-icmp { background: rgba(251,146,60,.12); color: var(--orange); }
-    .proto-arp  { background: rgba(251,191,36,.12); color: var(--yellow); }
-
-    .ms { color: var(--muted); }
-    .bytes { color: var(--muted); }
-
-    /* ─── NUMBERS STRIP ─────────────────────────────────── */
-    #strip {
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-    .strip-inner {
-      display: grid; grid-template-columns: repeat(4,1fr);
-    }
-    .strip-item {
-      padding: 2rem; text-align: center;
-      border-right: 1px solid var(--border);
-    }
-    .strip-item:last-child { border-right: none; }
-    .strip-num {
-      font-size: 2rem; font-weight: 800; color: #fff;
-      letter-spacing: -.04em; line-height: 1;
-      margin-bottom: .35rem;
-    }
-    .strip-num span { color: var(--cyan); }
-    .strip-label { font-size: .8rem; color: var(--muted); }
-
-    /* ─── SECTION HEADER ────────────────────────────────── */
-    .section-header { margin-bottom: 4rem; }
-    .eyebrow {
-      display: inline-block;
-      font-size: .75rem; font-weight: 700; letter-spacing: .1em;
-      text-transform: uppercase; color: var(--cyan);
-      margin-bottom: .875rem;
-    }
-    .section-title {
-      font-size: clamp(1.9rem, 4vw, 2.75rem); font-weight: 800;
-      letter-spacing: -.035em; color: #fff; line-height: 1.15;
-      margin-bottom: .875rem;
-    }
-    .section-body {
-      font-size: 1rem; color: var(--muted2); max-width: 500px; line-height: 1.75;
-    }
-
-    /* ─── HOW IT WORKS ──────────────────────────────────── */
-    #how { padding: 100px 0; }
-
-    .steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 2px; position: relative; }
-
-    /* connecting line */
-    .steps::before {
-      content: '';
-      position: absolute; top: 24px; left: calc(16.66% + 1rem); right: calc(16.66% + 1rem);
-      height: 1px; background: var(--border2); z-index: 0;
-    }
-
-    .step { padding: 0 1.5rem; position: relative; z-index: 1; }
-    .step:first-child { padding-left: 0; }
-    .step:last-child  { padding-right: 0; }
-
-    .step-num {
-      width: 48px; height: 48px; border-radius: 50%;
-      border: 1px solid var(--border2);
-      background: var(--bg2);
-      display: flex; align-items: center; justify-content: center;
-      font-size: .8rem; font-weight: 800; color: var(--cyan);
-      margin-bottom: 1.5rem;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .step h3 {
-      font-size: 1rem; font-weight: 700; color: #fff;
-      margin-bottom: .5rem; letter-spacing: -.01em;
-    }
-    .step p { font-size: .875rem; color: var(--muted); line-height: 1.65; margin-bottom: 1.25rem; }
-
-    .step-cmd {
-      display: flex; align-items: center; gap: .75rem;
-      padding: .65rem .9rem;
-      background: rgba(0,0,0,.5); border: 1px solid var(--border);
-      border-radius: 8px; font-family: 'JetBrains Mono', monospace;
-      font-size: .75rem;
-    }
-    .step-cmd .p { color: var(--cyan); }
-    .step-cmd code { color: var(--muted2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-    /* ─── PRODUCTS ──────────────────────────────────────── */
-    #products { padding: 100px 0; }
-
-    .products-grid {
-      display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem;
-    }
-
-    .product-card {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 14px; padding: 2rem;
-      transition: border-color .2s, transform .2s;
-      display: flex; flex-direction: column; gap: 0;
-    }
-    .product-card:hover {
-      border-color: rgba(0,212,255,.25);
-      transform: translateY(-3px);
-    }
-
-    .product-icon-wrap {
-      width: 48px; height: 48px; border-radius: 12px;
-      background: var(--cyan-dim);
-      border: 1px solid rgba(0,212,255,.15);
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 1.25rem;
-    }
-    .product-icon-wrap svg { width: 22px; height: 22px; stroke: var(--cyan); }
-
-    .product-card h3 { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: .5rem; }
-    .product-card p { font-size: .875rem; color: var(--muted); line-height: 1.65; flex: 1; margin-bottom: 1.5rem; }
-
-    .product-platforms {
-      display: flex; gap: .5rem; flex-wrap: wrap;
-    }
-    .platform-badge {
-      font-size: .7rem; font-weight: 500; color: var(--muted);
-      background: rgba(255,255,255,.05); border: 1px solid var(--border);
-      border-radius: 4px; padding: .2rem .5rem;
-    }
-
-    /* ─── FEATURES ──────────────────────────────────────── */
-    #features { padding: 100px 0; }
-
-    .features-layout {
-      display: grid; grid-template-columns: 1fr 2fr; gap: 5rem; align-items: start;
-    }
-
-    .features-sticky { position: sticky; top: 100px; }
-
-    .features-grid {
-      display: grid; grid-template-columns: repeat(2,1fr); gap: 1.5rem;
-    }
-
-    .feat {
-      padding: 1.75rem; background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 12px; transition: border-color .2s;
-    }
-    .feat:hover { border-color: rgba(0,212,255,.2); }
-
-    .feat-icon {
-      width: 36px; height: 36px; border-radius: 8px;
-      background: var(--cyan-dim); border: 1px solid rgba(0,212,255,.12);
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 1rem;
-    }
-    .feat-icon svg { width: 17px; height: 17px; stroke: var(--cyan); }
-
-    .feat h4 { font-size: .9375rem; font-weight: 700; color: #fff; margin-bottom: .4rem; }
-    .feat p { font-size: .8375rem; color: var(--muted); line-height: 1.65; }
-
-    /* ─── TERMINAL DEMO ─────────────────────────────────── */
-    #demo {
-      padding: 100px 0;
-      background: var(--bg2);
-      border-top: 1px solid var(--border);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .demo-inner {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center;
-    }
-
-    .demo-points { display: flex; flex-direction: column; gap: 1.5rem; }
-
-    .demo-point { display: flex; gap: 1rem; }
-    .demo-point-icon {
-      width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
-      background: var(--cyan-dim); border: 1px solid rgba(0,212,255,.12);
-      display: flex; align-items: center; justify-content: center; margin-top: 2px;
-    }
-    .demo-point-icon svg { width: 16px; height: 16px; stroke: var(--cyan); }
-    .demo-point h4 { font-size: .9375rem; font-weight: 700; color: #fff; margin-bottom: .3rem; }
-    .demo-point p  { font-size: .8375rem; color: var(--muted); line-height: 1.65; }
-
-    .terminal {
-      background: #060612; border: 1px solid var(--border2);
-      border-radius: 12px; overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,.5);
-    }
-    .terminal-bar {
-      display: flex; align-items: center; gap: 6px;
-      padding: .875rem 1.25rem; border-bottom: 1px solid var(--border);
-      background: rgba(255,255,255,.02);
-    }
-    .terminal-bar .dots { display: flex; gap: 6px; }
-    .terminal-bar .dot { width: 11px; height: 11px; border-radius: 50%; }
-    .terminal-bar .title {
-      flex: 1; text-align: center;
-      font-size: .75rem; color: var(--muted); font-family: 'JetBrains Mono', monospace;
-    }
-
-    .terminal-body {
-      padding: 1.25rem 1.5rem;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: .775rem; line-height: 1.9;
-    }
-    .line-comment { color: #3a3a5c; }
-    .line-cmd     { color: var(--text); }
-    .line-cmd .ps { color: var(--cyan); }
-    .line-out     { color: var(--muted); }
-    .line-ok      { color: var(--green); }
-    .line-info    { color: var(--cyan); }
-    .line-warn    { color: var(--orange); }
-    .cursor       { display: inline-block; width: 8px; height: 1em; background: var(--cyan); vertical-align: middle; animation: blink .9s step-end infinite; }
-    @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
-
-    /* ─── PRICING ───────────────────────────────────────── */
-    #pricing { padding: 100px 0; }
-
-    .pricing-grid {
-      display: grid; grid-template-columns: repeat(3,1fr); gap: 1.5rem;
-    }
-
-    .plan {
-      background: var(--bg2); border: 1px solid var(--border);
-      border-radius: 14px; padding: 2.25rem;
-      display: flex; flex-direction: column;
-    }
-    .plan-featured {
-      border-color: rgba(0,212,255,.3);
-      background: linear-gradient(160deg, #0d1232 0%, var(--bg2) 100%);
-      position: relative; overflow: hidden;
-    }
-    .plan-featured::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 2px;
-      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-    }
-
-    .plan-label {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 1.5rem;
-    }
-    .plan-name { font-size: .8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
-    .plan-badge {
-      font-size: .7rem; font-weight: 600; color: var(--cyan);
-      background: var(--cyan-dim); border: 1px solid rgba(0,212,255,.2);
-      border-radius: 100px; padding: .2rem .6rem;
-    }
-
-    .plan-price {
-      font-size: 2.75rem; font-weight: 800; color: #fff; letter-spacing: -.05em;
-      line-height: 1; margin-bottom: .5rem;
-    }
-    .plan-price sup { font-size: 1.4rem; vertical-align: super; line-height: 0; }
-    .plan-cadence { font-size: .825rem; color: var(--muted); margin-bottom: 2rem; }
-
-    .plan-hr { height: 1px; background: var(--border); margin-bottom: 1.75rem; }
-
-    .plan-list { list-style: none; display: flex; flex-direction: column; gap: .8rem; flex: 1; margin-bottom: 2rem; }
-    .plan-list li {
-      display: flex; align-items: flex-start; gap: .625rem;
-      font-size: .875rem; color: var(--muted2); line-height: 1.5;
-    }
-    .plan-list li svg { width: 14px; height: 14px; stroke: var(--cyan); flex-shrink: 0; margin-top: 2px; }
-
-    .plan-cta {
-      display: block; text-align: center; padding: .7rem 1rem;
-      border-radius: 8px; font-size: .875rem; font-weight: 600;
-      text-decoration: none; transition: all .15s;
-    }
-    .plan-cta-ghost { border: 1px solid var(--border2); color: var(--text); }
-    .plan-cta-ghost:hover { border-color: rgba(255,255,255,.25); background: rgba(255,255,255,.04); }
-    .plan-cta-cyan  { background: var(--cyan); color: #06060e; box-shadow: 0 0 20px rgba(0,212,255,.25); }
-    .plan-cta-cyan:hover { opacity: .9; }
-
-    /* ─── CTA BANNER ────────────────────────────────────── */
-    #cta {
-      padding: 100px 0;
-      text-align: center;
-      position: relative; overflow: hidden;
-    }
-    #cta::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse at center, rgba(0,212,255,.06) 0%, transparent 65%);
-    }
-    #cta > .container { position: relative; z-index: 1; }
-
-    #cta h2 {
-      font-size: clamp(2rem, 4.5vw, 3.25rem); font-weight: 800;
-      letter-spacing: -.04em; color: #fff; line-height: 1.1; margin-bottom: 1rem;
-    }
-    #cta p { font-size: 1rem; color: var(--muted2); margin-bottom: 2.5rem; max-width: 440px; margin-left: auto; margin-right: auto; }
-
-    .cta-actions { display: flex; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; }
-
-    /* ─── FOOTER ────────────────────────────────────────── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 3rem 0;
-    }
-    .footer-inner {
-      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1.5rem;
-    }
-    .footer-logo { display: flex; align-items: center; gap: .5rem; font-weight: 700; color: var(--text); text-decoration: none; font-size: .95rem; }
-    .footer-logo img { width: 22px; height: 22px; }
-    .footer-links { display: flex; gap: 1.75rem; list-style: none; flex-wrap: wrap; }
-    .footer-links a { font-size: .8375rem; color: var(--muted); text-decoration: none; transition: color .15s; }
-    .footer-links a:hover { color: var(--text); }
-    .footer-right { font-size: .8rem; color: #2d2d45; }
-
-    /* ─── REVEAL ANIMATION ──────────────────────────────── */
-    .reveal { opacity: 0; transform: translateY(22px); transition: opacity .55s ease, transform .55s ease; }
-    .reveal.in { opacity: 1; transform: none; }
-
-    /* ─── RESPONSIVE ────────────────────────────────────── */
-    @media (max-width: 960px) {
-      .products-grid, .pricing-grid { grid-template-columns: 1fr; }
-      .features-layout { grid-template-columns: 1fr; }
-      .features-sticky { position: static; }
-      .features-grid { grid-template-columns: 1fr; }
-      .demo-inner { grid-template-columns: 1fr; }
-      .steps { grid-template-columns: 1fr; }
-      .steps::before { display: none; }
-      .strip-inner { grid-template-columns: repeat(2,1fr); }
-      .nav-links { display: none; }
-    }
-    @media (max-width: 600px) {
-      #hero { padding: 120px 0 60px; }
-      .mockup-table .hide-sm { display: none; }
-      #hero h1 { font-size: 2.6rem; }
-    }
-  </style>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06060e;--bg2:#09091a;--bg3:#0d0d24;
+  --surface:rgba(255,255,255,0.03);
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;
+  --cyan:#00d4ff;--cyan-dim:rgba(0,212,255,0.08);--cyan-glow:rgba(0,212,255,0.2);
+  --indigo:#6366f1;--indigo-dim:rgba(99,102,241,0.1);
+  --green:#34d399;--purple:#a78bfa;--orange:#fb923c;--yellow:#fbbf24;
+  --red:#f87171;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',sans-serif;background:var(--bg);
+  color:var(--text);line-height:1.6;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+.container{max-width:1120px;margin:0 auto;padding:0 2rem}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ── NAV ── */
+nav{
+  position:fixed;inset:0 0 auto;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 2rem;height:62px;
+  background:rgba(6,6,14,0.85);backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);
+  transition:background .3s;
+}
+.nav-logo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.05rem;letter-spacing:-.02em;text-decoration:none;color:#fff}
+.nav-logo img{width:26px;height:26px}
+.nav-links{display:flex;gap:1.75rem;list-style:none}
+.nav-links a{font-size:.875rem;color:var(--muted);text-decoration:none;transition:color .15s}
+.nav-links a:hover{color:var(--text)}
+.nav-right{display:flex;align-items:center;gap:.875rem}
+.btn{display:inline-flex;align-items:center;gap:.375rem;padding:.5rem 1.125rem;border-radius:8px;font-size:.875rem;font-weight:600;text-decoration:none;transition:all .2s;white-space:nowrap;cursor:pointer;border:none}
+.btn-ghost{color:var(--muted);background:none}
+.btn-ghost:hover{color:var(--text)}
+.btn-outline{border:1px solid var(--border2);color:var(--text);background:none}
+.btn-outline:hover{border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.04)}
+.btn-cyan{background:var(--cyan);color:#06060e;box-shadow:0 0 20px rgba(0,212,255,.3)}
+.btn-cyan:hover{box-shadow:0 0 32px rgba(0,212,255,.5);transform:translateY(-1px)}
+.btn-indigo{background:var(--indigo);color:#fff;box-shadow:0 0 20px rgba(99,102,241,.35)}
+.btn-indigo:hover{box-shadow:0 0 32px rgba(99,102,241,.5);transform:translateY(-1px)}
+.divider{height:1px;background:var(--border)}
+
+/* ── HERO ── */
+#hero{position:relative;padding:160px 0 90px;text-align:center;overflow:hidden}
+#hero-canvas{position:absolute;inset:0;z-index:0;opacity:.55}
+.hero-orb{
+  position:absolute;border-radius:50%;pointer-events:none;z-index:0;
+  filter:blur(80px);animation:orb-drift 12s ease-in-out infinite alternate;
+}
+.hero-orb-1{width:600px;height:600px;background:radial-gradient(circle,rgba(0,212,255,.12),transparent 70%);top:-120px;left:50%;transform:translateX(-50%)}
+.hero-orb-2{width:400px;height:400px;background:radial-gradient(circle,rgba(99,102,241,.1),transparent 70%);top:20%;left:15%;animation-delay:-4s}
+.hero-orb-3{width:350px;height:350px;background:radial-gradient(circle,rgba(167,139,250,.08),transparent 70%);top:30%;right:10%;animation-delay:-7s}
+@keyframes orb-drift{0%{transform:translateX(-50%) translateY(0)}100%{transform:translateX(-50%) translateY(30px)}}
+#hero>.container{position:relative;z-index:1}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:.5rem;
+  padding:.3rem 1rem;border-radius:100px;
+  border:1px solid rgba(0,212,255,.2);
+  background:rgba(0,212,255,.05);
+  font-size:.775rem;color:var(--muted2);
+  margin-bottom:2rem;
+  animation:fade-up .6s ease both;
+}
+.hero-badge strong{color:var(--cyan);font-weight:600}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--cyan);animation:pulse-live 2s ease infinite}
+#hero h1{
+  font-size:clamp(3rem,7vw,5.5rem);font-weight:900;letter-spacing:-.04em;
+  line-height:1.04;color:#fff;margin-bottom:1.5rem;
+  animation:fade-up .6s .1s ease both;
+}
+.hl{
+  background:linear-gradient(135deg,var(--cyan) 0%,#818cf8 50%,var(--purple) 100%);
+  background-size:200% auto;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:gradient-flow 4s linear infinite;
+}
+@keyframes gradient-flow{0%{background-position:0% center}100%{background-position:200% center}}
+.hero-sub{
+  font-size:1.125rem;color:var(--muted2);max-width:520px;
+  margin:0 auto 2.5rem;line-height:1.75;
+  animation:fade-up .6s .2s ease both;
+}
+.hero-actions{
+  display:flex;align-items:center;justify-content:center;
+  gap:.875rem;margin-bottom:2.75rem;flex-wrap:wrap;
+  animation:fade-up .6s .3s ease both;
+}
+.hero-cmd{
+  display:inline-flex;align-items:center;gap:.875rem;
+  padding:.75rem 1.35rem;
+  background:rgba(0,0,0,.5);border:1px solid var(--border2);
+  border-radius:12px;font-family:'JetBrains Mono',monospace;
+  font-size:.825rem;margin-bottom:3.5rem;
+  animation:fade-up .6s .4s ease both;
+  transition:border-color .2s,box-shadow .2s;
+}
+.hero-cmd:hover{border-color:rgba(0,212,255,.3);box-shadow:0 0 20px rgba(0,212,255,.07)}
+.hero-cmd .prompt{color:var(--cyan)}
+.copy-btn{background:none;border:none;cursor:pointer;color:var(--muted);padding:0;display:flex;align-items:center;transition:color .15s;flex-shrink:0}
+.copy-btn:hover{color:var(--cyan)}
+
+/* mockup */
+.hero-mockup{
+  max-width:880px;margin:0 auto;
+  background:var(--bg2);border:1px solid var(--border2);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 0 0 1px rgba(0,212,255,.04),0 50px 100px rgba(0,0,0,.7),0 0 80px rgba(0,212,255,.07);
+  animation:fade-up .8s .5s ease both;
+  transform-origin:top center;
+}
+.hero-mockup:hover{box-shadow:0 0 0 1px rgba(0,212,255,.1),0 60px 120px rgba(0,0,0,.8),0 0 100px rgba(0,212,255,.1)}
+.mockup-titlebar{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.25rem;border-bottom:1px solid var(--border);background:rgba(0,0,0,.3)}
+.mockup-dots{display:flex;gap:6px}
+.mockup-dots span{width:11px;height:11px;border-radius:50%}
+.d1{background:#ff5f57}.d2{background:#febc2e}.d3{background:#28c840}
+.mockup-title{font-size:.78rem;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.live-pill{display:flex;align-items:center;gap:.35rem;font-size:.72rem;color:var(--green);font-weight:600}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-live 2s ease infinite}
+@keyframes pulse-live{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(52,211,153,.4)}50%{opacity:.7;box-shadow:0 0 0 5px rgba(52,211,153,0)}}
+.mockup-stats{display:flex;gap:0;border-bottom:1px solid var(--border)}
+.mockup-stat{flex:1;padding:.75rem 1.25rem;border-right:1px solid var(--border)}
+.mockup-stat:last-child{border-right:none}
+.mockup-stat .label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.2rem}
+.mockup-stat .value{font-size:1.1rem;font-weight:700;color:#fff;font-family:'JetBrains Mono',monospace}
+.mockup-stat .value.cyan{color:var(--cyan)}
+.mockup-table{width:100%;border-collapse:collapse}
+.mockup-table th{text-align:left;font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:.6rem 1rem;border-bottom:1px solid var(--border);font-weight:500;background:rgba(0,0,0,.15)}
+.mockup-table td{padding:.55rem 1rem;font-size:.8rem;border-bottom:1px solid rgba(255,255,255,.025);font-family:'JetBrains Mono',monospace;color:var(--muted2);white-space:nowrap}
+.mockup-table tr:last-child td{border-bottom:none}
+.mockup-table tr{transition:background .1s}
+.mockup-table tbody tr:hover td{background:rgba(255,255,255,.02);color:var(--text)}
+.mockup-table tbody tr.row-new{animation:row-slide .4s ease both}
+@keyframes row-slide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+.proto{display:inline-block;padding:.15rem .45rem;border-radius:4px;font-size:.68rem;font-weight:700;letter-spacing:.04em}
+.proto-dns{background:rgba(167,139,250,.15);color:var(--purple)}
+.proto-tls{background:rgba(0,212,255,.12);color:var(--cyan)}
+.proto-http{background:rgba(52,211,153,.12);color:var(--green)}
+.proto-icmp{background:rgba(251,146,60,.12);color:var(--orange)}
+.proto-arp{background:rgba(251,191,36,.12);color:var(--yellow)}
+.proto-grpc{background:rgba(248,113,113,.12);color:var(--red)}
+.threat-badge{display:inline-block;padding:.1rem .4rem;border-radius:4px;font-size:.65rem;font-weight:700}
+.threat-high{background:rgba(248,113,113,.15);color:var(--red)}
+.threat-med{background:rgba(251,146,60,.15);color:var(--orange)}
+
+/* ── STRIP ── */
+#strip{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2)}
+.strip-inner{display:grid;grid-template-columns:repeat(4,1fr)}
+.strip-item{padding:2.25rem;text-align:center;border-right:1px solid var(--border);position:relative;overflow:hidden;transition:background .2s}
+.strip-item:hover{background:var(--surface)}
+.strip-item:last-child{border-right:none}
+.strip-item::before{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:0;height:2px;background:var(--cyan);transition:width .3s}
+.strip-item:hover::before{width:60%}
+.strip-num{font-size:2.25rem;font-weight:800;color:#fff;letter-spacing:-.04em;line-height:1;margin-bottom:.35rem;font-family:'JetBrains Mono',monospace}
+.strip-num span{color:var(--cyan)}
+.strip-label{font-size:.8rem;color:var(--muted)}
+
+/* ── SECTION HEADER ── */
+.section-header{margin-bottom:4rem}
+.eyebrow{display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cyan);margin-bottom:.875rem;opacity:.85}
+.section-title{font-size:clamp(1.9rem,4vw,2.75rem);font-weight:800;letter-spacing:-.035em;color:#fff;line-height:1.15;margin-bottom:.875rem}
+.section-body{font-size:1rem;color:var(--muted2);max-width:500px;line-height:1.75}
+
+/* ── HOW IT WORKS ── */
+#how{padding:110px 0}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;position:relative}
+.steps::before{content:'';position:absolute;top:24px;left:calc(16.66% + 1rem);right:calc(16.66% + 1rem);height:1px;background:linear-gradient(90deg,transparent,var(--border2),transparent);z-index:0}
+.step{padding:0 1.5rem;position:relative;z-index:1}
+.step:first-child{padding-left:0}
+.step:last-child{padding-right:0}
+.step-num{width:48px;height:48px;border-radius:50%;border:1px solid var(--border2);background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:var(--cyan);margin-bottom:1.5rem;font-family:'JetBrains Mono',monospace;transition:all .3s;box-shadow:0 0 0 0 rgba(0,212,255,0)}
+.step:hover .step-num{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,212,255,.2)}
+.step h3{font-size:1rem;font-weight:700;color:#fff;margin-bottom:.5rem;letter-spacing:-.01em}
+.step p{font-size:.875rem;color:var(--muted);line-height:1.65;margin-bottom:1.25rem}
+.step-cmd{display:flex;align-items:center;gap:.75rem;padding:.65rem .9rem;background:rgba(0,0,0,.5);border:1px solid var(--border);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:.75rem}
+.step-cmd .p{color:var(--cyan)}
+.step-cmd code{color:var(--muted2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── PRODUCTS ── */
+#products{padding:110px 0}
+.products-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.product-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:16px;padding:2rem;
+  transition:border-color .25s,transform .25s,box-shadow .25s;
+  display:flex;flex-direction:column;gap:0;
+  position:relative;overflow:hidden;
+}
+.product-card::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 0%,rgba(0,212,255,.05),transparent 60%);
+  opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.product-card:hover{border-color:rgba(0,212,255,.3);transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 40px rgba(0,212,255,.06)}
+.product-card:hover::before{opacity:1}
+.product-icon-wrap{width:48px;height:48px;border-radius:12px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.15);display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;transition:all .3s}
+.product-card:hover .product-icon-wrap{background:rgba(0,212,255,.14);box-shadow:0 0 20px rgba(0,212,255,.15)}
+.product-icon-wrap svg{width:22px;height:22px;stroke:var(--cyan)}
+.product-card h3{font-size:1rem;font-weight:700;color:#fff;margin-bottom:.5rem}
+.product-card p{font-size:.875rem;color:var(--muted);line-height:1.65;flex:1;margin-bottom:1.5rem}
+.product-platforms{display:flex;gap:.5rem;flex-wrap:wrap}
+.platform-badge{font-size:.7rem;font-weight:500;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:4px;padding:.2rem .5rem;transition:all .2s}
+.product-card:hover .platform-badge{border-color:rgba(0,212,255,.15);color:var(--muted2)}
+.product-link{display:inline-flex;align-items:center;gap:.375rem;margin-top:1.25rem;font-size:.8rem;font-weight:600;color:var(--cyan);text-decoration:none;opacity:.7;transition:opacity .2s}
+.product-link:hover{opacity:1}
+
+/* ── FEATURES ── */
+#features{padding:110px 0}
+.features-layout{display:grid;grid-template-columns:1fr 2fr;gap:5rem;align-items:start}
+.features-sticky{position:sticky;top:100px}
+.features-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem}
+.feat{
+  padding:1.75rem;background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;transition:border-color .2s,transform .2s,box-shadow .2s;
+  position:relative;overflow:hidden;
+}
+.feat::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at top left,rgba(0,212,255,.04),transparent 60%);opacity:0;transition:opacity .25s}
+.feat:hover{border-color:rgba(0,212,255,.25);transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.feat:hover::after{opacity:1}
+.feat-icon{width:36px;height:36px;border-radius:8px;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.12);display:flex;align-items:center;justify-content:center;margin-bottom:1rem;transition:all .25s}
+.feat:hover .feat-icon{background:rgba(0,212,255,.14);box-shadow:0 0 14px rgba(0,212,255,.18)}
+.feat-icon svg{width:17px;height:17px;stroke:var(--cyan)}
+.feat h4{font-size:.9375rem;font-weight:700;color:#fff;margin-bottom:.4rem}
+.feat p{font-size:.8375rem;color:var(--muted);line-height:1.65}
+
+/* ── TERMINAL SECTION ── */
+#demo{padding:110px 0;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.demo-inner{display:grid;grid-template-columns:1fr 1fr;gap:4rem;align-items:center}
+.demo-points{display:flex;flex-direction:column;gap:1.5rem}
+.demo-point{display:flex;gap:1rem;align-items:flex-start}
+.demo-point-icon{width:36px;height:36px;border-radius:8px;flex-shrink:0;background:var(--cyan-dim);border:1px solid rgba(0,212,255,.12);display:flex;align-items:center;justify-content:center;margin-top:2px;transition:all .25s}
+.demo-point:hover .demo-point-icon{background:rgba(0,212,255,.14);box-shadow:0 0 14px rgba(0,212,255,.15)}
+.demo-point-icon svg{width:16px;height:16px;stroke:var(--cyan)}
+.demo-point h4{font-size:.9375rem;font-weight:700;color:#fff;margin-bottom:.3rem}
+.demo-point p{font-size:.8375rem;color:var(--muted);line-height:1.65}
+.terminal{background:#060612;border:1px solid var(--border2);border-radius:14px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 40px rgba(0,212,255,.04)}
+.terminal-bar{display:flex;align-items:center;gap:6px;padding:.875rem 1.25rem;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+.terminal-bar .dots{display:flex;gap:6px}
+.terminal-bar .dot{width:11px;height:11px;border-radius:50%}
+.terminal-bar .title{flex:1;text-align:center;font-size:.75rem;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.terminal-body{padding:1.25rem 1.5rem;font-family:'JetBrains Mono',monospace;font-size:.775rem;line-height:1.9;min-height:260px}
+.line-comment{color:#3a3a5c}
+.line-cmd{color:var(--text)}
+.line-cmd .ps{color:var(--cyan)}
+.line-out{color:var(--muted)}
+.line-ok{color:var(--green)}
+.line-info{color:var(--cyan)}
+.line-warn{color:var(--orange)}
+.cursor{display:inline-block;width:8px;height:1em;background:var(--cyan);vertical-align:middle;animation:blink .9s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── AI COPILOT SPOTLIGHT ── */
+#copilot{padding:110px 0;position:relative;overflow:hidden}
+#copilot::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 100%,rgba(99,102,241,.08),transparent 60%);pointer-events:none}
+.copilot-inner{display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center}
+.copilot-card{
+  background:var(--bg2);border:1px solid rgba(99,102,241,.25);
+  border-radius:16px;overflow:hidden;
+  box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 60px rgba(99,102,241,.06);
+}
+.copilot-header{padding:1rem 1.25rem;border-bottom:1px solid var(--border);background:rgba(0,0,0,.3);display:flex;align-items:center;gap:.75rem}
+.copilot-dot{width:8px;height:8px;border-radius:50%;background:var(--indigo);animation:pulse-live 2s ease infinite}
+.copilot-body{padding:1.5rem}
+.chat-msg{margin-bottom:1rem}
+.chat-msg-user{display:flex;justify-content:flex-end;margin-bottom:.75rem}
+.chat-msg-user span{background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.2);border-radius:12px 12px 4px 12px;padding:.5rem .875rem;font-size:.8rem;color:var(--text);max-width:80%}
+.chat-msg-ai{display:flex;gap:.75rem;align-items:flex-start}
+.chat-ai-avatar{width:28px;height:28px;border-radius:8px;background:var(--indigo-dim);border:1px solid rgba(99,102,241,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chat-ai-avatar svg{width:13px;height:13px;stroke:var(--indigo)}
+.chat-ai-bubble{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:4px 12px 12px 12px;padding:.75rem .875rem;font-size:.8rem;color:var(--muted2);line-height:1.6;flex:1}
+.chat-sql{margin-top:.75rem;background:#060612;border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--cyan);line-height:1.7}
+.chat-sql .kw{color:#818cf8}.chat-sql .tbl{color:var(--green)}.chat-sql .str{color:var(--orange)}
+.copilot-badge{display:inline-flex;align-items:center;gap:.5rem;padding:.25rem .75rem;border-radius:100px;background:var(--indigo-dim);border:1px solid rgba(99,102,241,.2);font-size:.72rem;font-weight:600;color:#818cf8;margin-bottom:1rem}
+
+/* ── PRICING ── */
+#pricing{padding:110px 0}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.plan{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:2.25rem;display:flex;flex-direction:column;transition:border-color .25s,box-shadow .25s}
+.plan:hover{border-color:var(--border2);box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.plan-featured{border-color:rgba(0,212,255,.3);background:linear-gradient(160deg,rgba(0,212,255,.04) 0%,var(--bg2) 100%);position:relative;overflow:hidden}
+.plan-featured::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.plan-featured:hover{box-shadow:0 20px 60px rgba(0,0,0,.3),0 0 40px rgba(0,212,255,.08)}
+.plan-label{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem}
+.plan-name{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.plan-badge{font-size:.7rem;font-weight:600;color:var(--cyan);background:var(--cyan-dim);border:1px solid rgba(0,212,255,.2);border-radius:100px;padding:.2rem .6rem}
+.plan-price{font-size:2.75rem;font-weight:800;color:#fff;letter-spacing:-.05em;line-height:1;margin-bottom:.5rem;font-family:'JetBrains Mono',monospace}
+.plan-price sup{font-size:1.4rem;vertical-align:super;line-height:0}
+.plan-cadence{font-size:.825rem;color:var(--muted);margin-bottom:2rem}
+.plan-hr{height:1px;background:var(--border);margin-bottom:1.75rem}
+.plan-list{list-style:none;display:flex;flex-direction:column;gap:.8rem;flex:1;margin-bottom:2rem}
+.plan-list li{display:flex;align-items:flex-start;gap:.625rem;font-size:.875rem;color:var(--muted2);line-height:1.5}
+.plan-list li svg{width:14px;height:14px;stroke:var(--cyan);flex-shrink:0;margin-top:2px}
+.plan-cta{display:block;text-align:center;padding:.7rem 1rem;border-radius:8px;font-size:.875rem;font-weight:600;text-decoration:none;transition:all .2s}
+.plan-cta-ghost{border:1px solid var(--border2);color:var(--text)}
+.plan-cta-ghost:hover{border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.04)}
+.plan-cta-cyan{background:var(--cyan);color:#06060e;box-shadow:0 0 20px rgba(0,212,255,.25)}
+.plan-cta-cyan:hover{box-shadow:0 0 30px rgba(0,212,255,.4);transform:translateY(-1px)}
+
+/* ── SOCIAL PROOF ── */
+#social{padding:70px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2)}
+.social-inner{display:flex;gap:2rem;flex-wrap:wrap;justify-content:center;align-items:stretch}
+.testimonial{flex:1;min-width:260px;max-width:340px;padding:1.75rem;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:14px;transition:border-color .2s,transform .2s}
+.testimonial:hover{border-color:rgba(0,212,255,.2);transform:translateY(-2px)}
+.testimonial-text{font-size:.875rem;color:var(--muted2);line-height:1.7;margin-bottom:1.25rem;font-style:italic}
+.testimonial-author{display:flex;align-items:center;gap:.75rem}
+.testimonial-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;color:#fff}
+.testimonial-name{font-size:.8rem;font-weight:600;color:#fff}
+.testimonial-role{font-size:.75rem;color:var(--muted)}
+
+/* ── CTA ── */
+#cta{padding:110px 0;text-align:center;position:relative;overflow:hidden}
+#cta::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(0,212,255,.07) 0%,transparent 65%)}
+#cta>.container{position:relative;z-index:1}
+#cta h2{font-size:clamp(2rem,4.5vw,3.25rem);font-weight:800;letter-spacing:-.04em;color:#fff;line-height:1.1;margin-bottom:1rem}
+#cta p{font-size:1rem;color:var(--muted2);margin-bottom:2.5rem;max-width:440px;margin-left:auto;margin-right:auto}
+.cta-actions{display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:3rem 0}
+.footer-inner{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1.5rem}
+.footer-logo{display:flex;align-items:center;gap:.5rem;font-weight:700;color:var(--text);text-decoration:none;font-size:.95rem}
+.footer-logo img{width:22px;height:22px}
+.footer-links{display:flex;gap:1.75rem;list-style:none;flex-wrap:wrap}
+.footer-links a{font-size:.8375rem;color:var(--muted);text-decoration:none;transition:color .15s}
+.footer-links a:hover{color:var(--text)}
+.footer-right{font-size:.8rem;color:#2d2d45}
+
+/* ── ANIMATIONS ── */
+@keyframes fade-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-delay-1{transition-delay:.1s}
+.reveal-delay-2{transition-delay:.2s}
+.reveal-delay-3{transition-delay:.3s}
+.stagger>*{opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}
+.stagger.in>*:nth-child(1){opacity:1;transform:none;transition-delay:.05s}
+.stagger.in>*:nth-child(2){opacity:1;transform:none;transition-delay:.15s}
+.stagger.in>*:nth-child(3){opacity:1;transform:none;transition-delay:.25s}
+.stagger.in>*:nth-child(4){opacity:1;transform:none;transition-delay:.35s}
+.stagger.in>*:nth-child(5){opacity:1;transform:none;transition-delay:.45s}
+.stagger.in>*:nth-child(6){opacity:1;transform:none;transition-delay:.55s}
+
+/* ── RESPONSIVE ── */
+@media(max-width:960px){
+  .products-grid,.pricing-grid{grid-template-columns:1fr}
+  .features-layout{grid-template-columns:1fr}
+  .features-sticky{position:static}
+  .features-grid{grid-template-columns:1fr}
+  .demo-inner,.copilot-inner{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+  .steps::before{display:none}
+  .strip-inner{grid-template-columns:repeat(2,1fr)}
+  .nav-links{display:none}
+}
+@media(max-width:600px){
+  #hero{padding:120px 0 60px}
+  .mockup-table .hide-sm{display:none}
+  #hero h1{font-size:2.6rem}
+  .strip-inner{grid-template-columns:1fr 1fr}
+  .social-inner{flex-direction:column;align-items:stretch}
+  .testimonial{max-width:none}
+}
+</style>
 </head>
 <body>
 
-<!-- ─── NAV ──────────────────────────────────────────────── -->
+<!-- ── NAV ── -->
 <nav>
   <a href="/" class="nav-logo">
     <img src="icon.svg" alt="" />NetScope
   </a>
   <ul class="nav-links">
     <li><a href="#how">How it works</a></li>
+    <li><a href="#products">Products</a></li>
     <li><a href="#features">Features</a></li>
     <li><a href="#pricing">Pricing</a></li>
+    <li><a href="docs.html">Docs</a></li>
     <li><a href="https://github.com/Libinm264/netscope" target="_blank" rel="noopener">GitHub ↗</a></li>
   </ul>
   <div class="nav-right">
-    <a href="https://github.com/Libinm264/netscope" class="btn btn-ghost" target="_blank" rel="noopener">Docs</a>
+    <a href="docs.html" class="btn btn-ghost">Docs</a>
     <a href="#how" class="btn btn-cyan">Deploy free →</a>
   </div>
 </nav>
 
-<!-- ─── HERO ─────────────────────────────────────────────── -->
+<!-- ── HERO ── -->
 <section id="hero">
-  <div class="container">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
 
+  <div class="container">
     <div class="hero-badge">
-      <strong>v0.5</strong> &nbsp;·&nbsp; Open Source &nbsp;·&nbsp; MIT License
+      <span class="dot"></span>
+      <strong>v0.6</strong> &nbsp;·&nbsp; Open Source &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; AI Copilot
     </div>
 
     <h1>See <span class="hl">everything</span><br/>on your network.</h1>
 
     <p class="hero-sub">
-      NetScope captures, decodes, and visualises network traffic across your entire fleet —
-      from a single laptop to hundreds of production servers.
+      Real-time packet capture, deep protocol decode, and AI-powered threat detection
+      — from a single laptop to hundreds of production servers.
     </p>
 
     <div class="hero-actions">
       <a href="#how" class="btn btn-cyan">Deploy the hub →</a>
+      <a href="docs.html" class="btn btn-outline">Read the docs</a>
       <a href="https://github.com/Libinm264/netscope" class="btn btn-outline" target="_blank" rel="noopener">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
-        View on GitHub
+        GitHub
       </a>
     </div>
 
@@ -629,161 +435,77 @@
       </button>
     </div>
 
-    <!-- LIVE FEED MOCKUP -->
-    <div class="hero-mockup reveal">
+    <!-- LIVE MOCKUP -->
+    <div class="hero-mockup">
       <div class="mockup-titlebar">
-        <div class="mockup-dots">
-          <span class="d1"></span><span class="d2"></span><span class="d3"></span>
-        </div>
-        <span class="mockup-title">NetScope Hub · Flows</span>
+        <div class="mockup-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="mockup-title">NetScope Hub · Live Flows</span>
         <span class="live-pill"><span class="live-dot"></span>Live</span>
       </div>
       <div class="mockup-stats">
-        <div class="mockup-stat">
-          <div class="label">Total flows</div>
-          <div class="value cyan">33,820</div>
-        </div>
-        <div class="mockup-stat">
-          <div class="label">Flows / min</div>
-          <div class="value">590</div>
-        </div>
-        <div class="mockup-stat">
-          <div class="label">Active agents</div>
-          <div class="value">5</div>
-        </div>
-        <div class="mockup-stat hide-sm">
-          <div class="label">Top protocol</div>
-          <div class="value cyan">DNS</div>
-        </div>
+        <div class="mockup-stat"><div class="label">Total flows</div><div class="value cyan" id="stat-flows">33,820</div></div>
+        <div class="mockup-stat"><div class="label">Flows / min</div><div class="value" id="stat-fpm">590</div></div>
+        <div class="mockup-stat"><div class="label">Active agents</div><div class="value">5</div></div>
+        <div class="mockup-stat hide-sm"><div class="label">Threats detected</div><div class="value" style="color:var(--red)" id="stat-threats">3</div></div>
       </div>
       <table class="mockup-table">
         <thead>
           <tr>
-            <th>Time</th>
-            <th>Proto</th>
-            <th>Source</th>
-            <th>Destination</th>
-            <th class="hide-sm">Process</th>
-            <th class="hide-sm">Duration</th>
+            <th>Time</th><th>Proto</th><th>Source</th><th>Destination</th>
+            <th class="hide-sm">Process</th><th class="hide-sm">Threat</th>
           </tr>
         </thead>
-        <tbody>
-          <tr>
-            <td>20:09:56.421</td>
-            <td><span class="proto proto-dns">DNS</span></td>
-            <td>172.20.10.8:53201</td>
-            <td>8.8.8.8:53</td>
-            <td class="hide-sm" style="color:var(--muted2)">chrome</td>
-            <td class="hide-sm ms">0.8ms</td>
-          </tr>
-          <tr>
-            <td>20:09:56.198</td>
-            <td><span class="proto proto-tls">TLS</span></td>
-            <td>172.20.10.8:52901</td>
-            <td>142.250.80.46:443</td>
-            <td class="hide-sm" style="color:var(--muted2)">slack</td>
-            <td class="hide-sm ms">12.3ms</td>
-          </tr>
-          <tr>
-            <td>20:09:55.991</td>
-            <td><span class="proto proto-http">HTTP</span></td>
-            <td>172.20.10.8:51204</td>
-            <td>192.168.1.1:80</td>
-            <td class="hide-sm" style="color:var(--muted2)">curl</td>
-            <td class="hide-sm ms">1.2ms</td>
-          </tr>
-          <tr>
-            <td>20:09:55.855</td>
-            <td><span class="proto proto-icmp">ICMP</span></td>
-            <td>172.20.10.8</td>
-            <td>1.1.1.1</td>
-            <td class="hide-sm" style="color:var(--muted2)">ping</td>
-            <td class="hide-sm ms">200.1ms</td>
-          </tr>
-          <tr>
-            <td>20:09:55.612</td>
-            <td><span class="proto proto-dns">DNS</span></td>
-            <td>172.20.10.8:53198</td>
-            <td>1.1.1.1:53</td>
-            <td class="hide-sm" style="color:var(--muted2)">node</td>
-            <td class="hide-sm ms">1.4ms</td>
-          </tr>
-          <tr>
-            <td>20:09:55.301</td>
-            <td><span class="proto proto-tls">TLS</span></td>
-            <td>172.20.10.8:52899</td>
-            <td>35.186.224.47:443</td>
-            <td class="hide-sm" style="color:var(--muted2)">docker</td>
-            <td class="hide-sm ms">34.7ms</td>
-          </tr>
+        <tbody id="flow-tbody">
+          <tr><td>20:09:56.421</td><td><span class="proto proto-dns">DNS</span></td><td>172.20.10.8:53201</td><td>8.8.8.8:53</td><td class="hide-sm">chrome</td><td class="hide-sm">—</td></tr>
+          <tr><td>20:09:56.198</td><td><span class="proto proto-tls">TLS</span></td><td>172.20.10.8:52901</td><td>142.250.80.46:443</td><td class="hide-sm">slack</td><td class="hide-sm">—</td></tr>
+          <tr><td>20:09:55.991</td><td><span class="proto proto-http">HTTP</span></td><td>172.20.10.8:51204</td><td>192.168.1.1:80</td><td class="hide-sm">curl</td><td class="hide-sm"><span class="threat-badge threat-med">MED</span></td></tr>
+          <tr><td>20:09:55.855</td><td><span class="proto proto-icmp">ICMP</span></td><td>172.20.10.8</td><td>1.1.1.1</td><td class="hide-sm">ping</td><td class="hide-sm">—</td></tr>
+          <tr><td>20:09:55.612</td><td><span class="proto proto-grpc">gRPC</span></td><td>10.0.0.5:54221</td><td>10.0.0.9:50051</td><td class="hide-sm">node</td><td class="hide-sm">—</td></tr>
+          <tr><td>20:09:55.301</td><td><span class="proto proto-tls">TLS</span></td><td>172.20.10.8:52899</td><td>35.186.224.47:443</td><td class="hide-sm">docker</td><td class="hide-sm"><span class="threat-badge threat-high">HIGH</span></td></tr>
         </tbody>
       </table>
     </div>
   </div>
 </section>
 
-<!-- ─── NUMBERS STRIP ─────────────────────────────────────── -->
+<!-- ── NUMBERS STRIP ── -->
 <div id="strip">
   <div class="container">
-    <div class="strip-inner">
-      <div class="strip-item">
-        <div class="strip-num">&lt;<span>1</span>ms</div>
-        <div class="strip-label">Packet to dashboard latency</div>
-      </div>
-      <div class="strip-item">
-        <div class="strip-num"><span>12</span>+</div>
-        <div class="strip-label">Decoded protocols</div>
-      </div>
-      <div class="strip-item">
-        <div class="strip-num"><span>3</span></div>
-        <div class="strip-label">Platforms — macOS, Linux, Windows</div>
-      </div>
-      <div class="strip-item">
-        <div class="strip-num">MIT</div>
-        <div class="strip-label">Open source forever</div>
-      </div>
+    <div class="strip-inner stagger">
+      <div class="strip-item"><div class="strip-num">&lt;<span>1</span>ms</div><div class="strip-label">Packet to dashboard latency</div></div>
+      <div class="strip-item"><div class="strip-num"><span data-count="12">0</span>+</div><div class="strip-label">Decoded protocols</div></div>
+      <div class="strip-item"><div class="strip-num"><span data-count="3">0</span></div><div class="strip-label">Platforms — macOS, Linux, Windows</div></div>
+      <div class="strip-item"><div class="strip-num">MIT</div><div class="strip-label">Open source forever</div></div>
     </div>
   </div>
 </div>
 
-<!-- ─── HOW IT WORKS ─────────────────────────────────────── -->
-<section id="how" style="padding:100px 0;">
+<!-- ── HOW IT WORKS ── -->
+<section id="how">
   <div class="container">
     <div class="section-header reveal">
       <span class="eyebrow">Getting started</span>
       <h2 class="section-title">Up and running<br/>in two minutes.</h2>
-      <p class="section-body">No Kubernetes. No YAML files to write. One command starts the full stack.</p>
+      <p class="section-body">No Kubernetes. No YAML. One command starts the full stack.</p>
     </div>
-
-    <div class="steps reveal">
+    <div class="steps stagger">
       <div class="step">
         <div class="step-num">01</div>
         <h3>Deploy the hub</h3>
-        <p>One curl command starts ClickHouse, Kafka, the API, and the dashboard in Docker. A random API key is generated automatically.</p>
-        <div class="step-cmd">
-          <span class="p">$</span>
-          <code>curl -sSL https://netscope.ie/hub-quickstart.sh | sh</code>
-        </div>
+        <p>One curl starts ClickHouse, Kafka, the API, and the web dashboard in Docker. A random API key is generated automatically.</p>
+        <div class="step-cmd"><span class="p">$</span><code>curl -sSL https://netscope.ie/hub-quickstart.sh | sh</code></div>
       </div>
-
       <div class="step">
         <div class="step-num">02</div>
         <h3>Enrol an agent</h3>
-        <p>Create an enrollment token in the dashboard. Run the generated install command on any target machine — Linux, macOS, or Windows.</p>
-        <div class="step-cmd">
-          <span class="p">$</span>
-          <code>curl -sSL "https://hub/install?token=…" | INTERFACE=eth0 sh</code>
-        </div>
+        <p>Generate an enrollment token in the dashboard. Run the install command on any target machine — Linux, macOS, or Windows.</p>
+        <div class="step-cmd"><span class="p">$</span><code>curl -sSL "https://hub/install?token=…" | INTERFACE=eth0 sh</code></div>
       </div>
-
       <div class="step">
         <div class="step-num">03</div>
-        <h3>Explore &amp; investigate</h3>
-        <p>Flows appear within seconds. Search by IP, protocol, or process name. Set alert rules, write Sigma detections, and export to SIEM.</p>
-        <div class="step-cmd">
-          <span class="p">→</span>
-          <code>Dashboard at http://localhost — open in browser</code>
-        </div>
+        <h3>Investigate with AI</h3>
+        <p>Flows appear within seconds. Ask the AI Copilot questions in plain English. Set alert rules, write Sigma detections, export to SIEM.</p>
+        <div class="step-cmd"><span class="p">→</span><code>Dashboard at http://localhost — open in browser</code></div>
       </div>
     </div>
   </div>
@@ -791,28 +513,27 @@
 
 <div class="divider"></div>
 
-<!-- ─── PRODUCTS ─────────────────────────────────────────── -->
-<section id="products" style="padding:100px 0;">
+<!-- ── PRODUCTS ── -->
+<section id="products">
   <div class="container">
     <div class="section-header reveal">
       <span class="eyebrow">Platform</span>
       <h2 class="section-title">Three tools.<br/>One platform.</h2>
       <p class="section-body">Every component works standalone. Together they give you complete, fleet-wide observability.</p>
     </div>
-
-    <div class="products-grid reveal">
+    <div class="products-grid stagger">
 
       <div class="product-card">
         <div class="product-icon-wrap">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
         </div>
         <h3>Desktop App</h3>
-        <p>A native visual explorer for macOS and Windows. Browse live traffic, filter by protocol, view connection graphs, and export captures — no terminal required. Built with Tauri and React.</p>
+        <p>A native Tauri + React explorer for macOS and Windows. Browse live traffic, view connection graphs, inspect TLS certificates, and run HTTP analytics — no terminal required.</p>
         <div class="product-platforms">
-          <span class="platform-badge">macOS</span>
-          <span class="platform-badge">Windows</span>
-          <span class="platform-badge">Tauri</span>
+          <span class="platform-badge">macOS</span><span class="platform-badge">Windows</span>
+          <span class="platform-badge">Tauri 2</span><span class="platform-badge">Auto-update</span>
         </div>
+        <a href="docs.html#desktop" class="product-link">Explore features →</a>
       </div>
 
       <div class="product-card">
@@ -820,13 +541,12 @@
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h.01M10 12h.01"/></svg>
         </div>
         <h3>Capture Agent</h3>
-        <p>A lightweight sensor written in Rust. Runs in pcap mode on any platform, or eBPF mode on Linux for process attribution and TLS plaintext capture. Sends flow telemetry to the hub with zero local storage.</p>
+        <p>A zero-overhead Rust sensor. Runs in pcap mode on any platform, or eBPF mode on Linux for process attribution and kernel-level visibility. Sends compressed flow telemetry with no local storage.</p>
         <div class="product-platforms">
-          <span class="platform-badge">Linux</span>
-          <span class="platform-badge">macOS</span>
-          <span class="platform-badge">Windows</span>
-          <span class="platform-badge">eBPF</span>
+          <span class="platform-badge">Linux</span><span class="platform-badge">macOS</span>
+          <span class="platform-badge">Windows</span><span class="platform-badge">eBPF</span>
         </div>
+        <a href="docs.html#agent" class="product-link">Explore features →</a>
       </div>
 
       <div class="product-card">
@@ -834,12 +554,12 @@
           <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
         </div>
         <h3>SaaS Hub</h3>
-        <p>A self-hosted dashboard that aggregates flows from your entire fleet. Search across agents, configure alerts, write Sigma detection rules, and manage API tokens — all from one place.</p>
+        <p>A self-hosted control plane aggregating flows from your entire fleet. AI Copilot, anomaly detection, Sigma rules, custom dashboards, SSO/SCIM, compliance reporting, and SIEM export.</p>
         <div class="product-platforms">
-          <span class="platform-badge">Self-hosted</span>
-          <span class="platform-badge">Docker</span>
-          <span class="platform-badge">ClickHouse</span>
+          <span class="platform-badge">Docker</span><span class="platform-badge">Kubernetes</span>
+          <span class="platform-badge">ClickHouse</span><span class="platform-badge">AI Copilot</span>
         </div>
+        <a href="docs.html#hub" class="product-link">Explore features →</a>
       </div>
 
     </div>
@@ -848,65 +568,64 @@
 
 <div class="divider"></div>
 
-<!-- ─── FEATURES ─────────────────────────────────────────── -->
-<section id="features" style="padding:100px 0;">
+<!-- ── FEATURES ── -->
+<section id="features">
   <div class="container">
     <div class="features-layout">
-
       <div class="features-sticky section-header reveal" style="margin-bottom:0">
         <span class="eyebrow">Capabilities</span>
-        <h2 class="section-title">Everything you need to understand your traffic.</h2>
-        <p class="section-body">From raw packets to actionable security intelligence.</p>
+        <h2 class="section-title">Everything to understand your traffic.</h2>
+        <p class="section-body">From raw packets to actionable security intelligence — in real time.</p>
+        <a href="docs.html" class="btn btn-outline" style="margin-top:2rem;display:inline-flex">Full documentation →</a>
       </div>
-
-      <div class="features-grid reveal">
+      <div class="features-grid stagger">
 
         <div class="feat">
-          <div class="feat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-          </div>
+          <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
           <h4>Real-time capture</h4>
           <p>Sub-millisecond latency from packet to dashboard. pcap on all platforms, eBPF on Linux for kernel-level visibility without copying to userspace.</p>
         </div>
 
         <div class="feat">
-          <div class="feat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-          </div>
+          <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg></div>
           <h4>Deep protocol decode</h4>
-          <p>HTTP hostnames, DNS query names, TLS cipher suites, gRPC method names, ICMP types. See the conversation, not just the IP header.</p>
+          <p>HTTP hostnames, DNS queries, TLS handshakes, gRPC method names, HTTP/2 streams, ICMP types, ARP. See the conversation, not just IP headers.</p>
         </div>
 
         <div class="feat">
-          <div class="feat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
-          </div>
+          <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9"/></svg></div>
           <h4>Process attribution</h4>
-          <p>eBPF mode maps every connection to the process, PID, binary path, and user that owns it. Know which application is phoning home.</p>
+          <p>eBPF maps every connection to the process, PID, binary, and user. Know exactly which app is phoning home or exfiltrating data.</p>
         </div>
 
         <div class="feat">
-          <div class="feat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064"/></svg>
-          </div>
-          <h4>GeoIP &amp; threat intel</h4>
-          <p>Automatic geolocation enriches every flow. AbuseIPDB lookups flag known malicious IPs inline — before they escalate to an incident.</p>
+          <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div>
+          <h4>AI Security Copilot</h4>
+          <p>Ask questions in plain English. The Claude-powered copilot translates your question into ClickHouse SQL, runs it, and explains the results inline.</p>
         </div>
 
         <div class="feat">
-          <div class="feat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-          </div>
-          <h4>Sigma detection rules</h4>
-          <p>Write detections in standard Sigma format. Get real-time alerts on lateral movement, suspicious DNS, beaconing patterns, and known-bad IPs.</p>
+          <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064"/></svg></div>
+          <h4>GeoIP & threat intel</h4>
+          <p>MaxMind GeoLite2 enrichment on every flow. AbuseIPDB lookups flag known-malicious IPs with colour-coded threat badges before they escalate.</p>
         </div>
 
         <div class="feat">
-          <div class="feat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-          </div>
-          <h4>Fleet management</h4>
-          <p>Enroll agents with a single command, monitor heartbeats, push config remotely, and manage API tokens — all from the hub dashboard.</p>
+          <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg></div>
+          <h4>Sigma detection</h4>
+          <p>Write detections in standard Sigma format or use 5 built-in rules. Get real-time alerts on port scans, DNS tunnelling, C2 beaconing, and more.</p>
+        </div>
+
+        <div class="feat">
+          <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+          <h4>Behavioural anomaly detection</h4>
+          <p>7-day rolling Z-score baseline per agent and protocol. Automatic spike detection flags unusual traffic volumes within 5 minutes.</p>
+        </div>
+
+        <div class="feat">
+          <div class="feat-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+          <h4>Custom dashboards</h4>
+          <p>Build your own views with 6 widget types: stat cards, flow-rate charts, protocol pies, top-talkers, alert feeds, and anomaly feeds.</p>
         </div>
 
       </div>
@@ -916,83 +635,62 @@
 
 <div class="divider"></div>
 
-<!-- ─── TERMINAL DEMO ─────────────────────────────────────── -->
-<section id="demo">
+<!-- ── AI COPILOT SPOTLIGHT ── -->
+<section id="copilot">
   <div class="container">
-    <div class="demo-inner">
+    <div class="copilot-inner">
 
-      <div>
-        <div class="section-header reveal" style="margin-bottom:2.5rem">
-          <span class="eyebrow">Under the hood</span>
-          <h2 class="section-title">Powerful CLI,<br/>clean dashboard.</h2>
-          <p class="section-body">Use the agent directly from the terminal during incident response, or let the hub aggregate everything automatically.</p>
-        </div>
-
-        <div class="demo-points reveal">
-          <div class="demo-point">
-            <div class="demo-point-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-            </div>
-            <div>
-              <h4>Capture on any interface</h4>
-              <p>Point the agent at any network interface. Works with physical NICs, virtual bridges, and container network namespaces.</p>
-            </div>
+      <div class="reveal">
+        <span class="copilot-badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          New in v0.6
+        </span>
+        <h2 class="section-title" style="margin-top:.5rem">Ask your network<br/>anything.</h2>
+        <p class="section-body" style="margin-bottom:2rem">
+          The AI Security Copilot translates plain-English questions into ClickHouse SQL, executes them against your live flow data, and explains the results — all in a streaming side panel.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:.875rem">
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--indigo);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">Powered by Claude</strong> — runs inside your hub, API key never leaves your server</p>
           </div>
-          <div class="demo-point">
-            <div class="demo-point-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-            </div>
-            <div>
-              <h4>Structured output, queryable with SQL</h4>
-              <p>All flows land in ClickHouse. Run ad-hoc SQL queries, export CSVs, or hook up Grafana for long-term trending.</p>
-            </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--indigo);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">SELECT-only enforcement</strong> — injected SQL is validated before execution</p>
           </div>
-          <div class="demo-point">
-            <div class="demo-point-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
-            </div>
-            <div>
-              <h4>Automatic enrichment</h4>
-              <p>Hostname resolution, geolocation, ASN lookups, and threat intel happen server-side — the agent stays lean.</p>
-            </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--indigo);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">Multi-turn tool use</strong> — runs up to 5 queries per question, shows live SQL cards</p>
           </div>
         </div>
+        <a href="docs.html#copilot" class="btn btn-indigo" style="margin-top:2rem">Learn more →</a>
       </div>
 
-      <div class="terminal reveal">
-        <div class="terminal-bar">
-          <div class="dots">
-            <div class="dot" style="background:#ff5f57"></div>
-            <div class="dot" style="background:#febc2e"></div>
-            <div class="dot" style="background:#28c840"></div>
-          </div>
-          <div class="title">zsh — netscope-agent</div>
+      <div class="copilot-card reveal reveal-delay-2">
+        <div class="copilot-header">
+          <div class="copilot-dot"></div>
+          <span style="font-size:.8rem;font-weight:600;color:#fff">AI Copilot</span>
+          <span style="margin-left:auto;font-size:.72rem;color:var(--muted)">Powered by Claude</span>
         </div>
-        <div class="terminal-body">
-          <div class="line-comment"># Install and enrol the agent</div>
-          <div class="line-cmd"><span class="ps">$</span> curl -sSL "http://localhost/install?token=abc123" | INTERFACE=eth0 sh</div>
-          <div class="line-ok">  ✓  Agent installed to /usr/local/bin/netscope-agent</div>
-          <div class="line-ok">  ✓  Enrolled with hub — agent_id: 4f8a2c1e</div>
-          <div class="line-ok">  ✓  Heartbeat registered</div>
-          <div class="line-info">  →  Capturing on eth0 (pcap mode)...</div>
-          <br/>
-          <div class="line-comment"># Now visible in dashboard — live flows rolling in</div>
-          <div class="line-cmd"><span class="ps">$</span> netscope-agent status</div>
-          <div class="line-out">agent_id      4f8a2c1e-...</div>
-          <div class="line-out">hub_url       http://localhost:8080</div>
-          <div class="line-out">interface     eth0</div>
-          <div class="line-out">capture_mode  pcap</div>
-          <div class="line-out">flows_sent    33,820</div>
-          <div class="line-out">heartbeat     2s ago <span style="color:var(--green)">●</span></div>
-          <br/>
-          <div class="line-comment"># Switch to eBPF for process attribution (Linux)</div>
-          <div class="line-cmd"><span class="ps">$</span> sudo netscope-agent-ebpf --hub-url http://localhost:8080 --api-key …</div>
-          <div class="line-ok">  ✓  eBPF probe loaded</div>
-          <div class="line-info">  →  Capturing with process attribution...</div>
-          <div class="line-out">DNS  chrome   → 8.8.8.8:53       api.example.com 0.8ms</div>
-          <div class="line-out">TLS  node     → 104.18.3.12:443  registry.npmjs.org 12ms</div>
-          <div class="line-out">HTTP curl     → 192.168.1.1:80   <span style="color:var(--orange)">⚠ unencrypted</span></div>
-          <div><span class="cursor"></span></div>
+        <div class="copilot-body">
+          <div class="chat-msg-user"><span>Which IPs had unusual outbound traffic in the last hour?</span></div>
+          <div class="chat-msg-ai">
+            <div class="chat-ai-avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1"/></svg></div>
+            <div class="chat-ai-bubble">
+              I'll look for source IPs with significantly higher bytes_out than their recent baseline…
+              <div class="chat-sql">
+                <span class="kw">SELECT</span> src_ip,<br/>
+                &nbsp;&nbsp;<span class="kw">sum</span>(bytes_out) <span class="kw">AS</span> total_out,<br/>
+                &nbsp;&nbsp;<span class="kw">count</span>() <span class="kw">AS</span> flows<br/>
+                <span class="kw">FROM</span> <span class="tbl">flows</span><br/>
+                <span class="kw">WHERE</span> ts &gt; now() - <span class="kw">INTERVAL</span> <span class="str">1 HOUR</span><br/>
+                <span class="kw">GROUP BY</span> src_ip<br/>
+                <span class="kw">HAVING</span> total_out &gt; <span class="str">50000000</span><br/>
+                <span class="kw">ORDER BY</span> total_out <span class="kw">DESC LIMIT</span> <span class="str">10</span>
+              </div>
+              Found <strong style="color:#fff">3 IPs</strong> with &gt;50 MB out — 10.0.0.14 sent <strong style="color:var(--red)">1.2 GB</strong>, which is 8× its 7-day average. Possible exfiltration.
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1000,72 +698,151 @@
   </div>
 </section>
 
-<!-- ─── PRICING ───────────────────────────────────────────── -->
-<section id="pricing" style="padding:100px 0;">
+<div class="divider"></div>
+
+<!-- ── TERMINAL ── -->
+<section id="demo">
   <div class="container">
-    <div class="section-header reveal" style="text-align:center; align-items:center; display:flex; flex-direction:column;">
-      <span class="eyebrow">Pricing</span>
-      <h2 class="section-title">Start free.<br/>Scale as you grow.</h2>
-      <p class="section-body" style="margin-left:auto;margin-right:auto;">Every plan includes the desktop app, capture agent, and self-hosted hub. No vendor lock-in, ever.</p>
-    </div>
-
-    <div class="pricing-grid reveal">
-
-      <!-- Community -->
-      <div class="plan">
-        <div class="plan-label">
-          <span class="plan-name">Community</span>
+    <div class="demo-inner">
+      <div>
+        <div class="section-header reveal" style="margin-bottom:2.5rem">
+          <span class="eyebrow">Under the hood</span>
+          <h2 class="section-title">Powerful CLI,<br/>clean dashboard.</h2>
+          <p class="section-body">Use the agent from the terminal during incident response, or let the hub aggregate everything automatically.</p>
         </div>
+        <div class="demo-points stagger">
+          <div class="demo-point">
+            <div class="demo-point-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
+            <div>
+              <h4>Capture on any interface</h4>
+              <p>Physical NICs, virtual bridges, container network namespaces, loopback. Works in Docker, K8s pods, and bare metal.</p>
+            </div>
+          </div>
+          <div class="demo-point">
+            <div class="demo-point-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+            <div>
+              <h4>Queryable with SQL</h4>
+              <p>All flows land in ClickHouse. Run ad-hoc queries from the AI Copilot or any SQL client. Export to CSV, hook up Grafana.</p>
+            </div>
+          </div>
+          <div class="demo-point">
+            <div class="demo-point-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg></div>
+            <div>
+              <h4>Server-side enrichment</h4>
+              <p>Hostname resolution, GeoIP, ASN, threat intel, and process attribution all happen server-side — the agent stays lean.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="terminal reveal reveal-delay-2">
+        <div class="terminal-bar">
+          <div class="dots"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div></div>
+          <div class="title">zsh — netscope-agent</div>
+        </div>
+        <div class="terminal-body" id="terminal-body">
+          <div class="line-comment"># Install and enrol the agent</div>
+          <div class="line-cmd"><span class="ps">$</span> curl -sSL "http://hub/install?token=abc123" | INTERFACE=eth0 sh</div>
+          <div class="line-ok">  ✓  Agent installed → /usr/local/bin/netscope-agent</div>
+          <div class="line-ok">  ✓  Enrolled — agent_id: 4f8a2c1e</div>
+          <div class="line-info">  →  Capturing on eth0 (pcap mode)...</div>
+          <br/>
+          <div class="line-comment"># Switch to eBPF for process attribution (Linux)</div>
+          <div class="line-cmd"><span class="ps">$</span> sudo netscope-agent-ebpf --hub-url http://hub --api-key …</div>
+          <div class="line-ok">  ✓  eBPF probe loaded</div>
+          <div class="line-out">DNS  chrome → 8.8.8.8:53        api.example.com   0.8ms</div>
+          <div class="line-out">TLS  node   → 104.18.3.12:443   registry.npmjs.org 12ms</div>
+          <div class="line-warn">HTTP curl   → 192.168.1.1:80    ⚠ unencrypted POST /login</div>
+          <div><span class="cursor"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SOCIAL PROOF ── -->
+<section id="social">
+  <div class="container">
+    <div class="social-inner stagger">
+      <div class="testimonial">
+        <p class="testimonial-text">"Deployed NetScope on our 40-node K8s cluster in 20 minutes. The Sigma rules caught a Bitcoin miner that had been running for 3 days on a compromised container — the eBPF process attribution made it obvious."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">MK</div>
+          <div><div class="testimonial-name">Marcus K.</div><div class="testimonial-role">Senior SRE · FinTech startup</div></div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial-text">"The AI Copilot is genuinely useful for ad-hoc investigations. I asked it 'why is my DB pod chatting with 185.x.x.x?' and it wrote the SQL, ran it, and gave me a sensible explanation. That used to take me 20 minutes."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">AS</div>
+          <div><div class="testimonial-name">Aisha S.</div><div class="testimonial-role">Platform Engineer · SaaS company</div></div>
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial-text">"We evaluated Zeek and Suricata. NetScope was running on bare metal in under 5 minutes and the web UI is leagues ahead. The behavioural baseline caught our dev team's accidental port scan before anyone noticed."</p>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">RP</div>
+          <div><div class="testimonial-name">Ryan P.</div><div class="testimonial-role">Security Architect · Healthcare</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── PRICING ── -->
+<section id="pricing">
+  <div class="container">
+    <div class="section-header reveal" style="text-align:center;align-items:center;display:flex;flex-direction:column">
+      <span class="eyebrow">Pricing</span>
+      <h2 class="section-title">Start free. Scale as you grow.</h2>
+      <p class="section-body" style="margin-left:auto;margin-right:auto">Every plan includes the desktop app, capture agent, and self-hosted hub. No vendor lock-in, ever.</p>
+    </div>
+    <div class="pricing-grid stagger">
+
+      <div class="plan">
+        <div class="plan-label"><span class="plan-name">Community</span></div>
         <div class="plan-price">Free</div>
         <div class="plan-cadence">forever · open source · MIT</div>
         <div class="plan-hr"></div>
         <ul class="plan-list">
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Up to 10 agents</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>HTTP · DNS · TLS · ICMP · eBPF</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>All protocols · eBPF · AI Copilot</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Desktop app (macOS + Windows)</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Self-hosted hub (Docker)</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Email / password login</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Anomaly detection · Custom dashboards</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Community support (GitHub)</li>
         </ul>
         <a href="#how" class="plan-cta plan-cta-ghost">Get started →</a>
       </div>
 
-      <!-- Team -->
       <div class="plan plan-featured">
-        <div class="plan-label">
-          <span class="plan-name">Team</span>
-          <span class="plan-badge">Most popular</span>
-        </div>
+        <div class="plan-label"><span class="plan-name">Team</span><span class="plan-badge">Most popular</span></div>
         <div class="plan-price"><sup>$</sup>149</div>
         <div class="plan-cadence">per month · billed annually</div>
         <div class="plan-hr"></div>
         <ul class="plan-list">
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Up to 50 agents</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Community</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SSO — SAML &amp; OIDC</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SCIM directory provisioning</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Slack &amp; PagerDuty alerts</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>90-day flow retention</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SSO — SAML &amp; OIDC · SCIM</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Slack · PagerDuty · OpsGenie alerts</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SIEM export (Splunk, Elastic, S3)</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Incident workflow · Compliance reports</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priority email support</li>
         </ul>
         <a href="mailto:hello@netscope.ie" class="plan-cta plan-cta-cyan">Contact sales →</a>
       </div>
 
-      <!-- Enterprise -->
       <div class="plan">
-        <div class="plan-label">
-          <span class="plan-name">Enterprise</span>
-        </div>
+        <div class="plan-label"><span class="plan-name">Enterprise</span></div>
         <div class="plan-price">Custom</div>
         <div class="plan-cadence">volume pricing · on-prem · SLAs</div>
         <div class="plan-hr"></div>
         <ul class="plan-list">
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited agents</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Team</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Custom RBAC roles</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>PII redaction &amp; data masking</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>OpenTelemetry &amp; SIEM export</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SOC 2 / ISO 27001 docs</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Custom RBAC roles · PII redaction</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>OpenTelemetry trace correlation</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SOC 2 / ISO 27001 compliance docs</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Dedicated support &amp; SLAs</li>
         </ul>
         <a href="mailto:hello@netscope.ie" class="plan-cta plan-cta-ghost">Talk to us →</a>
@@ -1077,53 +854,162 @@
 
 <div class="divider"></div>
 
-<!-- ─── CTA BANNER ────────────────────────────────────────── -->
+<!-- ── CTA ── -->
 <section id="cta">
   <div class="container">
     <h2 class="reveal">Ready to see<br/>your network?</h2>
-    <p class="reveal">Deploy the hub in two minutes. No credit card, no sign-up, no telemetry.</p>
-    <div class="cta-actions reveal">
+    <p class="reveal reveal-delay-1">Deploy in two minutes. No credit card, no sign-up, no telemetry sent anywhere.</p>
+    <div class="cta-actions reveal reveal-delay-2">
       <a href="#how" class="btn btn-cyan">Deploy free →</a>
-      <a href="https://github.com/Libinm264/netscope" class="btn btn-outline" target="_blank" rel="noopener">Read the docs</a>
+      <a href="docs.html" class="btn btn-outline">Read the docs</a>
+      <a href="https://github.com/Libinm264/netscope" class="btn btn-outline" target="_blank" rel="noopener">Star on GitHub ★</a>
     </div>
   </div>
 </section>
 
-<!-- ─── FOOTER ────────────────────────────────────────────── -->
+<!-- ── FOOTER ── -->
 <footer>
   <div class="container">
     <div class="footer-inner">
-      <a href="/" class="footer-logo">
-        <img src="icon.svg" alt="NetScope" />NetScope
-      </a>
+      <a href="/" class="footer-logo"><img src="icon.svg" alt="NetScope" />NetScope</a>
       <ul class="footer-links">
         <li><a href="#how">How it works</a></li>
         <li><a href="#features">Features</a></li>
         <li><a href="#pricing">Pricing</a></li>
+        <li><a href="docs.html">Docs</a></li>
         <li><a href="https://github.com/Libinm264/netscope" target="_blank" rel="noopener">GitHub</a></li>
         <li><a href="mailto:hello@netscope.ie">Contact</a></li>
       </ul>
-      <span class="footer-right">© 2025 NetScope</span>
+      <span class="footer-right">© 2025 NetScope · MIT License</span>
     </div>
   </div>
 </footer>
 
 <script>
-  /* ── copy to clipboard ── */
-  function copyText(btn, text) {
-    navigator.clipboard.writeText(text).then(() => {
-      const prev = btn.innerHTML;
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
-      setTimeout(() => btn.innerHTML = prev, 1800);
-    });
+/* ── copy ── */
+function copyText(btn,text){
+  navigator.clipboard.writeText(text).then(()=>{
+    const p=btn.innerHTML;
+    btn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00d4ff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+    setTimeout(()=>btn.innerHTML=p,1800);
+  });
+}
+
+/* ── scroll reveal ── */
+const io=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}
+  });
+},{threshold:0.08,rootMargin:'0px 0px -40px 0px'});
+document.querySelectorAll('.reveal,.stagger').forEach(el=>io.observe(el));
+
+/* ── animated counters ── */
+const counterIo=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{
+    if(!e.isIntersecting)return;
+    const el=e.target;
+    const target=parseInt(el.dataset.count,10);
+    let start=0;const dur=1200;const step=16;
+    const inc=target/(dur/step);
+    const timer=setInterval(()=>{
+      start+=inc;
+      if(start>=target){el.textContent=target;clearInterval(timer)}
+      else{el.textContent=Math.floor(start)}
+    },step);
+    counterIo.unobserve(el);
+  });
+},{threshold:0.5});
+document.querySelectorAll('[data-count]').forEach(el=>counterIo.observe(el));
+
+/* ── live mockup row cycling ── */
+const FLOW_ROWS=[
+  ['20:09:56.421','<span class="proto proto-dns">DNS</span>','172.20.10.8:53201','8.8.8.8:53','chrome','—'],
+  ['20:09:56.198','<span class="proto proto-tls">TLS</span>','172.20.10.8:52901','142.250.80.46:443','slack','—'],
+  ['20:09:55.991','<span class="proto proto-http">HTTP</span>','172.20.10.8:51204','192.168.1.1:80','curl','<span class="threat-badge threat-med">MED</span>'],
+  ['20:09:55.855','<span class="proto proto-icmp">ICMP</span>','172.20.10.8','1.1.1.1','ping','—'],
+  ['20:09:55.612','<span class="proto proto-grpc">gRPC</span>','10.0.0.5:54221','10.0.0.9:50051','node','—'],
+  ['20:09:55.301','<span class="proto proto-tls">TLS</span>','172.20.10.8:52899','35.186.224.47:443','docker','<span class="threat-badge threat-high">HIGH</span>'],
+  ['20:09:57.001','<span class="proto proto-dns">DNS</span>','10.0.0.12:59881','1.1.1.1:53','systemd','—'],
+  ['20:09:57.110','<span class="proto proto-http">HTTP</span>','10.0.0.7:44123','10.0.0.2:8080','java','—'],
+  ['20:09:57.251','<span class="proto proto-tls">TLS</span>','10.0.1.3:38421','ocsp.digicert.com:443','firefox','—'],
+  ['20:09:57.380','<span class="proto proto-grpc">gRPC</span>','10.0.0.9:55012','10.0.0.11:9090','grpc-go','—'],
+];
+let rowIdx=6;
+let flowCount=33820;let fpm=590;
+function pad(n){return String(n).padStart(2,'0')}
+function liveTime(){const d=new Date();return`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${String(d.getMilliseconds()).padStart(3,'0')}`}
+setInterval(()=>{
+  const tbody=document.getElementById('flow-tbody');
+  if(!tbody)return;
+  const row=FLOW_ROWS[rowIdx%FLOW_ROWS.length];rowIdx++;
+  const tr=document.createElement('tr');tr.className='row-new';
+  const r=[liveTime(),...row.slice(1)];
+  tr.innerHTML=r.map((c,i)=>`<td${i>=4?' class="hide-sm"':''}>${c}</td>`).join('');
+  tbody.insertBefore(tr,tbody.firstChild);
+  if(tbody.rows.length>6)tbody.deleteRow(tbody.rows.length-1);
+  flowCount+=Math.floor(Math.random()*12)+3;
+  fpm=Math.max(400,Math.min(800,fpm+Math.floor(Math.random()*30)-15));
+  const sf=document.getElementById('stat-flows');
+  const sfpm=document.getElementById('stat-fpm');
+  if(sf)sf.textContent=flowCount.toLocaleString();
+  if(sfpm)sfpm.textContent=fpm;
+},2200);
+
+/* ── hero canvas network animation ── */
+(()=>{
+  const canvas=document.getElementById('hero-canvas');
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  let W,H,nodes=[];
+  const N=55;
+  function resize(){
+    W=canvas.width=canvas.offsetWidth;
+    H=canvas.height=canvas.offsetHeight;
   }
-
-  /* ── scroll reveal ── */
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); observer.unobserve(e.target); } });
-  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  resize();
+  window.addEventListener('resize',()=>{resize();init()});
+  function init(){
+    nodes=Array.from({length:N},()=>({
+      x:Math.random()*W,y:Math.random()*H,
+      vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,
+      r:Math.random()*2+1,
+    }));
+  }
+  init();
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    // connections
+    for(let i=0;i<nodes.length;i++){
+      for(let j=i+1;j<nodes.length;j++){
+        const dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<140){
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].x,nodes[i].y);
+          ctx.lineTo(nodes[j].x,nodes[j].y);
+          ctx.strokeStyle=`rgba(0,212,255,${(1-d/140)*0.18})`;
+          ctx.lineWidth=.6;
+          ctx.stroke();
+        }
+      }
+    }
+    // nodes
+    nodes.forEach(n=>{
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,n.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(0,212,255,0.35)';
+      ctx.fill();
+    });
+    // update
+    nodes.forEach(n=>{
+      n.x+=n.vx;n.y+=n.vy;
+      if(n.x<0||n.x>W)n.vx*=-1;
+      if(n.y<0||n.y>H)n.vy*=-1;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
 </script>
 </body>
 </html>
