@@ -209,8 +209,13 @@ jobs:
             }
 
             if (Object.keys(platforms).length === 0) {
-              core.setFailed('No signed updater artifacts found — did TAURI_SIGNING_PRIVATE_KEY build correctly?');
-              return;
+              core.warning(
+                'No signed updater artifacts (.sig files) found. ' +
+                'The in-app updater will not work until TAURI_SIGNING_PRIVATE_KEY ' +
+                'is added to GitHub secrets. Skipping latest.json upload — ' +
+                'platform binaries are still published to the release.'
+              );
+              return;   // soft-fail: builds are already uploaded, just no manifest
             }
 
             const manifest = {
