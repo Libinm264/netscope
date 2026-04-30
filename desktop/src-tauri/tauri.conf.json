@@ -37,6 +37,11 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "macOS": {
+      "entitlements": "./Entitlements.plist",
+      "signingIdentity": "Developer ID Application: Libin Mathew (CWW87S3C85)",
+      "minimumSystemVersion": "10.15"
+    },
     "icon": [
       "icons/icon.icns",
       "icons/icon.ico",
