@@ -468,6 +468,40 @@ footer a:hover{color:var(--text)}
       API Reference
     </a>
   </div>
+
+  <div class="sidebar-divider"></div>
+
+  <!-- SDK -->
+  <div class="sidebar-section">
+    <span class="product-badge" style="background:rgba(0,212,255,.08);color:var(--cyan);border:1px solid rgba(0,212,255,.15)">
+      <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+      Python SDK
+    </span>
+    <a href="#sdk" class="sidebar-link">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Overview
+    </a>
+    <a href="#sdk-install" class="sidebar-link">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Installation
+    </a>
+    <a href="#sdk-flows" class="sidebar-link">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Flows
+    </a>
+    <a href="#sdk-alerts" class="sidebar-link">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      Alerts &amp; Incidents
+    </a>
+    <a href="#sdk-copilot" class="sidebar-link">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 8v4l3 3"/></svg>
+      Copilot &amp; Dashboards
+    </a>
+    <a href="#sdk-examples" class="sidebar-link">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Examples
+    </a>
+  </div>
 </aside>
 
 <!-- ── MAIN ── -->
@@ -494,6 +528,10 @@ footer a:hover{color:var(--text)}
   <a href="#hub" class="product-pill active-hub">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
     SaaS Hub
+  </a>
+  <a href="#sdk" class="product-pill" style="border-color:rgba(0,212,255,.2);color:var(--cyan);background:rgba(0,212,255,.04)">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    Python SDK
   </a>
 </div>
 
@@ -1216,6 +1254,282 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
       Generate and revoke API tokens from <strong>Settings → Tokens &amp; Audit</strong>. Tokens are scoped — create read-only tokens for dashboards or SIEM integrations and admin tokens for automation.
     </div>
   </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- PYTHON SDK -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<section class="docs-section fade-in" id="sdk">
+  <span class="section-eyebrow ey-desktop">Python SDK</span>
+  <h2 class="docs-h1">netscope-sdk</h2>
+  <p class="docs-p">
+    The official Python SDK gives you programmatic access to every Hub capability — query flows, manage alert rules, stream real-time events, build dashboards, triage incidents, run Sigma rules, and chat with the AI Copilot — all from a clean, idiomatic Python API.
+  </p>
+  <p class="docs-p">
+    <strong>Zero runtime dependencies.</strong> The SDK uses Python's stdlib <span class="mono">urllib</span> exclusively. No <span class="mono">requests</span>, no <span class="mono">httpx</span> required. Works out of the box on Python 3.9+.
+  </p>
+
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-card fc-icon fc-cyan">🔌</div>
+      <h4>8 Resources</h4>
+      <p>flows, alerts, anomalies, agents, dashboards, incidents, sigma, copilot — one accessor per capability.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-card fc-icon fc-green">⚡</div>
+      <h4>Zero Dependencies</h4>
+      <p>Pure stdlib <span class="mono">urllib</span>. No third-party packages needed. Works anywhere Python runs.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-card fc-icon fc-purple">📡</div>
+      <h4>Real-time Streaming</h4>
+      <p>SSE flow stream and token-by-token AI Copilot streaming built in with <span class="mono">iter_all()</span> auto-pagination.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-card fc-icon fc-orange">🔒</div>
+      <h4>Full Type Coverage</h4>
+      <p>All API responses are typed dataclass models. IDE autocomplete and mypy strict mode supported.</p>
+    </div>
+  </div>
+
+  <!-- Installation -->
+  <h2 class="docs-h2" id="sdk-install">Installation</h2>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">bash</span>
+      <button class="code-copy" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre><code><span class="tok-cmd">pip install</span> <span class="tok-str">netscope-sdk</span></code></pre>
+  </div>
+
+  <div class="callout callout-tip">
+    <div class="callout-icon">💡</div>
+    <div class="callout-body">
+      <strong>Quick start</strong>
+      Generate an API token in <strong>Hub → Settings → Tokens &amp; Audit</strong>, then set
+      <span class="mono">NETSCOPE_HUB</span> and <span class="mono">NETSCOPE_TOKEN</span> environment variables. All examples below read these variables automatically.
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">python</span>
+      <button class="code-copy" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre><code><span class="tok-key">from</span> netscope_sdk <span class="tok-key">import</span> NetScope
+
+ns = NetScope(
+    url=<span class="tok-str">"https://hub.example.com"</span>,
+    token=<span class="tok-str">"nst_xxxxxxxxxxxxxxxxxxxx"</span>,
+)
+
+<span class="tok-comment"># Verify connection and token</span>
+<span class="tok-key">assert</span> ns.ping(), <span class="tok-str">"Cannot reach hub"</span>
+
+<span class="tok-comment"># Hub-wide stats</span>
+stats = ns.stats()
+<span class="tok-key">print</span>(<span class="tok-str">f"</span>{stats.total_flows:,}<span class="tok-str"> flows · </span>{stats.active_agents}<span class="tok-str"> agents online"</span>)</code></pre>
+  </div>
+
+  <!-- Flows -->
+  <h2 class="docs-h2" id="sdk-flows">Flows</h2>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">python — ns.flows</span>
+      <button class="code-copy" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre><code><span class="tok-comment"># Query with filters</span>
+flows = ns.flows.list(
+    protocol=<span class="tok-str">"TLS"</span>, country=<span class="tok-str">"CN"</span>, hours=<span class="tok-num">24</span>, limit=<span class="tok-num">500</span>
+)
+<span class="tok-key">for</span> f <span class="tok-key">in</span> flows:
+    <span class="tok-key">print</span>(f.src_ip, <span class="tok-str">"→"</span>, f.dst_ip, f.tls.sni <span class="tok-key">if</span> f.tls <span class="tok-key">else</span> <span class="tok-str">""</span>)
+
+<span class="tok-comment"># Auto-paginating iterator — fetches all pages automatically</span>
+<span class="tok-key">for</span> flow <span class="tok-key">in</span> ns.flows.iter_all(threat_level=<span class="tok-str">"high"</span>, hours=<span class="tok-num">72</span>):
+    process(flow)
+
+<span class="tok-comment"># Real-time SSE stream (blocks until disconnected)</span>
+<span class="tok-key">for</span> flow <span class="tok-key">in</span> ns.flows.stream():
+    <span class="tok-key">if</span> flow.is_threat:
+        alert(flow)
+
+<span class="tok-comment"># Top talkers by bytes in the last hour</span>
+talkers = ns.flows.top_talkers(window=<span class="tok-str">"1h"</span>, by=<span class="tok-str">"bytes"</span>, limit=<span class="tok-num">10</span>)</code></pre>
+  </div>
+
+  <div class="docs-table-wrap">
+    <table class="docs-table">
+      <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>flow.src_ip / dst_ip</td><td>str</td><td>Source and destination IP addresses</td></tr>
+        <tr><td>flow.protocol</td><td>str</td><td>"TLS", "DNS", "HTTP", "HTTP2", "GRPC", "ICMP", "ARP"</td></tr>
+        <tr><td>flow.total_bytes</td><td>int</td><td>Computed property: bytes_in + bytes_out</td></tr>
+        <tr><td>flow.threat_level</td><td>str</td><td>"high", "medium", "low", or ""</td></tr>
+        <tr><td>flow.is_threat</td><td>bool</td><td>True if threat_level is "high" or "medium"</td></tr>
+        <tr><td>flow.process_name / pid</td><td>str / int</td><td>eBPF mode only — originating process</td></tr>
+        <tr><td>flow.tls</td><td>TlsFlow | None</td><td>TLS fields: sni, version, cert_cn, cert_expiry…</td></tr>
+        <tr><td>flow.dns</td><td>DnsFlow | None</td><td>DNS fields: query_name, query_type, answers…</td></tr>
+        <tr><td>flow.http</td><td>HttpFlow | None</td><td>HTTP fields: method, path, status, latency_ms</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Alerts & Incidents -->
+  <h2 class="docs-h2" id="sdk-alerts">Alerts &amp; Incidents</h2>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">python — ns.alerts</span>
+      <button class="code-copy" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre><code><span class="tok-comment"># Create an alert rule</span>
+rule = ns.alerts.create_rule(
+    name=<span class="tok-str">"Exfil to known-bad country"</span>,
+    condition=<span class="tok-str">"country_code = 'CN' AND bytes_out > 1000000"</span>,
+    severity=<span class="tok-str">"high"</span>,
+    integration=<span class="tok-str">"webhook"</span>,
+    webhook_url=<span class="tok-str">"https://hooks.slack.com/services/xxx"</span>,
+)
+
+<span class="tok-comment"># Query fired events</span>
+events = ns.alerts.list_events(severity=<span class="tok-str">"critical"</span>, hours=<span class="tok-num">24</span>)
+
+<span class="tok-comment"># Full incident lifecycle</span>
+inc = ns.incidents.create(
+    title=<span class="tok-str">"Possible C2 beaconing from 10.0.0.5"</span>,
+    severity=<span class="tok-str">"P2"</span>,
+)
+ns.incidents.acknowledge(inc.id)
+ns.incidents.add_note(inc.id, <span class="tok-str">"Confirmed — isolating host"</span>)
+ns.incidents.resolve(inc.id, <span class="tok-str">"Host isolated, threat remediated"</span>)</code></pre>
+  </div>
+
+  <!-- Copilot & Dashboards -->
+  <h2 class="docs-h2" id="sdk-copilot">AI Copilot &amp; Dashboards</h2>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">python — ns.copilot</span>
+      <button class="code-copy" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre><code><span class="tok-comment"># One-shot question (buffered reply)</span>
+answer = ns.copilot.ask(<span class="tok-str">"Which host had the most outbound bytes today?"</span>)
+<span class="tok-key">print</span>(answer)
+
+<span class="tok-comment"># Streaming — token by token</span>
+<span class="tok-key">for</span> token <span class="tok-key">in</span> ns.copilot.stream(<span class="tok-str">"Show DNS queries to .ru in the last hour"</span>):
+    <span class="tok-key">if</span> token.sql:
+        <span class="tok-key">print</span>(<span class="tok-str">f"\n[SQL] </span>{token.sql}<span class="tok-str">"</span>)
+    <span class="tok-key">else</span>:
+        <span class="tok-key">print</span>(token.text, end=<span class="tok-str">""</span>, flush=<span class="tok-key">True</span>)
+
+<span class="tok-comment"># Multi-turn conversation (remembers context)</span>
+chat = ns.copilot.chat()
+<span class="tok-key">print</span>(chat.send(<span class="tok-str">"What's our top talker today?"</span>))
+<span class="tok-key">print</span>(chat.send(<span class="tok-str">"What ports does it use?"</span>))</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">python — ns.dashboards</span>
+      <button class="code-copy" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre><code><span class="tok-key">from</span> netscope_sdk.resources.dashboards <span class="tok-key">import</span> DashboardsResource <span class="tok-key">as</span> D
+
+dash = ns.dashboards.create(
+    name=<span class="tok-str">"Security Overview"</span>,
+    widgets=[
+        D.stat_widget(<span class="tok-str">"Alerts (24h)"</span>,   metric=<span class="tok-str">"alert_count"</span>,   size=<span class="tok-str">"sm"</span>),
+        D.stat_widget(<span class="tok-str">"Anomalies (24h)"</span>, metric=<span class="tok-str">"anomaly_count"</span>, size=<span class="tok-str">"sm"</span>),
+        D.stat_widget(<span class="tok-str">"Active Agents"</span>,   metric=<span class="tok-str">"active_agents"</span>, size=<span class="tok-str">"sm"</span>),
+        D.timeseries_widget(<span class="tok-str">"Flow Volume"</span>, window=<span class="tok-str">"24h"</span>, size=<span class="tok-str">"lg"</span>),
+        D.top_talkers_widget(by=<span class="tok-str">"bytes"</span>, limit=<span class="tok-num">10</span>, size=<span class="tok-str">"md"</span>),
+        D.alert_feed_widget(limit=<span class="tok-num">8</span>, size=<span class="tok-str">"md"</span>),
+    ],
+)
+<span class="tok-key">print</span>(<span class="tok-str">f"Dashboard URL: {HUB}/dashboards/</span>{dash.id}<span class="tok-str">"</span>)</code></pre>
+  </div>
+
+  <!-- Examples -->
+  <h2 class="docs-h2" id="sdk-examples">Runnable Examples</h2>
+  <p class="docs-p">Four ready-to-run scripts ship in <span class="mono">sdk/python/examples/</span>:</p>
+
+  <div class="docs-table-wrap">
+    <table class="docs-table">
+      <thead><tr><th>Script</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>hunt_threats.py</td>
+          <td>Query high-threat flows from the last hour, group by source host, auto-create a P2 incident for every host with ≥ 3 hits</td>
+        </tr>
+        <tr>
+          <td>export_flows_csv.py</td>
+          <td>Export all TLS flows (with full cert metadata) to a CSV file. Supports <span class="mono">--protocol</span>, <span class="mono">--hours</span>, <span class="mono">--limit</span> flags</td>
+        </tr>
+        <tr>
+          <td>copilot_chat.py</td>
+          <td>Interactive terminal AI Copilot session with streaming output and multi-turn conversation history</td>
+        </tr>
+        <tr>
+          <td>build_dashboard.py</td>
+          <td>Idempotently create (or update) a "Security Overview" dashboard with 7 widgets from a single script</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">ℹ️</div>
+    <div class="callout-body">
+      <strong>Error handling</strong>
+      All SDK errors derive from <span class="mono">NetScopeError</span>. Specific subclasses:
+      <span class="mono">AuthError</span> (401), <span class="mono">ForbiddenError</span> (403),
+      <span class="mono">NotFoundError</span> (404), <span class="mono">RateLimitError</span> (429),
+      <span class="mono">ServerError</span> (5xx), <span class="mono">ConnectionError</span> (network unreachable).
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">python — error handling</span>
+      <button class="code-copy" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre><code><span class="tok-key">from</span> netscope_sdk <span class="tok-key">import</span> NetScopeError, AuthError, RateLimitError
+
+<span class="tok-key">try</span>:
+    flows = ns.flows.list(protocol=<span class="tok-str">"TLS"</span>)
+<span class="tok-key">except</span> AuthError:
+    <span class="tok-key">print</span>(<span class="tok-str">"Invalid or expired token"</span>)
+<span class="tok-key">except</span> RateLimitError:
+    <span class="tok-key">print</span>(<span class="tok-str">"Rate limited — back off and retry"</span>)
+<span class="tok-key">except</span> NetScopeError <span class="tok-key">as</span> e:
+    <span class="tok-key">print</span>(<span class="tok-str">f"HTTP </span>{e.status_code}<span class="tok-str">: </span>{e}<span class="tok-str">"</span>)</code></pre>
+  </div>
+
 </section>
 
 </div><!-- .docs-content -->
