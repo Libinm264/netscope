@@ -53,20 +53,44 @@
       <line x1="347" y1="227" x2="356" y2="243"/>
     </g>
 
-    <path d="M512,512 L625,202 A330,330 0 0,1 822,399 Z" fill="url(#sweepGrad)"/>
+    <!-- Rotating radar sweep group -->
+    <g>
+      <animateTransform attributeName="transform" type="rotate"
+        from="0 512 512" to="360 512 512" dur="4s" repeatCount="indefinite"/>
 
-    <line x1="512" y1="512" x2="745" y2="279" stroke="#00d4ff" stroke-width="3" opacity="0.6" stroke-linecap="round"/>
+      <path d="M512,512 L625,202 A330,330 0 0,1 822,399 Z" fill="url(#sweepGrad)"/>
+      <line x1="512" y1="512" x2="745" y2="279" stroke="#00d4ff" stroke-width="3" opacity="0.6" stroke-linecap="round"/>
 
-    <circle cx="745" cy="279" r="55" fill="url(#blipGlow)"/>
-    <circle cx="745" cy="279" r="32" fill="none" stroke="#00d4ff" stroke-width="2" opacity="0.4"/>
-    <circle cx="745" cy="279" r="14" fill="#00d4ff" opacity="0.95"/>
-    <circle cx="739" cy="273" r="5"  fill="#ffffff" opacity="0.6"/>
+      <!-- Blip at arm tip -->
+      <circle cx="745" cy="279" r="14" fill="#00d4ff" opacity="0.95"/>
+      <circle cx="739" cy="273" r="5"  fill="#ffffff" opacity="0.6"/>
 
-    <circle cx="532" cy="283" r="8"  fill="#00d4ff" opacity="0.25"/>
-    <circle cx="532" cy="283" r="18" fill="#00d4ff" opacity="0.08"/>
+      <!-- Blip pulse ring 1 -->
+      <circle cx="745" cy="279" r="14" fill="none" stroke="#00d4ff" stroke-width="2">
+        <animate attributeName="r"       values="14;55;55"   dur="4s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.7;0;0"    dur="4s" repeatCount="indefinite"/>
+      </circle>
+      <!-- Blip pulse ring 2 (delayed) -->
+      <circle cx="745" cy="279" r="14" fill="none" stroke="#00d4ff" stroke-width="1.5">
+        <animate attributeName="r"       values="14;38;38"   dur="4s" begin="0.35s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.5;0;0"    dur="4s" begin="0.35s" repeatCount="indefinite"/>
+      </circle>
+    </g>
 
-    <circle cx="595" cy="412" r="6"  fill="#00d4ff" opacity="0.2"/>
-    <circle cx="595" cy="412" r="14" fill="#00d4ff" opacity="0.06"/>
+    <!-- Static ghost blips that light up as sweep passes -->
+    <circle cx="532" cy="283" r="8"  fill="#00d4ff">
+      <animate attributeName="opacity" values="0.05;0.4;0.05" dur="4s" begin="1.1s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="532" cy="283" r="18" fill="#00d4ff">
+      <animate attributeName="opacity" values="0.02;0.12;0.02" dur="4s" begin="1.1s" repeatCount="indefinite"/>
+    </circle>
+
+    <circle cx="595" cy="412" r="6"  fill="#00d4ff">
+      <animate attributeName="opacity" values="0.05;0.3;0.05" dur="4s" begin="1.8s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="595" cy="412" r="14" fill="#00d4ff">
+      <animate attributeName="opacity" values="0.02;0.1;0.02" dur="4s" begin="1.8s" repeatCount="indefinite"/>
+    </circle>
 
     <circle cx="512" cy="512" r="22" fill="url(#centerGrad)"/>
     <circle cx="512" cy="512" r="22" fill="none" stroke="#a78bfa" stroke-width="2" opacity="0.6"/>
