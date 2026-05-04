@@ -24,10 +24,11 @@ var blockedCIDRs = func() []*net.IPNet {
 		"203.0.113.0/24",  // TEST-NET-3 (documentation)
 		"240.0.0.0/4",     // Reserved
 		"0.0.0.0/8",       // This network
-		"::1/128",          // IPv6 loopback
-		"fc00::/7",         // IPv6 unique-local (ULA)
-		"fe80::/10",        // IPv6 link-local
-		"::ffff:0:0/96",    // IPv4-mapped IPv6 (extra safety)
+		"::1/128",   // IPv6 loopback
+		"fc00::/7",  // IPv6 unique-local (ULA)
+		"fe80::/10", // IPv6 link-local
+		// Note: ::ffff:0:0/96 (IPv4-mapped) is intentionally omitted — it would
+		// block ALL IPv4 addresses.  Private IPv4 ranges are covered above.
 	}
 	nets := make([]*net.IPNet, 0, len(ranges))
 	for _, r := range ranges {

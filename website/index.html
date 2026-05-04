@@ -407,7 +407,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
   <div class="container">
     <div class="hero-badge">
       <span class="dot"></span>
-      <strong>v0.6</strong> &nbsp;·&nbsp; Open Source &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; AI Copilot
+      <strong>v0.7</strong> &nbsp;·&nbsp; Open Source &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; Privacy-First · AI Copilot
     </div>
 
     <h1>See <span class="hl">everything</span><br/>on your network.</h1>
@@ -639,6 +639,20 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
           <p>One-click SOC 2, PCI-DSS, ISO 27001, and HIPAA reports. Covers TLS hygiene, unencrypted traffic, geo anomalies, and policy violations.</p>
         </div>
 
+        <div class="feat" style="border-color:rgba(52,211,153,.15);position:relative;overflow:hidden">
+          <div style="position:absolute;top:.75rem;right:.75rem;font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--green);background:rgba(52,211,153,.1);padding:.2rem .5rem;border-radius:4px">New · v0.7</div>
+          <div class="feat-icon" style="background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.15)"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke="var(--green)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <h4>PII masking engine</h4>
+          <p>Credentials, tokens, and card numbers are redacted in the Rust agent before they leave your server. Authorization headers, passwords, CVVs — gone before they reach ClickHouse.</p>
+        </div>
+
+        <div class="feat" style="border-color:rgba(251,146,60,.15);position:relative;overflow:hidden">
+          <div style="position:absolute;top:.75rem;right:.75rem;font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--orange);background:rgba(251,146,60,.1);padding:.2rem .5rem;border-radius:4px">New · v0.7</div>
+          <div class="feat-icon" style="background:rgba(251,146,60,.08);border-color:rgba(251,146,60,.15)"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke="var(--orange)"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <h4>Agent performance telemetry</h4>
+          <p>CPU %, memory, and packet-drop counter reported on every heartbeat. The Fleet dashboard shows per-agent sparklines so you can prove &lt;1% CPU at 1 Gbps.</p>
+        </div>
+
       </div>
     </div>
   </div>
@@ -775,6 +789,79 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
         <div style="display:flex;gap:.75rem;margin-top:2rem;flex-wrap:wrap">
           <a href="docs.html#sdk" class="btn btn-cyan">SDK docs →</a>
           <a href="https://github.com/Libinm264/netscope/tree/main/sdk/python" target="_blank" class="btn btn-outline">View on GitHub ↗</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ── PRIVACY SHIELD SPOTLIGHT ── -->
+<section id="privacy" style="padding:110px 0;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 70% 50%,rgba(52,211,153,.04),transparent);pointer-events:none"></div>
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center">
+
+      <!-- Visual -->
+      <div class="reveal" style="order:1">
+        <div style="background:var(--bg2);border:1px solid rgba(52,211,153,.15);border-radius:16px;padding:1.75rem;font-family:'JetBrains Mono',monospace;font-size:.78rem;line-height:1.8;box-shadow:0 0 60px rgba(52,211,153,.04)">
+          <div style="color:var(--muted);margin-bottom:1rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.08em">HTTP request · before &amp; after masking</div>
+
+          <div style="color:var(--muted);margin-bottom:.25rem">// captured by agent ↓</div>
+          <div><span style="color:var(--muted2)">POST</span> <span style="color:var(--cyan)">/api/v1/payments</span> <span style="color:var(--muted)">HTTP/1.1</span></div>
+          <div><span style="color:var(--muted2)">Authorization:</span> <span style="color:var(--red);text-decoration:line-through">Bearer eyJhbGciOiJSUzI1...</span></div>
+          <div><span style="color:var(--muted2)">Cookie:</span> <span style="color:var(--red);text-decoration:line-through">session=abc123; user_id=42</span></div>
+          <div style="margin-top:.5rem"><span style="color:var(--muted)">{</span></div>
+          <div style="padding-left:1.25rem"><span style="color:var(--purple)">"card_number"</span><span style="color:var(--muted)">:</span> <span style="color:var(--red);text-decoration:line-through">"4111111111111111"</span></div>
+          <div style="padding-left:1.25rem"><span style="color:var(--purple)">"cvv"</span><span style="color:var(--muted)">:</span> <span style="color:var(--red);text-decoration:line-through">"123"</span><span style="color:var(--muted)">,</span></div>
+          <div style="padding-left:1.25rem"><span style="color:var(--purple)">"amount"</span><span style="color:var(--muted)">:</span> <span style="color:var(--green)">9900</span></div>
+          <div><span style="color:var(--muted)">}</span></div>
+
+          <div style="border-top:1px solid rgba(52,211,153,.15);margin:1rem 0;padding-top:1rem;color:var(--muted)">// sent to ClickHouse Hub ↓</div>
+          <div><span style="color:var(--muted2)">POST</span> <span style="color:var(--cyan)">/api/v1/payments</span> <span style="color:var(--muted)">HTTP/1.1</span></div>
+          <div><span style="color:var(--muted2)">Authorization:</span> <span style="color:var(--green);font-weight:600">[REDACTED]</span></div>
+          <div><span style="color:var(--muted2)">Cookie:</span> <span style="color:var(--green);font-weight:600">[REDACTED]</span></div>
+          <div style="margin-top:.5rem"><span style="color:var(--muted)">{</span></div>
+          <div style="padding-left:1.25rem"><span style="color:var(--purple)">"card_number"</span><span style="color:var(--muted)">:</span> <span style="color:var(--green);font-weight:600">"[REDACTED]"</span></div>
+          <div style="padding-left:1.25rem"><span style="color:var(--purple)">"cvv"</span><span style="color:var(--muted)">:</span> <span style="color:var(--green);font-weight:600">"[REDACTED]"</span><span style="color:var(--muted)">,</span></div>
+          <div style="padding-left:1.25rem"><span style="color:var(--purple)">"amount"</span><span style="color:var(--muted)">:</span> <span style="color:var(--green)">9900</span></div>
+          <div><span style="color:var(--muted)">}</span></div>
+        </div>
+      </div>
+
+      <!-- Text -->
+      <div class="reveal reveal-delay-1" style="order:2">
+        <span style="display:inline-flex;align-items:center;gap:.5rem;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green);background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.15);padding:.3rem .85rem;border-radius:100px;margin-bottom:1.25rem">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          New in v0.7 · Privacy Shield
+        </span>
+        <h2 class="section-title">Sensitive data never<br/>leaves your server.</h2>
+        <p class="section-body" style="margin-bottom:2rem">
+          The PII masking engine runs inside the Rust agent — before any data is batched or transmitted. Credentials, tokens, and payment details are replaced with <code style="color:var(--green);background:rgba(52,211,153,.08);padding:.1rem .4rem;border-radius:4px">[REDACTED]</code> at capture time.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:.875rem">
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">13 sensitive headers</strong> — Authorization, Cookie, X-Api-Key, X-Auth-Token, and more</p>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">45 JSON field patterns</strong> — password, token, card_number, cvv, ssn, iban, and more, recursively in nested objects</p>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">Zero performance cost</strong> — in-place redaction on the parsed AST, no regex engine, no extra allocations</p>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--green);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">31 unit tests</strong> — every header pattern and JSON field type has a passing test</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:.75rem;margin-top:2rem;flex-wrap:wrap">
+          <a href="docs.html#privacy" class="btn btn-outline" style="border-color:rgba(52,211,153,.3);color:var(--green)">Privacy docs →</a>
+          <a href="docs.html#agent-config" class="btn btn-outline">Agent config →</a>
         </div>
       </div>
 
@@ -925,7 +1012,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
         <ul class="plan-list">
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Unlimited agents</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Everything in Team</li>
-          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Custom RBAC roles · PII redaction</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>PII masking engine · Custom RBAC roles</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>OpenTelemetry trace correlation</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SOC 2 / ISO 27001 compliance docs</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Dedicated support &amp; SLAs</li>

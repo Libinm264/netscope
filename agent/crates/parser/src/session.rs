@@ -4,6 +4,7 @@
 use crate::dns::parse_dns;
 use crate::http::{looks_like_http_request, looks_like_http_response, parse_request, parse_response};
 use crate::http2::{looks_like_h2, H2Session};
+use crate::masking::{mask_body, mask_headers};
 use crate::tls::{looks_like_tls, parse_tls};
 use capture::tcp_stream::{Direction, TcpReassembler};
 use chrono::{DateTime, Utc};
@@ -250,7 +251,14 @@ impl SessionManager {
                     Direction::ClientToServer => session.push_client(&tcp_data.data),
                     Direction::ServerToClient => session.push_server(&tcp_data.data),
                 };
-                for h2f in h2_flows {
+                for mut h2f in h2_flows {
+                    // Redact PII from HTTP/2 and gRPC request/response headers.
+                    if let Some(ref mut req) = h2f.request {
+                        mask_headers(&mut req.headers);
+                    }
+                    if let Some(ref mut resp) = h2f.response {
+                        mask_headers(&mut resp.headers);
+                    }
                     let proto = if h2f.grpc_service.is_some() {
                         Protocol::Grpc
                     } else {
@@ -303,7 +311,10 @@ impl SessionManager {
                     session.client_buf.extend_from_slice(&tcp_data.data);
                     if session.request.is_none() {
                         match parse_request(&session.client_buf) {
-                            Ok(Some((req, consumed))) => {
+                            Ok(Some((mut req, consumed))) => {
+                                // Redact PII before the request is stored or forwarded.
+                                mask_headers(&mut req.headers);
+                                req.body_preview = mask_body(req.body_preview);
                                 session.request_time = Some(req.timestamp);
                                 session.request = Some(req);
                                 session.client_buf.drain(..consumed);
@@ -320,7 +331,10 @@ impl SessionManager {
                     session.server_buf.extend_from_slice(&tcp_data.data);
                     if session.request.is_some() {
                         match parse_response(&session.server_buf) {
-                            Ok(Some((resp, consumed))) => {
+                            Ok(Some((mut resp, consumed))) => {
+                                // Redact PII from response headers and body.
+                                mask_headers(&mut resp.headers);
+                                resp.body_preview = mask_body(resp.body_preview);
                                 let req = session.request.take().unwrap();
                                 let request_time = session.request_time.take();
                                 let latency_ms = request_time.map(|t| {
