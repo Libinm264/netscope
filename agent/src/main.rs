@@ -297,6 +297,33 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
                             }
                             Err(e) => warn!("heartbeat failed: {}", e),
                         }
+
+                        // Poll for any pending remote config update from the Fleet dashboard.
+                        match hb_client.poll_config() {
+                            Ok(Some(cfg)) => {
+                                info!(version = cfg.version, "Remote config received from Hub");
+                                if let Some(ref f) = cfg.settings.bpf_filter {
+                                    info!(filter = %f,
+                                        "BPF filter update queued — restart agent to apply");
+                                }
+                                if let Some(ref l) = cfg.settings.labels {
+                                    info!(labels = ?l, "Label update received");
+                                }
+                                if let Some(bs) = cfg.settings.batch_size {
+                                    info!(batch_size = bs, "Batch size update queued — restart agent to apply");
+                                }
+                                if let Some(iv) = cfg.settings.interval_ms {
+                                    info!(interval_ms = iv, "Heartbeat interval update queued — restart agent to apply");
+                                }
+                                match hb_client.ack_config(cfg.version) {
+                                    Ok(())  => info!(version = cfg.version, "Config ack sent to Hub"),
+                                    Err(e)  => warn!("Config ack failed: {}", e),
+                                }
+                            }
+                            Ok(None) => {} // no pending config — nothing to do
+                            Err(e)   => warn!("Config poll failed: {}", e),
+                        }
+
                         std::thread::sleep(std::time::Duration::from_secs(30));
                     }
                 }
@@ -418,6 +445,37 @@ fn run_ebpf(
                             if let Err(e) = hb_client.send_heartbeat("", "ebpf", true) {
                                 tracing::warn!("heartbeat failed: {}", e);
                             }
+
+                            // Poll for any pending remote config update from the Fleet dashboard.
+                            match hb_client.poll_config() {
+                                Ok(Some(cfg)) => {
+                                    tracing::info!(version = cfg.version,
+                                        "Remote config received from Hub (eBPF mode)");
+                                    if let Some(ref f) = cfg.settings.bpf_filter {
+                                        tracing::info!(filter = %f,
+                                            "BPF filter update queued — restart agent to apply");
+                                    }
+                                    if let Some(ref l) = cfg.settings.labels {
+                                        tracing::info!(labels = ?l, "Label update received");
+                                    }
+                                    if let Some(bs) = cfg.settings.batch_size {
+                                        tracing::info!(batch_size = bs,
+                                            "Batch size update queued — restart agent to apply");
+                                    }
+                                    if let Some(iv) = cfg.settings.interval_ms {
+                                        tracing::info!(interval_ms = iv,
+                                            "Heartbeat interval update queued — restart agent to apply");
+                                    }
+                                    match hb_client.ack_config(cfg.version) {
+                                        Ok(())  => tracing::info!(version = cfg.version,
+                                                      "Config ack sent to Hub"),
+                                        Err(e)  => tracing::warn!("Config ack failed: {}", e),
+                                    }
+                                }
+                                Ok(None) => {} // no pending config
+                                Err(e)   => tracing::warn!("Config poll failed: {}", e),
+                            }
+
                             std::thread::sleep(std::time::Duration::from_secs(30));
                         }
                     });

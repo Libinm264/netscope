@@ -8,7 +8,8 @@ use chrono::SecondsFormat;
 use gethostname::gethostname;
 use proto::{Flow, FlowPayload};
 use reqwest::blocking::Client;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -259,6 +260,97 @@ impl HubClient {
         }
         Ok(())
     }
+
+    /// Poll the Hub for any pending remote config update.
+    ///
+    /// Returns `Ok(Some(cfg))` when a new (un-acked) config is waiting,
+    /// `Ok(None)` when the Hub reports nothing pending, or an error on
+    /// network / parse failure.
+    pub fn poll_config(&self) -> anyhow::Result<Option<RemoteConfig>> {
+        let url = format!("{}/api/v1/agents/{}/config", self.hub_url, self.agent_id);
+
+        let resp = self
+            .client
+            .get(&url)
+            .header("X-Api-Key", &self.api_key)
+            .send()
+            .context("GET agent config")?;
+
+        if !resp.status().is_success() {
+            return Ok(None);
+        }
+
+        // Outer shape: {"config": null}  or  {"config": {AgentConfigRecord}}
+        #[derive(Deserialize)]
+        struct Wrapper {
+            config: Option<ConfigRecord>,
+        }
+        #[derive(Deserialize)]
+        struct ConfigRecord {
+            version: u64,
+            /// Raw JSON string of the actual settings map.
+            config: String,
+        }
+
+        let wrapper: Wrapper = resp.json().context("parse config response")?;
+        let rec = match wrapper.config {
+            None    => return Ok(None),
+            Some(r) => r,
+        };
+
+        let settings = parse_config_settings(&rec.config);
+        Ok(Some(RemoteConfig { version: rec.version, settings }))
+    }
+
+    /// Acknowledge a config version so the Hub stops re-delivering it.
+    ///
+    /// Call after successfully receiving (and persisting / applying) a config.
+    pub fn ack_config(&self, version: u64) -> anyhow::Result<()> {
+        let url = format!("{}/api/v1/agents/{}/config/ack", self.hub_url, self.agent_id);
+        let body = serde_json::json!({
+            "agent_id":       self.agent_id,
+            "config_version": version.to_string(),
+        });
+
+        let resp = self
+            .client
+            .post(&url)
+            .header("X-Api-Key", &self.api_key)
+            .json(&body)
+            .send()
+            .context("POST config ack")?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let txt    = resp.text().unwrap_or_default();
+            anyhow::bail!("config ack rejected ({}): {}", status, txt);
+        }
+        Ok(())
+    }
+}
+
+// ── Remote config types ────────────────────────────────────────────────────
+
+/// Settings decoded from a Hub-pushed config payload.
+#[derive(Debug, Clone, Default)]
+pub struct RemoteConfigSettings {
+    /// New BPF capture filter. Takes effect on the next agent restart.
+    pub bpf_filter:  Option<String>,
+    /// Arbitrary label key-value pairs to tag this agent.
+    pub labels:      Option<HashMap<String, String>>,
+    /// Flow batch size override.
+    pub batch_size:  Option<u32>,
+    /// Heartbeat interval override in milliseconds.
+    pub interval_ms: Option<u64>,
+}
+
+/// A pending remote config record returned by `GET /api/v1/agents/:id/config`.
+#[derive(Debug, Clone)]
+pub struct RemoteConfig {
+    /// ClickHouse version counter — echo this back in the ack call.
+    pub version:  u64,
+    /// Decoded settings from the Hub.
+    pub settings: RemoteConfigSettings,
 }
 
 // ── Conversion ─────────────────────────────────────────────────────────────
@@ -436,5 +528,31 @@ fn rcode_to_int(rcode: Option<&str>) -> i32 {
         Some("NOTIMP")   => 4,
         Some("REFUSED")  => 5,
         _                => 0,
+    }
+}
+
+/// Deserialise the raw JSON settings string stored in `AgentConfigRecord.config`.
+///
+/// Unknown fields are silently ignored so that newer Hub versions can add keys
+/// without breaking older agents.  A parse error keeps the current config intact.
+fn parse_config_settings(raw: &str) -> RemoteConfigSettings {
+    #[derive(Deserialize)]
+    struct Inner {
+        bpf_filter:  Option<String>,
+        labels:      Option<HashMap<String, String>>,
+        batch_size:  Option<u32>,
+        interval_ms: Option<u64>,
+    }
+    match serde_json::from_str::<Inner>(raw) {
+        Ok(inner) => RemoteConfigSettings {
+            bpf_filter:  inner.bpf_filter,
+            labels:      inner.labels,
+            batch_size:  inner.batch_size,
+            interval_ms: inner.interval_ms,
+        },
+        Err(e) => {
+            tracing::warn!("could not parse remote config payload: {}", e);
+            RemoteConfigSettings::default()
+        }
     }
 }
