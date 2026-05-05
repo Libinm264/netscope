@@ -12,7 +12,7 @@
 use std::{
     collections::HashSet,
     fs,
-    io::{BufRead, BufReader},
+    io::BufReader,
     path::PathBuf,
 };
 
@@ -42,29 +42,47 @@ pub async fn attach_all(
         return Ok(0);
     }
 
-    let write_prog: &mut UProbe = ebpf
-        .program_mut("python_ssl_write_entry")
-        .context("python_ssl_write_entry program not found in BPF ELF")?
-        .try_into()?;
-    write_prog.load()?;
-
-    let read_prog: &mut UProbe = ebpf
-        .program_mut("python_ssl_read_ret")
-        .context("python_ssl_read_ret program not found in BPF ELF")?
-        .try_into()?;
-    read_prog.load()?;
+    // Load each program in its own block so the mutable borrow of `ebpf` is
+    // dropped before the next one is acquired.
+    {
+        let prog: &mut UProbe = ebpf
+            .program_mut("python_ssl_write_entry")
+            .context("python_ssl_write_entry program not found in BPF ELF")?
+            .try_into()?;
+        prog.load()?;
+    }
+    {
+        let prog: &mut UProbe = ebpf
+            .program_mut("python_ssl_read_ret")
+            .context("python_ssl_read_ret program not found in BPF ELF")?
+            .try_into()?;
+        prog.load()?;
+    }
 
     let mut attached = 0;
     for lib in &ssl_libs {
         let lib_str = lib.to_str().unwrap_or_default();
 
-        if let Err(e) = write_prog.attach(Some(PYTHON_WRITE_SYMBOL), 0, lib_str, None) {
-            warn!("python-ssl: attach write to {} failed: {}", lib.display(), e);
-            continue;
+        // Re-borrow each program (already loaded) and attach to this library.
+        {
+            let write_prog: &mut UProbe = ebpf
+                .program_mut("python_ssl_write_entry")
+                .context("python_ssl_write_entry not found")?
+                .try_into()?;
+            if let Err(e) = write_prog.attach(Some(PYTHON_WRITE_SYMBOL), 0, lib_str, None) {
+                warn!("python-ssl: attach write to {} failed: {}", lib.display(), e);
+                continue;
+            }
         }
-        if let Err(e) = read_prog.attach(Some(PYTHON_READ_SYMBOL), 0, lib_str, None) {
-            warn!("python-ssl: attach read to {} failed: {}", lib.display(), e);
-            continue;
+        {
+            let read_prog: &mut UProbe = ebpf
+                .program_mut("python_ssl_read_ret")
+                .context("python_ssl_read_ret not found")?
+                .try_into()?;
+            if let Err(e) = read_prog.attach(Some(PYTHON_READ_SYMBOL), 0, lib_str, None) {
+                warn!("python-ssl: attach read to {} failed: {}", lib.display(), e);
+                continue;
+            }
         }
 
         info!("python-ssl: attached to {}", lib.display());

@@ -15,7 +15,6 @@
 use std::{
     collections::HashSet,
     fs,
-    io::{BufRead, BufReader},
     path::{Path, PathBuf},
     process::Command,
 };
@@ -46,17 +45,23 @@ pub async fn attach_all(
         return Ok(0);
     }
 
-    let write_prog: &mut UProbe = ebpf
-        .program_mut("go_tls_write_entry")
-        .context("go_tls_write_entry program not found in BPF ELF")?
-        .try_into()?;
-    write_prog.load()?;
-
-    let read_prog: &mut UProbe = ebpf
-        .program_mut("go_tls_read_ret")
-        .context("go_tls_read_ret program not found in BPF ELF")?
-        .try_into()?;
-    read_prog.load()?;
+    // Load each program in its own block so the mutable borrow of `ebpf` is
+    // dropped before the next program is loaded.  Attaching happens below in a
+    // separate per-binary loop where we re-borrow `ebpf` one program at a time.
+    {
+        let prog: &mut UProbe = ebpf
+            .program_mut("go_tls_write_entry")
+            .context("go_tls_write_entry program not found in BPF ELF")?
+            .try_into()?;
+        prog.load()?;
+    }
+    {
+        let prog: &mut UProbe = ebpf
+            .program_mut("go_tls_read_ret")
+            .context("go_tls_read_ret program not found in BPF ELF")?
+            .try_into()?;
+        prog.load()?;
+    }
 
     let mut attached = 0;
     for binary in &go_binaries {
@@ -70,23 +75,28 @@ pub async fn attach_all(
             continue;
         };
 
-        if let Err(e) = write_prog.attach(
-            None,
-            write_offset,
-            binary,
-            None,
-        ) {
-            warn!("go-tls: attach Write to {} failed: {}", binary.display(), e);
-            continue;
+        // Re-borrow write program (already loaded) and attach to this binary.
+        {
+            let write_prog: &mut UProbe = ebpf
+                .program_mut("go_tls_write_entry")
+                .context("go_tls_write_entry not found")?
+                .try_into()?;
+            if let Err(e) = write_prog.attach(None, write_offset, binary, None) {
+                warn!("go-tls: attach Write to {} failed: {}", binary.display(), e);
+                continue;
+            }
         }
-        if let Err(e) = read_prog.attach(
-            None,
-            read_offset,
-            binary,
-            None,
-        ) {
-            warn!("go-tls: attach Read to {} failed: {}", binary.display(), e);
-            continue;
+
+        // Re-borrow read program (already loaded) and attach to this binary.
+        {
+            let read_prog: &mut UProbe = ebpf
+                .program_mut("go_tls_read_ret")
+                .context("go_tls_read_ret not found")?
+                .try_into()?;
+            if let Err(e) = read_prog.attach(None, read_offset, binary, None) {
+                warn!("go-tls: attach Read to {} failed: {}", binary.display(), e);
+                continue;
+            }
         }
 
         info!("go-tls: attached to {}", binary.display());

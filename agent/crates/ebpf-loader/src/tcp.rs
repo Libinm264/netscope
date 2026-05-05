@@ -57,7 +57,7 @@ pub async fn attach(ebpf: &mut Ebpf, tx: mpsc::Sender<EbpfEvent>) -> Result<()> 
     }
 
     // Pump perf events
-    let tcp_events: AsyncPerfEventArray<MapData> =
+    let mut tcp_events: AsyncPerfEventArray<MapData> =
         AsyncPerfEventArray::try_from(
             ebpf.take_map("TCP_EVENTS").context("TCP_EVENTS map missing")?,
         )

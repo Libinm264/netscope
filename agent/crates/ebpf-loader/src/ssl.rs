@@ -88,7 +88,7 @@ pub async fn attach(
     // Pump events from the perf ring into the channel.
     // aya 0.13: take_map yields Map (wrapping MapData); AsyncPerfEventArray is
     // always typed as MapData at construction — we cast raw bytes manually below.
-    let ssl_events: AsyncPerfEventArray<MapData> =
+    let mut ssl_events: AsyncPerfEventArray<MapData> =
         AsyncPerfEventArray::try_from(ebpf.take_map("SSL_EVENTS").context("SSL_EVENTS map missing")?)
             .context("SSL_EVENTS is not a PerfEventArray")?;
 
@@ -167,7 +167,7 @@ fn attach_uprobe(
     prog_name: &str,
     lib_path: &str,
     fn_name: &str,
-    is_ret: bool,
+    _is_ret: bool,
 ) -> Result<()> {
     let prog: &mut UProbe = ebpf
         .program_mut(prog_name)
