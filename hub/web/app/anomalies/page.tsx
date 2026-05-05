@@ -8,7 +8,8 @@ import {
   type AnomalyStats,
   type AnomalySeverity,
 } from "@/lib/api";
-import { Activity, TrendingUp, TrendingDown, RefreshCw, AlertTriangle } from "lucide-react";
+import { Activity, TrendingUp, TrendingDown, RefreshCw, AlertTriangle, Play } from "lucide-react";
+import Link from "next/link";
 import { clsx } from "clsx";
 
 // ── Severity helpers ──────────────────────────────────────────────────────────
@@ -202,6 +203,7 @@ export default function AnomaliesPage() {
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">Protocol</th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">Z-Score</th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500 w-1/3">Description</th>
+                  <th className="px-4 py-2.5 text-left text-xs font-medium text-slate-500">Replay</th>
                 </tr>
               </thead>
               <tbody>
@@ -240,6 +242,18 @@ export default function AnomaliesPage() {
                     </td>
                     <td className="px-4 py-2.5 text-xs text-slate-400 leading-relaxed">
                       {ev.description}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <Link
+                        href={`/replay?agent_id=${encodeURIComponent(ev.agent_id)}&around=${encodeURIComponent(ev.detected_at)}&hostname=${encodeURIComponent(ev.hostname)}&window_mins=5`}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px]
+                                   font-medium border border-indigo-500/25 bg-indigo-500/8
+                                   text-indigo-400 hover:bg-indigo-500/15 hover:border-indigo-500/40
+                                   transition-colors whitespace-nowrap"
+                      >
+                        <Play size={9} />
+                        Replay
+                      </Link>
                     </td>
                   </tr>
                 ))}

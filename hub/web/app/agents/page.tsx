@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Server, Plus, X, Copy, Check, RefreshCw, Cpu, Globe2, Box, Activity } from "lucide-react";
+import Link from "next/link";
+import { Server, Plus, X, Copy, Check, RefreshCw, Cpu, Globe2, Box, Activity, Play } from "lucide-react";
 import { clsx } from "clsx";
 import { fetchAgents, fetchAgentPerf, fetchAgentSampling, pushAgentSampling, createEnrollmentToken } from "@/lib/api";
 import type { Agent, PerfSample, SamplingMode, EnrollmentToken } from "@/lib/api";
@@ -585,6 +586,18 @@ export default function AgentsPage() {
 
                 {/* Sampling mode toggle */}
                 <SamplingToggle agentId={agent.agent_id} />
+
+                {/* Replay timeline link */}
+                <div className="pt-2 mt-1 border-t border-white/[0.04]">
+                  <Link
+                    href={`/replay?agent_id=${encodeURIComponent(agent.agent_id)}&around=${encodeURIComponent(agent.last_seen)}&hostname=${encodeURIComponent(agent.hostname)}&window_mins=5`}
+                    className="inline-flex items-center gap-1.5 text-[10px] font-medium
+                               text-indigo-400 hover:text-indigo-300 transition-colors"
+                  >
+                    <Play size={9} />
+                    View recent timeline
+                  </Link>
+                </div>
               </div>
             );
           })}

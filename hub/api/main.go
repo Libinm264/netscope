@@ -348,6 +348,8 @@ func main() {
 	// Phase 11 — agent flow count
 	v1.Get("/agents/stats",               apiLimit,                            agentH.Stats)
 	v1.Get("/agents/:id/perf",            apiLimit,                            agentH.PerfHistory)
+	replayH := &handlers.ReplayHandler{CH: chClient}
+	v1.Get("/replay",                     apiLimit,                            replayH.Timeline)
 
 	// ── Phase 12 — Enterprise: org, members, teams, SSO config, license ──────
 	// Seed the initial local admin account if ADMIN_EMAIL + ADMIN_PASSWORD are set.

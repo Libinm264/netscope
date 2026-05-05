@@ -368,6 +368,12 @@ footer a:hover{color:var(--text)}
     </a>
     <a href="#sampling-modes" class="sidebar-link">Metadata vs full</a>
     <a href="#sampling-api" class="sidebar-link">Sampling API</a>
+    <a href="#replay" class="sidebar-link" style="margin-top:.25rem">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Incident Replay
+    </a>
+    <a href="#replay-api" class="sidebar-link">Replay API</a>
+    <a href="#replay-ui" class="sidebar-link">Timeline UI</a>
   </div>
   <div class="sidebar-divider"></div>
 
@@ -1923,6 +1929,119 @@ X-Api-Key: &lt;admin-key&gt;
     <code class="mono">full</code>. Any other value returns HTTP 400.
     The config is delivered via the existing <code class="mono">agent_configs</code> ClickHouse table
     and acknowledged by the agent using the same poll/ack mechanism as other remote config pushes.
+  </p>
+
+</section>
+
+<!-- ── INCIDENT REPLAY ── -->
+<section id="replay" class="docs-section">
+
+  <div class="docs-badge" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.2);color:#f87171">
+    New in v0.7 · Incident Replay Timeline
+  </div>
+
+  <h1 class="docs-h1">Incident Replay Timeline</h1>
+  <p class="docs-p">
+    When an anomaly fires, click <strong>Replay</strong> to pull every flow captured in a ±5-minute
+    window around the event and render them as a parallel protocol lane timeline.
+    This gives you a full picture of what was happening on the wire at the moment of the incident —
+    without having to write a ClickHouse query.
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem;margin:1.75rem 0">
+    <div style="padding:1.25rem;border-radius:10px;border:1px solid rgba(239,68,68,.15);background:rgba(239,68,68,.04)">
+      <p style="font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#f87171;margin-bottom:.75rem">Trigger</p>
+      <p style="font-size:.875rem;color:var(--muted2)">Click <strong style="color:#fff">Replay</strong> on any row in the Anomalies page. The timeline opens pre-loaded, centered on the anomaly timestamp.</p>
+    </div>
+    <div style="padding:1.25rem;border-radius:10px;border:1px solid rgba(99,102,241,.15);background:rgba(99,102,241,.04)">
+      <p style="font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#818cf8;margin-bottom:.75rem">Protocol lanes</p>
+      <p style="font-size:.875rem;color:var(--muted2)">Flows are sorted into five parallel lanes: HTTP (blue), HTTP/2 &amp; gRPC (indigo), DNS (magenta), TLS (cyan), TCP/UDP (slate).</p>
+    </div>
+    <div style="padding:1.25rem;border-radius:10px;border:1px solid rgba(34,211,238,.15);background:rgba(34,211,238,.04)">
+      <p style="font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#22d3ee;margin-bottom:.75rem">Red trigger line</p>
+      <p style="font-size:.875rem;color:var(--muted2)">A red vertical line marks the exact anomaly timestamp across all lanes, so you can spot activity that coincided with the event.</p>
+    </div>
+    <div style="padding:1.25rem;border-radius:10px;border:1px solid rgba(52,211,153,.15);background:rgba(52,211,153,.04)">
+      <p style="font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--green);margin-bottom:.75rem">Flow detail panel</p>
+      <p style="font-size:.875rem;color:var(--muted2)">Click any flow block to expand a detail panel showing src/dst, bytes, duration, and flow info without leaving the timeline.</p>
+    </div>
+  </div>
+
+  <h2 class="docs-h2" id="replay-api">Replay API</h2>
+  <p class="docs-p">
+    The Hub exposes a single endpoint that the timeline UI calls. You can also query it directly
+    for scripting or integration with external incident management tools.
+  </p>
+
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header">
+      <span>GET /api/v1/replay</span>
+      <button class="copy-btn" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre>GET /api/v1/replay
+  ?agent_id=4f8a2c1e-...
+  &amp;around=2026-05-05T14:32:00Z   # RFC3339 incident timestamp
+  &amp;window_mins=5                 # ±minutes — default 5, max 30
+
+# Response
+{
+  "agent_id":   "4f8a2c1e-...",
+  "hostname":   "prod-web-01",
+  "around":     "2026-05-05T14:32:00Z",
+  "window_mins": 5,
+  "from":       "2026-05-05T14:27:00Z",
+  "to":         "2026-05-05T14:37:00Z",
+  "total":      247,
+  "flows": [
+    {
+      "id":          "d1e2f3a4-...",
+      "agent_id":    "4f8a2c1e-...",
+      "hostname":    "prod-web-01",
+      "timestamp":   "2026-05-05T14:27:04.182Z",
+      "protocol":    "HTTP",
+      "src_ip":      "10.0.0.5",
+      "src_port":    58432,
+      "dst_ip":      "10.0.0.1",
+      "dst_port":    80,
+      "bytes_in":    1248,
+      "bytes_out":   8192,
+      "duration_ms": 12,
+      "info":        "GET /api/health → 200"
+    }
+    // … up to 500 flows, sorted ASC by timestamp
+  ]
+}</pre>
+  </div>
+
+  <h2 class="docs-h2" id="replay-ui">Timeline UI</h2>
+  <p class="docs-p">
+    The replay page is served at <code class="mono">/replay</code> and accepts the same query params
+    as the API endpoint. You can link directly to a replay from your own alerting tools:
+  </p>
+
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header">
+      <span>Deep link to a replay</span>
+      <button class="copy-btn" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre>https://your-hub/replay
+  ?agent_id=4f8a2c1e-...
+  &amp;around=2026-05-05T14%3A32%3A00Z
+  &amp;hostname=prod-web-01
+  &amp;window_mins=10</pre>
+  </div>
+
+  <p class="docs-p">
+    The <code class="mono">hostname</code> parameter is display-only and optional.
+    The <code class="mono">window_mins</code> parameter accepts integers from 1 to 30.
+    Flows are fetched client-side from the Hub API via the Next.js proxy, so no additional
+    CORS configuration is required.
   </p>
 
 </section>

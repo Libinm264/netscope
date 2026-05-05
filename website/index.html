@@ -660,6 +660,17 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
           <p>Metadata-only mode by default — headers, timing, DNS, TLS, no body. Bodies captured automatically on 4xx/5xx errors or via a Fleet toggle. Zero-restart config push.</p>
         </div>
 
+        <div class="feat" style="border-color:rgba(239,68,68,.15);position:relative;overflow:hidden">
+          <div style="position:absolute;top:.75rem;right:.75rem;font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#f87171;background:rgba(239,68,68,.1);padding:.2rem .5rem;border-radius:4px">New · v0.7</div>
+          <div class="feat-icon" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.15)">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke="#f87171">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+          </div>
+          <h4>Incident replay timeline</h4>
+          <p>Click "Replay" on any anomaly to pull all flows in a ±5 min window and render them as a protocol lane timeline — HTTP, DNS, TLS, TCP in parallel. Click any block to inspect headers and payload.</p>
+        </div>
+
       </div>
     </div>
   </div>

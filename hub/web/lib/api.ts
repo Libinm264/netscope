@@ -1083,3 +1083,40 @@ export async function fetchBaseline(params?: {
 }): Promise<{ baseline: BaselineEntry[]; total: number }> {
   return get("/baseline", params as Record<string, string | number>);
 }
+
+// ── v0.7 Incident Replay Timeline ─────────────────────────────────────────────
+
+export interface ReplayFlow {
+  id: string;
+  agent_id: string;
+  hostname: string;
+  timestamp: string;
+  protocol: string;
+  src_ip: string;
+  src_port: number;
+  dst_ip: string;
+  dst_port: number;
+  bytes_in: number;
+  bytes_out: number;
+  duration_ms: number;
+  info: string;
+}
+
+export interface ReplayResponse {
+  agent_id: string;
+  hostname: string;
+  around: string;
+  window_mins: number;
+  from: string;
+  to: string;
+  flows: ReplayFlow[];
+  total: number;
+}
+
+export async function fetchReplay(
+  agentId: string,
+  around: string,
+  windowMins = 5,
+): Promise<ReplayResponse> {
+  return get("/replay", { agent_id: agentId, around, window_mins: windowMins });
+}
