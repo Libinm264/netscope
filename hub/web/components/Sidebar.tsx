@@ -7,6 +7,7 @@ import {
   ShieldCheck, ClipboardList, Shield, ShieldAlert, ScanSearch,
   Settings, Building2, Users, Users2, KeyRound, Zap, ChevronDown,
   Plug, Map, Cloud, Globe, Siren, FileBarChart2, Activity, Sparkles,
+  Database,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useState } from "react";
@@ -18,6 +19,7 @@ const NAV_MAIN = [
   { href: "/flows",        label: "Flows",       icon: List },
   { href: "/services",   label: "Services",   icon: GitFork },
   { href: "/analytics",  label: "Analytics",  icon: BarChart3 },
+  { href: "/inventory",  label: "API Inventory", icon: Database },
   { href: "/agents",     label: "Agents",     icon: Server },
   { href: "/certs",      label: "Certs",      icon: ShieldCheck },
   { href: "/alerts",     label: "Alerts",     icon: Bell },

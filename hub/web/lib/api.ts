@@ -1120,3 +1120,64 @@ export async function fetchReplay(
 ): Promise<ReplayResponse> {
   return get("/replay", { agent_id: agentId, around, window_mins: windowMins });
 }
+
+// ── v0.7 V2: Natural Language Flow Search ─────────────────────────────────────
+
+export interface NLSearchFilters {
+  protocol?: string;
+  src_ip?: string;
+  dst_ip?: string;
+  hostname?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface NLSearchResult {
+  filters: NLSearchFilters;
+  explanation: string;
+}
+
+export async function fetchFlowSearch(query: string): Promise<NLSearchResult> {
+  return api("POST", "/copilot/search", { query });
+}
+
+// ── v0.7 V3: Passive API Inventory ────────────────────────────────────────────
+
+export interface InventoryEndpoint {
+  hostname: string;
+  protocol: string;
+  method: string;
+  path: string;
+  call_count: number;
+  error_count: number;
+  error_rate: number;
+  p95_ms: number;
+  avg_ms: number;
+  agent_count: number;
+  first_seen: string;
+  last_seen: string;
+  is_new: boolean;
+}
+
+export interface InventoryResponse {
+  endpoints: InventoryEndpoint[];
+  window: string;
+  total: number;
+}
+
+export async function fetchInventory(params?: {
+  window?: string;
+  hostname?: string;
+  search?: string;
+}): Promise<InventoryResponse> {
+  return get("/inventory/endpoints", params as Record<string, string>);
+}
+
+// ── v0.7 V4: Alert resolve ────────────────────────────────────────────────────
+
+export async function resolveAlert(
+  id: string,
+  note?: string,
+): Promise<{ ok: boolean; rule_id: string; resolved_at: string; note: string }> {
+  return api("POST", `/alerts/${id}/resolve`, { note: note ?? "Resolved via dashboard" });
+}

@@ -13,6 +13,46 @@ import (
 	"github.com/netscope/hub-api/copilot"
 )
 
+// ── V2: Natural Language Flow Search ─────────────────────────────────────────
+
+type searchRequest struct {
+	Query string `json:"query"`
+}
+
+// Search handles POST /api/v1/copilot/search
+//
+// Request body: {"query": "outbound connections to Russia in the last hour"}
+// Response:     {"filters":{...},"explanation":"..."}
+//
+// Translates a plain-English description into structured flow-filter parameters
+// using the same Anthropic backend as the Copilot chat, but returns structured
+// JSON (non-streaming) that the Flows page can apply directly.
+func (h *CopilotHandler) Search(c *fiber.Ctx) error {
+	if h.AnthropicKey == "" {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(
+			fiber.Map{"error": "AI Copilot is not configured — set ANTHROPIC_API_KEY"})
+	}
+
+	var req searchRequest
+	if err := c.BodyParser(&req); err != nil || req.Query == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": "request body must be {\"query\":\"...\"}"})
+	}
+	if len(req.Query) > 512 {
+		return c.Status(fiber.StatusBadRequest).JSON(
+			fiber.Map{"error": "query must be ≤ 512 characters"})
+	}
+
+	client := copilot.New(h.AnthropicKey, h.CH)
+	result, err := client.Search(c.Context(), req.Query)
+	if err != nil {
+		slog.Warn("copilot search failed", "err", err)
+		return c.Status(fiber.StatusBadGateway).JSON(
+			fiber.Map{"error": "AI search unavailable: " + err.Error()})
+	}
+	return c.JSON(result)
+}
+
 // CopilotHandler serves the AI Security Copilot chat endpoint.
 type CopilotHandler struct {
 	CH           *clickhouse.Client

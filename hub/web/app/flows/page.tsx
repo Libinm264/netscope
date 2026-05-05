@@ -3,13 +3,92 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   fetchFlows, fetchSavedQueries, createSavedQuery, deleteSavedQuery,
-  type Flow, type SavedQuery,
+  fetchFlowSearch,
+  type Flow, type SavedQuery, type NLSearchFilters,
 } from "@/lib/api";
 import { FlowTable } from "@/components/FlowTable";
 import {
   RefreshCw, Search, Clock, X, Download, Cpu, ChevronDown, ChevronUp,
-  Bookmark, BookmarkCheck, Trash2, ChevronRight,
+  Bookmark, BookmarkCheck, Trash2, ChevronRight, Sparkles,
 } from "lucide-react";
+import { clsx } from "clsx";
+
+// ── NL Search bar (V2) ────────────────────────────────────────────────────────
+
+function NLSearchBar({ onApply }: { onApply: (f: NLSearchFilters, explanation: string) => void }) {
+  const [query,   setQuery]   = useState("");
+  const [busy,    setBusy]    = useState(false);
+  const [lastExp, setLastExp] = useState<string | null>(null);
+  const [err,     setErr]     = useState<string | null>(null);
+
+  const run = async () => {
+    const q = query.trim();
+    if (!q || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetchFlowSearch(q);
+      setLastExp(res.explanation);
+      onApply(res.filters, res.explanation);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "AI search unavailable");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const clear = () => {
+    setQuery("");
+    setLastExp(null);
+    setErr(null);
+    onApply({}, "");
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        {/* Input */}
+        <div className="relative flex-1">
+          <Sparkles size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") run(); }}
+            placeholder='Search in plain English — "show me DNS failures in the last hour"'
+            className="w-full bg-indigo-500/[0.06] border border-indigo-500/20 rounded-lg
+                       pl-8 pr-4 py-2 text-sm text-white placeholder:text-slate-600
+                       focus:outline-none focus:border-indigo-500/50 transition-colors"
+          />
+        </div>
+        <button
+          onClick={run}
+          disabled={!query.trim() || busy}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium
+                     bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-40
+                     transition-colors whitespace-nowrap"
+        >
+          {busy ? <RefreshCw size={11} className="animate-spin" /> : <Sparkles size={11} />}
+          {busy ? "Thinking…" : "Search"}
+        </button>
+        {lastExp && (
+          <button onClick={clear} className="p-2 rounded-lg hover:bg-white/[0.05] text-slate-500 hover:text-slate-300 transition-colors">
+            <X size={13} />
+          </button>
+        )}
+      </div>
+
+      {/* Explanation chip */}
+      {lastExp && (
+        <p className="text-[11px] text-indigo-300 flex items-center gap-1.5 px-1">
+          <Sparkles size={10} />
+          <span>{lastExp}</span>
+          <span className="text-slate-600">— filters applied above</span>
+        </p>
+      )}
+      {err && <p className="text-[11px] text-red-400 px-1">{err}</p>}
+    </div>
+  );
+}
 
 const PAGE_SIZE = 100;
 
@@ -58,6 +137,7 @@ export default function FlowsPage() {
   const [protocol, setProtocol] = useState("");
   const [srcIP, setSrcIP] = useState("");
   const [dstIP, setDstIP] = useState("");
+  const [nlActive, setNlActive] = useState(false); // true when NL search applied
   const [traceID, setTraceID] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -165,6 +245,16 @@ export default function FlowsPage() {
 
   const hasRange    = Boolean(from || to);
   const hasEbpfData = flows.some((f) => f.process_name);
+
+  function applyNLFilters(f: NLSearchFilters, explanation: string) {
+    if (f.protocol)  setProtocol(f.protocol);
+    if (f.src_ip)    setSrcIP(f.src_ip);
+    if (f.dst_ip)    setDstIP(f.dst_ip);
+    if (f.from)      setFrom(toLocalDatetimeValue(new Date(f.from)));
+    if (f.to)        setTo(toLocalDatetimeValue(new Date(f.to)));
+    setNlActive(Boolean(explanation));
+    setPage(0);
+  }
 
   return (
     <div className="p-6 space-y-4" onClick={() => savedOpen && setSavedOpen(false)}>
@@ -278,6 +368,9 @@ export default function FlowsPage() {
           </button>
         </div>
       </div>
+
+      {/* V2 — Natural Language Search */}
+      <NLSearchBar onApply={applyNLFilters} />
 
       {/* Filters ── row 1: protocol + src IP */}
       <div className="flex flex-wrap gap-3">
