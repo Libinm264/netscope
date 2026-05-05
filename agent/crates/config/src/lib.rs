@@ -1,5 +1,30 @@
 use serde::{Deserialize, Serialize};
 
+/// Controls how much of each HTTP flow the agent captures and forwards.
+///
+/// `Metadata` (default) — captures headers, timing, status codes, DNS, TLS
+/// metadata, and protocol attribution, but strips request/response body
+/// content. This keeps overhead near zero at any traffic volume.
+///
+/// `Full` — captures everything including body previews. Switched to
+/// automatically on 4xx/5xx responses, or pushed from the Hub Fleet UI.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SamplingMode {
+    #[default]
+    Metadata,
+    Full,
+}
+
+impl std::fmt::Display for SamplingMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SamplingMode::Metadata => write!(f, "metadata"),
+            SamplingMode::Full     => write!(f, "full"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentConfig {
     /// Network interface to capture on (e.g. "en0", "eth0", "lo")

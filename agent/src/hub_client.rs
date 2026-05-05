@@ -341,13 +341,16 @@ impl HubClient {
 #[derive(Debug, Clone, Default)]
 pub struct RemoteConfigSettings {
     /// New BPF capture filter. Takes effect on the next agent restart.
-    pub bpf_filter:  Option<String>,
+    pub bpf_filter:    Option<String>,
     /// Arbitrary label key-value pairs to tag this agent.
-    pub labels:      Option<HashMap<String, String>>,
+    pub labels:        Option<HashMap<String, String>>,
     /// Flow batch size override.
-    pub batch_size:  Option<u32>,
+    pub batch_size:    Option<u32>,
     /// Heartbeat interval override in milliseconds.
-    pub interval_ms: Option<u64>,
+    pub interval_ms:   Option<u64>,
+    /// Adaptive sampling mode pushed from the Fleet UI.
+    /// `None` means no change — keep the current mode.
+    pub sampling_mode: Option<config::SamplingMode>,
 }
 
 /// A pending remote config record returned by `GET /api/v1/agents/:id/config`.
@@ -544,17 +547,19 @@ fn rcode_to_int(rcode: Option<&str>) -> i32 {
 fn parse_config_settings(raw: &str) -> RemoteConfigSettings {
     #[derive(Deserialize)]
     struct Inner {
-        bpf_filter:  Option<String>,
-        labels:      Option<HashMap<String, String>>,
-        batch_size:  Option<u32>,
-        interval_ms: Option<u64>,
+        bpf_filter:    Option<String>,
+        labels:        Option<HashMap<String, String>>,
+        batch_size:    Option<u32>,
+        interval_ms:   Option<u64>,
+        sampling_mode: Option<config::SamplingMode>,
     }
     match serde_json::from_str::<Inner>(raw) {
         Ok(inner) => RemoteConfigSettings {
-            bpf_filter:  inner.bpf_filter,
-            labels:      inner.labels,
-            batch_size:  inner.batch_size,
-            interval_ms: inner.interval_ms,
+            bpf_filter:    inner.bpf_filter,
+            labels:        inner.labels,
+            batch_size:    inner.batch_size,
+            interval_ms:   inner.interval_ms,
+            sampling_mode: inner.sampling_mode,
         },
         Err(e) => {
             tracing::warn!("could not parse remote config payload: {}", e);

@@ -4,10 +4,12 @@ mod perf;
 use anyhow::Result;
 use capture::{list_interfaces, start_capture, CaptureError};
 use clap::{Parser, Subcommand};
-use config::{AgentConfig, OutputMode};
+use config::{AgentConfig, OutputMode, SamplingMode};
 use hub_client::HubClient;
 use parser::session::SessionManager;
 use proto::FlowPayload;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 use std::thread;
 use tracing::{error, info, warn};
@@ -197,7 +199,38 @@ fn k8s_info_from_cgroup() -> (String, String) {
     (String::new(), String::new())
 }
 
+/// Strip body previews from a flow when the agent is in metadata-only mode.
+///
+/// In `Full` mode (or when the HTTP response is 4xx/5xx) the body is kept so
+/// engineers can inspect error payloads even without reconfiguring the agent.
+/// All non-HTTP protocols (DNS, TLS, ICMP, ARP) carry no body — this is a no-op.
+fn apply_sampling(flow: &mut proto::Flow, full_capture: bool) {
+    if full_capture {
+        return; // full mode — nothing to strip
+    }
+    match &mut flow.payload {
+        Some(FlowPayload::Http(h)) => {
+            // Keep bodies only when the response was an error.
+            let is_error = h.response.as_ref()
+                .map(|r| r.status_code >= 400)
+                .unwrap_or(false);
+            if !is_error {
+                if let Some(ref mut req)  = h.request  { req.body_preview  = None; }
+                if let Some(ref mut resp) = h.response { resp.body_preview = None; }
+            }
+        }
+        Some(FlowPayload::Http2(_)) => {
+            // HTTP/2 proto structs carry no body_preview field — nothing to strip.
+        }
+        _ => {} // DNS, TLS, ICMP, ARP — no body fields
+    }
+}
+
 fn run_capture(cfg: AgentConfig) -> Result<()> {
+    // Sampling mode: false = metadata-only (default), true = full capture.
+    // Shared between the heartbeat thread (writer) and main capture loop (reader).
+    let full_capture: Arc<AtomicBool> = Arc::new(AtomicBool::new(false));
+
     let (tx, rx) = mpsc::channel();
 
     let cfg_clone = cfg.clone();
@@ -277,10 +310,12 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
     if let (Some(ref flow_client), Some(url), Some(key)) = (
         hub.as_ref(), cfg.hub_url.as_ref(), cfg.api_key.as_ref(),
     ) {
-        let shared_id = flow_client.agent_id().to_string();
-        let iface_hb  = cfg.interface.clone();
-        let url       = url.clone();
-        let key       = key.clone();
+        let shared_id       = flow_client.agent_id().to_string();
+        let iface_hb        = cfg.interface.clone();
+        let url             = url.clone();
+        let key             = key.clone();
+        let full_capture_hb = Arc::clone(&full_capture);
+
         thread::spawn(move || {
             match HubClient::new_with_id(&url, &key, &shared_id) {
                 Ok(hb_client) => {
@@ -309,23 +344,32 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
 
                         // Poll for any pending remote config update from the Fleet dashboard.
                         match hb_client.poll_config() {
-                            Ok(Some(cfg)) => {
-                                info!(version = cfg.version, "Remote config received from Hub");
-                                if let Some(ref f) = cfg.settings.bpf_filter {
+                            Ok(Some(remote)) => {
+                                info!(version = remote.version, "Remote config received from Hub");
+                                if let Some(ref f) = remote.settings.bpf_filter {
                                     info!(filter = %f,
                                         "BPF filter update queued — restart agent to apply");
                                 }
-                                if let Some(ref l) = cfg.settings.labels {
+                                if let Some(ref l) = remote.settings.labels {
                                     info!(labels = ?l, "Label update received");
                                 }
-                                if let Some(bs) = cfg.settings.batch_size {
-                                    info!(batch_size = bs, "Batch size update queued — restart agent to apply");
+                                if let Some(bs) = remote.settings.batch_size {
+                                    info!(batch_size = bs,
+                                        "Batch size update queued — restart agent to apply");
                                 }
-                                if let Some(iv) = cfg.settings.interval_ms {
-                                    info!(interval_ms = iv, "Heartbeat interval update queued — restart agent to apply");
+                                if let Some(iv) = remote.settings.interval_ms {
+                                    info!(interval_ms = iv,
+                                        "Heartbeat interval update queued — restart agent to apply");
                                 }
-                                match hb_client.ack_config(cfg.version) {
-                                    Ok(())  => info!(version = cfg.version, "Config ack sent to Hub"),
+                                // Apply sampling mode immediately — no restart needed.
+                                if let Some(mode) = remote.settings.sampling_mode {
+                                    let is_full = matches!(mode, SamplingMode::Full);
+                                    full_capture_hb.store(is_full, Ordering::Relaxed);
+                                    info!(mode = %mode, "Sampling mode updated from Hub");
+                                }
+                                match hb_client.ack_config(remote.version) {
+                                    Ok(())  => info!(version = remote.version,
+                                                    "Config ack sent to Hub"),
                                     Err(e)  => warn!("Config ack failed: {}", e),
                                 }
                             }
@@ -344,6 +388,11 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
     let mut session_mgr = SessionManager::new();
     let mut flow_count = 0u64;
 
+    info!(
+        mode = %if full_capture.load(Ordering::Relaxed) { "full" } else { "metadata" },
+        "Adaptive sampling active — bodies stripped in metadata mode, kept on 4xx/5xx"
+    );
+
     // Main loop: receive PacketEvents and decode them into flows
     for packet_event in &rx {
         let flows = session_mgr.process(&packet_event);
@@ -356,6 +405,10 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
                 flow.pod_name = Some(k8s_pod_name.clone());
                 flow.k8s_namespace = Some(k8s_namespace.clone());
             }
+
+            // Apply adaptive sampling: strip body previews in metadata mode
+            // unless the response was an error (4xx/5xx).
+            apply_sampling(&mut flow, full_capture.load(Ordering::Relaxed));
 
             if let Some(ref mut client) = hub {
                 if let Err(e) = client.send_flow(&flow) {

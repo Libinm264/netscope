@@ -323,3 +323,90 @@ func (h *FleetHandler) AckAgentConfig(c *fiber.Ctx) error {
 	_ = uuid.New() // ensure import used
 	return c.JSON(fiber.Map{"ok": true})
 }
+
+// ── Adaptive Sampling ─────────────────────────────────────────────────────────
+
+// SetSamplingMode pushes a sampling-mode config to a specific agent.
+// The agent picks it up on its next config poll (≤ 30 s) and applies it
+// without restarting — bodies are stripped immediately in metadata mode.
+//
+// POST /api/v1/agents/:id/sampling
+// Body: {"mode": "metadata" | "full"}
+func (h *FleetHandler) SetSamplingMode(c *fiber.Ctx) error {
+	agentID := c.Params("id")
+	if agentID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agent_id required"})
+	}
+	if h.CH == nil {
+		return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"error": "ClickHouse unavailable"})
+	}
+
+	var body struct {
+		Mode string `json:"mode"`
+	}
+	if err := c.BodyParser(&body); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid body"})
+	}
+	if body.Mode != "metadata" && body.Mode != "full" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "mode must be 'metadata' or 'full'"})
+	}
+
+	cfgMap := map[string]any{"sampling_mode": body.Mode}
+	cfgBytes, _ := json.Marshal(cfgMap)
+
+	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+	defer cancel()
+
+	now := time.Now().UTC()
+	if err := h.CH.Exec(ctx,
+		`INSERT INTO agent_configs (agent_id, config, pushed_at, ack_at, version)
+		 VALUES (?, ?, ?, toDateTime64(0,3), ?)`,
+		agentID, string(cfgBytes), now, now.UnixMilli(),
+	); err != nil {
+		return util.InternalError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"ok": true, "agent_id": agentID, "mode": body.Mode, "pushed_at": now})
+}
+
+// GetSamplingMode returns the currently configured sampling mode for an agent.
+// Defaults to "metadata" when no config has been pushed.
+//
+// GET /api/v1/agents/:id/sampling
+func (h *FleetHandler) GetSamplingMode(c *fiber.Ctx) error {
+	agentID := c.Params("id")
+	if agentID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "agent_id required"})
+	}
+	if h.CH == nil {
+		return c.JSON(fiber.Map{"agent_id": agentID, "mode": "metadata"})
+	}
+
+	ctx, cancel := context.WithTimeout(c.Context(), 5*time.Second)
+	defer cancel()
+
+	rows, err := h.CH.Query(ctx,
+		`SELECT config FROM agent_configs WHERE agent_id = ? ORDER BY pushed_at DESC LIMIT 1`,
+		agentID)
+	if err != nil || rows == nil {
+		return c.JSON(fiber.Map{"agent_id": agentID, "mode": "metadata"})
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return c.JSON(fiber.Map{"agent_id": agentID, "mode": "metadata"})
+	}
+	var cfgJSON string
+	if err := rows.Scan(&cfgJSON); err != nil {
+		return c.JSON(fiber.Map{"agent_id": agentID, "mode": "metadata"})
+	}
+
+	var cfg map[string]any
+	mode := "metadata" // safe default
+	if err := json.Unmarshal([]byte(cfgJSON), &cfg); err == nil {
+		if m, ok := cfg["sampling_mode"].(string); ok && (m == "metadata" || m == "full") {
+			mode = m
+		}
+	}
+	return c.JSON(fiber.Map{"agent_id": agentID, "mode": mode})
+}

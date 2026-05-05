@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Server, Plus, X, Copy, Check, RefreshCw, Cpu, Globe2, Box, Activity } from "lucide-react";
 import { clsx } from "clsx";
-import { fetchAgents, fetchAgentPerf, createEnrollmentToken } from "@/lib/api";
-import type { Agent, PerfSample, EnrollmentToken } from "@/lib/api";
+import { fetchAgents, fetchAgentPerf, fetchAgentSampling, pushAgentSampling, createEnrollmentToken } from "@/lib/api";
+import type { Agent, PerfSample, SamplingMode, EnrollmentToken } from "@/lib/api";
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 
@@ -190,6 +190,76 @@ function PerfBar({ agentId }: { agentId: string }) {
           </span>
         </>
       )}
+    </div>
+  );
+}
+
+// ── Sampling mode toggle ───────────────────────────────────────────────────────
+//
+// Shows the current sampling mode and lets an admin switch between
+// "metadata" (default — no body content) and "full" (body previews included).
+// The change is pushed to the Hub and the agent picks it up within 30 s.
+
+function SamplingToggle({ agentId }: { agentId: string }) {
+  const [mode, setMode]       = useState<SamplingMode | null>(null);
+  const [pushing, setPushing] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAgentSampling(agentId)
+      .then(d => { if (!cancelled) setMode(d.mode); })
+      .catch(() => { if (!cancelled) setMode("metadata"); });
+    return () => { cancelled = true; };
+  }, [agentId]);
+
+  const toggle = async () => {
+    if (pushing || mode === null) return;
+    const next: SamplingMode = mode === "metadata" ? "full" : "metadata";
+    setPushing(true);
+    try {
+      await pushAgentSampling(agentId, next);
+      setMode(next);
+    } catch {
+      // silent — mode stays unchanged
+    } finally {
+      setPushing(false);
+    }
+  };
+
+  if (mode === null) return null;
+
+  const isFull = mode === "full";
+
+  return (
+    <div className="flex items-center justify-between pt-2 mt-1 border-t border-white/[0.04]">
+      <div className="flex items-center gap-1.5 text-[10px]">
+        <span className={clsx(
+          "font-medium",
+          isFull ? "text-amber-400" : "text-slate-500",
+        )}>
+          {isFull ? "Full capture" : "Metadata only"}
+        </span>
+        {isFull && (
+          <span className="px-1 py-0.5 rounded text-[9px] bg-amber-500/10 border border-amber-500/20 text-amber-500">
+            bodies included
+          </span>
+        )}
+      </div>
+      <button
+        onClick={toggle}
+        disabled={pushing}
+        title={isFull ? "Switch to metadata-only mode" : "Enable full body capture"}
+        className={clsx(
+          "relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full",
+          "transition-colors duration-200 focus:outline-none disabled:opacity-50",
+          isFull ? "bg-amber-500/70" : "bg-slate-700",
+        )}
+      >
+        <span className={clsx(
+          "inline-block h-3 w-3 rounded-full bg-white shadow transition-transform duration-200",
+          isFull ? "translate-x-3.5" : "translate-x-0.5",
+        )} />
+      </button>
     </div>
   );
 }
@@ -512,6 +582,9 @@ export default function AgentsPage() {
 
                 {/* Performance sparkline — only renders if perf data available */}
                 <PerfBar agentId={agent.agent_id} />
+
+                {/* Sampling mode toggle */}
+                <SamplingToggle agentId={agent.agent_id} />
               </div>
             );
           })}

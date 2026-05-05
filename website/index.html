@@ -653,6 +653,13 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
           <p>CPU %, memory, and packet-drop counter reported on every heartbeat. The Fleet dashboard shows per-agent sparklines so you can prove &lt;1% CPU at 1 Gbps.</p>
         </div>
 
+        <div class="feat" style="border-color:rgba(99,102,241,.15);position:relative;overflow:hidden">
+          <div style="position:absolute;top:.75rem;right:.75rem;font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#818cf8;background:rgba(99,102,241,.1);padding:.2rem .5rem;border-radius:4px">New · v0.7</div>
+          <div class="feat-icon" style="background:rgba(99,102,241,.08);border-color:rgba(99,102,241,.15)"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke="#818cf8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+          <h4>Adaptive sampling</h4>
+          <p>Metadata-only mode by default — headers, timing, DNS, TLS, no body. Bodies captured automatically on 4xx/5xx errors or via a Fleet toggle. Zero-restart config push.</p>
+        </div>
+
       </div>
     </div>
   </div>

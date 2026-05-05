@@ -569,6 +569,8 @@ func main() {
 	v1.Get("/agents/:id/config",             apiLimit,           fleetH.GetAgentConfig)
 	v1.Post("/agents/:id/config",            apiLimit, entAdmin, fleetH.PushAgentConfig)
 	v1.Post("/agents/:id/config/ack",        apiLimit,           fleetH.AckAgentConfig)
+	v1.Get("/agents/:id/sampling",           apiLimit,           fleetH.GetSamplingMode)
+	v1.Post("/agents/:id/sampling",          apiLimit, entAdmin, fleetH.SetSamplingMode)
 
 	// ── v0.5: Compliance Reports (Enterprise)
 	ent.Get(  "/compliance/reports",                   apiLimit,           complianceReportH.List)

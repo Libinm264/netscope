@@ -362,6 +362,12 @@ footer a:hover{color:var(--text)}
     </a>
     <a href="#performance-api" class="sidebar-link">Perf history API</a>
     <a href="#performance-storage" class="sidebar-link">ClickHouse storage</a>
+    <a href="#sampling" class="sidebar-link" style="margin-top:.25rem">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Adaptive Sampling
+    </a>
+    <a href="#sampling-modes" class="sidebar-link">Metadata vs full</a>
+    <a href="#sampling-api" class="sidebar-link">Sampling API</a>
   </div>
   <div class="sidebar-divider"></div>
 
@@ -1814,6 +1820,109 @@ ORDER BY avg_cpu DESC;</pre>
     card. The sparkline colour shifts from indigo (healthy) to amber (&gt;50%) to red (&gt;80%) to
     surface high-load agents at a glance. A non-zero <code class="mono">packets_dropped</code> count
     surfaces as a warning badge on the card.
+  </p>
+
+</section>
+
+<!-- ── ADAPTIVE SAMPLING ── -->
+<section class="docs-section fade-in" id="sampling">
+  <span class="section-eyebrow" style="color:#818cf8">v0.7 · New Feature</span>
+  <h2 class="docs-h1">Adaptive Sampling</h2>
+  <p class="docs-p">
+    NetScope agents default to <strong>metadata-only</strong> mode — they capture every connection's
+    headers, timing, DNS queries, TLS handshakes, and protocol attribution, but discard
+    HTTP request/response body content before it is batched or transmitted. This keeps CPU and
+    memory overhead near zero even at multi-gigabit traffic volumes.
+  </p>
+  <p class="docs-p">
+    Two mechanisms upgrade a session to <strong>full capture</strong> automatically or on demand:
+  </p>
+  <div style="display:flex;flex-direction:column;gap:.75rem;margin:1.5rem 0">
+    <div style="display:flex;gap:.75rem;align-items:flex-start">
+      <div style="width:6px;height:6px;border-radius:50%;background:#818cf8;margin-top:.45rem;flex-shrink:0"></div>
+      <p class="docs-p" style="margin:0"><strong>Automatic error capture</strong> — when an HTTP response carries a 4xx or 5xx status code the agent retains the body preview for that session, giving engineers the error payload they need without enabling full capture globally.</p>
+    </div>
+    <div style="display:flex;gap:.75rem;align-items:flex-start">
+      <div style="width:6px;height:6px;border-radius:50%;background:#818cf8;margin-top:.45rem;flex-shrink:0"></div>
+      <p class="docs-p" style="margin:0"><strong>Fleet UI toggle</strong> — each agent card in the Fleet dashboard has a sampling toggle. Flipping it to Full pushes a config to the Hub; the agent picks it up within 30 seconds without restarting.</p>
+    </div>
+  </div>
+
+  <div class="info-box" style="border-color:rgba(99,102,241,.2);background:rgba(99,102,241,.04);margin:2rem 0">
+    <strong style="color:#818cf8">Privacy note</strong><br/>
+    Metadata mode is the recommended default for production environments — it is compatible with
+    the PII masking guarantees described in the <a href="#privacy" style="color:#818cf8">Privacy &amp; PII Masking</a> section.
+    Full capture mode may expose body content; ensure your data handling policies permit this
+    before enabling it fleet-wide.
+  </div>
+
+  <h2 class="docs-h2" id="sampling-modes">Metadata vs Full mode</h2>
+
+  <div class="table-wrap" style="margin:1.5rem 0">
+    <table class="docs-table">
+      <thead><tr><th>Feature</th><th>Metadata mode (default)</th><th>Full mode</th></tr></thead>
+      <tbody>
+        <tr><td>HTTP method, path, status</td><td>✅</td><td>✅</td></tr>
+        <tr><td>Request / response headers</td><td>✅ (PII-masked)</td><td>✅ (PII-masked)</td></tr>
+        <tr><td>Timing &amp; latency</td><td>✅</td><td>✅</td></tr>
+        <tr><td>DNS queries &amp; answers</td><td>✅</td><td>✅</td></tr>
+        <tr><td>TLS handshake metadata</td><td>✅</td><td>✅</td></tr>
+        <tr><td>eBPF process attribution</td><td>✅</td><td>✅</td></tr>
+        <tr><td>Request body preview</td><td>❌ (stripped)</td><td>✅</td></tr>
+        <tr><td>Response body preview</td><td>❌ unless 4xx/5xx</td><td>✅</td></tr>
+        <tr><td>Typical agent CPU overhead</td><td>&lt;1% at 1 Gbps</td><td>~2–5% at 1 Gbps</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="docs-h2" id="sampling-api">Sampling API</h2>
+  <p class="docs-p">
+    Read or update the sampling mode for a specific agent via the REST API.
+    Changes are picked up by the agent on its next config poll (within 30 seconds).
+  </p>
+
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header">
+      <span>HTTP — read current mode</span>
+      <button class="copy-btn" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre>GET /api/v1/agents/{agent_id}/sampling
+
+# Response
+{"agent_id": "4f8a2c1e-...", "mode": "metadata"}</pre>
+  </div>
+
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header">
+      <span>HTTP — push new mode (admin only)</span>
+      <button class="copy-btn" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre>POST /api/v1/agents/{agent_id}/sampling
+Content-Type: application/json
+X-Api-Key: &lt;admin-key&gt;
+
+{"mode": "full"}
+
+# Response
+{
+  "ok": true,
+  "agent_id": "4f8a2c1e-...",
+  "mode": "full",
+  "pushed_at": "2026-05-05T12:00:00Z"
+}</pre>
+  </div>
+
+  <p class="docs-p">
+    Valid values for <code class="mono">mode</code> are <code class="mono">metadata</code> and
+    <code class="mono">full</code>. Any other value returns HTTP 400.
+    The config is delivered via the existing <code class="mono">agent_configs</code> ClickHouse table
+    and acknowledged by the agent using the same poll/ack mechanism as other remote config pushes.
   </p>
 
 </section>

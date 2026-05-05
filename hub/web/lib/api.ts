@@ -993,6 +993,23 @@ export async function fetchSigmaMatches(params?: {
   return get("/enterprise/sigma/matches", params as Record<string, string | number>);
 }
 
+// ── v0.7 Adaptive sampling ────────────────────────────────────────────────────
+
+export type SamplingMode = "metadata" | "full";
+
+export async function fetchAgentSampling(
+  agentId: string,
+): Promise<{ agent_id: string; mode: SamplingMode }> {
+  return get(`/agents/${agentId}/sampling`);
+}
+
+export async function pushAgentSampling(
+  agentId: string,
+  mode: SamplingMode,
+): Promise<{ ok: boolean; agent_id: string; mode: SamplingMode; pushed_at: string }> {
+  return api("POST", `/agents/${agentId}/sampling`, { mode });
+}
+
 // ── v0.7 Agent performance telemetry ─────────────────────────────────────────
 
 export interface PerfSample {
