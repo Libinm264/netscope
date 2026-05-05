@@ -8,7 +8,7 @@
 # static binary that is then copied into the minimal target-platform runtime.
 
 # ── Stage 1: build ────────────────────────────────────────────────────────────
-FROM --platform=$BUILDPLATFORM golang:1.22-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
 
 # Declare the target platform args injected by docker buildx.
 ARG TARGETOS=linux
