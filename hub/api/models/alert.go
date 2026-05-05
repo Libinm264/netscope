@@ -54,14 +54,29 @@ type CreateAlertRuleRequest struct {
 	CooldownMinutes uint32  `json:"cooldown_minutes"`
 }
 
+// FlowSummary is a compact flow record included in alert payloads for context.
+type FlowSummary struct {
+	Protocol string `json:"protocol"`
+	SrcIP    string `json:"src_ip"`
+	DstIP    string `json:"dst_ip"`
+	DstPort  uint16 `json:"dst_port"`
+	Info     string `json:"info"`
+}
+
 // WebhookPayload is posted to the rule's WebhookURL when it fires.
 type WebhookPayload struct {
-	AlertID   string    `json:"alert_id"`
-	RuleName  string    `json:"rule_name"`
-	Metric    string    `json:"metric"`
-	Value     float64   `json:"value"`
-	Threshold float64   `json:"threshold"`
-	Condition string    `json:"condition"`
-	FiredAt   time.Time `json:"fired_at"`
-	Message   string    `json:"message"`
+	AlertID   string        `json:"alert_id"`
+	RuleName  string        `json:"rule_name"`
+	Metric    string        `json:"metric"`
+	Value     float64       `json:"value"`
+	Threshold float64       `json:"threshold"`
+	Condition string        `json:"condition"`
+	FiredAt   time.Time     `json:"fired_at"`
+	Message   string        `json:"message"`
+	// V4 enrichment: top 5 recent flows for inline context in Slack/Teams threads.
+	TopFlows  []FlowSummary `json:"top_flows,omitempty"`
+	// HubURL is the base URL of the Hub dashboard (e.g. "https://hub.example.com").
+	HubURL    string        `json:"hub_url,omitempty"`
+	// ReplayURL is a deep link to the incident replay timeline.
+	ReplayURL string        `json:"replay_url,omitempty"`
 }

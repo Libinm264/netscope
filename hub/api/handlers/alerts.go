@@ -279,3 +279,38 @@ func (h *AlertHandler) TestDelivery(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"ok": true, "message": "test alert delivered"})
 }
+
+// Resolve handles POST /api/v1/alerts/:id/resolve
+//
+// Marks a rule as resolved and records the optional note.  The Hub writes
+// a resolution record that can be retrieved for audit purposes.
+func (h *AlertHandler) Resolve(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "missing alert rule id"})
+	}
+
+	var req struct {
+		Note string `json:"note"`
+	}
+	_ = c.BodyParser(&req)
+	if req.Note == "" {
+		req.Note = "Resolved via NetScope"
+	}
+
+	resolvedAt := time.Now().UTC()
+	// Best-effort write — ignore error on older installs without the table.
+	_ = h.CH.Exec(c.Context(), `
+		INSERT INTO alert_resolutions (rule_id, resolved_at, note)
+		VALUES (?, ?, ?)
+	`, id, resolvedAt, req.Note)
+
+	slog.Info("alert resolved", "rule_id", id, "note", req.Note)
+
+	return c.JSON(fiber.Map{
+		"ok":          true,
+		"rule_id":     id,
+		"resolved_at": resolvedAt,
+		"note":        req.Note,
+	})
+}

@@ -348,8 +348,13 @@ func main() {
 	// Phase 11 — agent flow count
 	v1.Get("/agents/stats",               apiLimit,                            agentH.Stats)
 	v1.Get("/agents/:id/perf",            apiLimit,                            agentH.PerfHistory)
-	replayH := &handlers.ReplayHandler{CH: chClient}
+	replayH    := &handlers.ReplayHandler{CH: chClient}
+	inventoryH := &handlers.InventoryHandler{CH: chClient}
 	v1.Get("/replay",                     apiLimit,                            replayH.Timeline)
+	// v0.7 V3 — Passive API Inventory
+	v1.Get("/inventory/endpoints",        apiLimit,                            inventoryH.Endpoints)
+	// v0.7 V4 — Alert resolve
+	v1.Post("/alerts/:id/resolve",        apiLimit, middleware.RequireAdmin(), alertH.Resolve)
 
 	// ── Phase 12 — Enterprise: org, members, teams, SSO config, license ──────
 	// Seed the initial local admin account if ADMIN_EMAIL + ADMIN_PASSWORD are set.
@@ -554,7 +559,9 @@ func main() {
 	v1.Get("/baseline",                      apiLimit,           anomalyH.GetBaseline)
 
 	// ── v0.6: AI Security Copilot (Community — requires ANTHROPIC_API_KEY)
-	v1.Post("/copilot/chat",                 apiLimit,           copilotH.Chat)
+	v1.Post("/copilot/chat",   apiLimit, copilotH.Chat)
+	// ── v0.7 V2: Natural Language Flow Search
+	v1.Post("/copilot/search", apiLimit, copilotH.Search)
 
 	// ── G4: Custom Dashboard Builder
 	dashH := &handlers.DashboardHandler{CH: chClient}

@@ -61,46 +61,104 @@ func FireWebhook(ctx context.Context, url string, payload models.WebhookPayload,
 
 // ── Slack ─────────────────────────────────────────────────────────────────────
 
-type slackPayload struct {
-	Text        string            `json:"text"`
-	Attachments []slackAttachment `json:"attachments"`
+// ── Slack Block Kit ───────────────────────────────────────────────────────────
+//
+// Block Kit produces rich, interactive-looking alert threads in Slack with
+// inline context rows for the top flows that triggered the alert.
+
+type slackBlock struct {
+	Type     string      `json:"type"`
+	Text     *slackText  `json:"text,omitempty"`
+	Fields   []slackText `json:"fields,omitempty"`
+	Elements []slackElem `json:"elements,omitempty"`
 }
 
-type slackAttachment struct {
-	Color  string       `json:"color"`
-	Fields []slackField `json:"fields"`
-	Footer string       `json:"footer"`
-	Ts     int64        `json:"ts"`
+type slackText struct {
+	Type  string `json:"type"`
+	Text  string `json:"text"`
+	Emoji bool   `json:"emoji,omitempty"`
 }
 
-type slackField struct {
-	Title string `json:"title"`
-	Value string `json:"value"`
-	Short bool   `json:"short"`
+type slackElem struct {
+	Type     string     `json:"type"`
+	Text     *slackText `json:"text,omitempty"`
+	URL      string     `json:"url,omitempty"`
+	Style    string     `json:"style,omitempty"`
+	ActionID string     `json:"action_id,omitempty"`
 }
 
-// FireSlack posts a formatted message to a Slack Incoming Webhook URL.
+type slackBlockPayload struct {
+	Text   string       `json:"text"` // fallback for notifications
+	Blocks []slackBlock `json:"blocks"`
+}
+
+// FireSlack posts a Block Kit message to a Slack Incoming Webhook URL.
 func FireSlack(ctx context.Context, webhookURL string, payload models.WebhookPayload) bool {
-	color := "danger"
+	emoji := "🚨"
 	if payload.Condition == "lt" {
-		color = "warning"
+		emoji = "⚠️"
 	}
 
-	body := slackPayload{
-		Text: fmt.Sprintf("🚨 *NetScope Alert*: %s", payload.RuleName),
-		Attachments: []slackAttachment{
-			{
-				Color: color,
-				Fields: []slackField{
-					{Title: "Metric", Value: payload.Metric, Short: true},
-					{Title: "Value", Value: fmt.Sprintf("%.2f", payload.Value), Short: true},
-					{Title: "Threshold", Value: fmt.Sprintf("%s %.2f", payload.Condition, payload.Threshold), Short: true},
-					{Title: "Message", Value: payload.Message, Short: false},
-				},
-				Footer: "NetScope Hub",
-				Ts:     payload.FiredAt.Unix(),
-			},
+	headerText := fmt.Sprintf("%s *NetScope Alert: %s*", emoji, payload.RuleName)
+
+	fields := []slackText{
+		{Type: "mrkdwn", Text: fmt.Sprintf("*Metric*\n%s", payload.Metric)},
+		{Type: "mrkdwn", Text: fmt.Sprintf("*Value*\n`%.2f`", payload.Value)},
+		{Type: "mrkdwn", Text: fmt.Sprintf("*Threshold*\n%s `%.2f`", payload.Condition, payload.Threshold)},
+		{Type: "mrkdwn", Text: fmt.Sprintf("*Fired at*\n%s", payload.FiredAt.UTC().Format("2006-01-02 15:04:05 UTC"))},
+	}
+
+	blocks := []slackBlock{
+		{
+			Type: "header",
+			Text: &slackText{Type: "plain_text", Text: fmt.Sprintf("NetScope Alert: %s", payload.RuleName), Emoji: true},
 		},
+		{Type: "section", Fields: fields},
+		{Type: "divider"},
+		{
+			Type: "section",
+			Text: &slackText{Type: "mrkdwn", Text: fmt.Sprintf("*Message*\n%s", payload.Message)},
+		},
+	}
+
+	// Top flows context block.
+	if len(payload.TopFlows) > 0 {
+		flowLines := "*Recent flows:*\n"
+		for i, f := range payload.TopFlows {
+			if i >= 5 {
+				break
+			}
+			flowLines += fmt.Sprintf("• `%s` %s → %s  _%s_\n", f.Protocol, f.SrcIP, f.DstIP, f.Info)
+		}
+		blocks = append(blocks, slackBlock{
+			Type: "section",
+			Text: &slackText{Type: "mrkdwn", Text: flowLines},
+		})
+	}
+
+	// Action buttons.
+	elems := []slackElem{
+		{
+			Type:     "button",
+			Text:     &slackText{Type: "plain_text", Text: "View in NetScope", Emoji: true},
+			URL:      payload.HubURL + "/anomalies",
+			ActionID: "open_hub",
+		},
+	}
+	if payload.ReplayURL != "" {
+		elems = append(elems, slackElem{
+			Type:     "button",
+			Text:     &slackText{Type: "plain_text", Text: "▶ Replay Incident", Emoji: true},
+			URL:      payload.ReplayURL,
+			Style:    "primary",
+			ActionID: "open_replay",
+		})
+	}
+	blocks = append(blocks, slackBlock{Type: "actions", Elements: elems})
+
+	body := slackBlockPayload{
+		Text:   headerText,
+		Blocks: blocks,
 	}
 	return postJSON(ctx, webhookURL, body, nil)
 }
@@ -177,45 +235,99 @@ func FireOpsGenie(ctx context.Context, apiKey string, payload models.WebhookPayl
 	return postJSON(ctx, "https://api.opsgenie.com/v2/alerts", body, headers)
 }
 
-// ── Microsoft Teams ───────────────────────────────────────────────────────────
+// ── Microsoft Teams Adaptive Card ─────────────────────────────────────────────
+//
+// Uses the Adaptive Card schema (application/vnd.microsoft.card.adaptive) for
+// a structured, scannable alert thread with inline flow context.
 
-type teamsPayload struct {
-	Type       string       `json:"@type"`
-	Context    string       `json:"@context"`
-	ThemeColor string       `json:"themeColor"`
-	Summary    string       `json:"summary"`
-	Sections   []teamsSection `json:"sections"`
+type teamsAdaptiveWrapper struct {
+	Type        string           `json:"type"`
+	Attachments []teamsAdaptive  `json:"attachments"`
 }
 
-type teamsSection struct {
-	ActivityTitle string      `json:"activityTitle"`
-	Facts         []teamsFact `json:"facts"`
+type teamsAdaptive struct {
+	ContentType string          `json:"contentType"`
+	Content     teamsCardBody   `json:"content"`
 }
 
-type teamsFact struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
+type teamsCardBody struct {
+	Schema  string        `json:"$schema"`
+	Type    string        `json:"type"`
+	Version string        `json:"version"`
+	Body    []any         `json:"body"`
+	Actions []teamsAction `json:"actions,omitempty"`
 }
 
-// FireTeams posts a card to a Microsoft Teams Incoming Webhook.
+type teamsAction struct {
+	Type  string `json:"type"`
+	Title string `json:"title"`
+	URL   string `json:"url"`
+}
+
+// FireTeams posts an Adaptive Card to a Microsoft Teams Incoming Webhook.
 func FireTeams(ctx context.Context, webhookURL string, payload models.WebhookPayload) bool {
-	body := teamsPayload{
-		Type:       "MessageCard",
-		Context:    "http://schema.org/extensions",
-		ThemeColor: "FF0000",
-		Summary:    fmt.Sprintf("NetScope Alert: %s", payload.RuleName),
-		Sections: []teamsSection{{
-			ActivityTitle: fmt.Sprintf("🚨 %s", payload.RuleName),
-			Facts: []teamsFact{
-				{Name: "Metric", Value: payload.Metric},
-				{Name: "Value", Value: fmt.Sprintf("%.2f", payload.Value)},
-				{Name: "Threshold", Value: fmt.Sprintf("%s %.2f", payload.Condition, payload.Threshold)},
-				{Name: "Message", Value: payload.Message},
-				{Name: "Time", Value: payload.FiredAt.UTC().Format(time.RFC3339)},
+	color := "attention" // red in Adaptive Cards
+	if payload.Condition == "lt" {
+		color = "warning"
+	}
+
+	facts := []map[string]string{
+		{"title": "Metric", "value": payload.Metric},
+		{"title": "Value", "value": fmt.Sprintf("%.2f", payload.Value)},
+		{"title": "Threshold", "value": fmt.Sprintf("%s %.2f", payload.Condition, payload.Threshold)},
+		{"title": "Fired at", "value": payload.FiredAt.UTC().Format("2006-01-02 15:04:05 UTC")},
+	}
+
+	body := []any{
+		map[string]any{
+			"type": "TextBlock",
+			"text": fmt.Sprintf("🚨 NetScope Alert: %s", payload.RuleName),
+			"size": "Large", "weight": "Bolder", "color": color,
+		},
+		map[string]any{
+			"type":  "FactSet",
+			"facts": facts,
+		},
+		map[string]any{
+			"type": "TextBlock",
+			"text": payload.Message,
+			"wrap": true,
+		},
+	}
+
+	// Top flows context.
+	if len(payload.TopFlows) > 0 {
+		flowText := "**Recent flows:**\n\n"
+		for i, f := range payload.TopFlows {
+			if i >= 5 {
+				break
+			}
+			flowText += fmt.Sprintf("- `%s` %s → %s — %s\n", f.Protocol, f.SrcIP, f.DstIP, f.Info)
+		}
+		body = append(body, map[string]any{
+			"type": "TextBlock", "text": flowText, "wrap": true,
+		})
+	}
+
+	actions := []teamsAction{{Type: "Action.OpenUrl", Title: "View in NetScope", URL: payload.HubURL + "/anomalies"}}
+	if payload.ReplayURL != "" {
+		actions = append(actions, teamsAction{Type: "Action.OpenUrl", Title: "▶ Replay Incident", URL: payload.ReplayURL})
+	}
+
+	card := teamsAdaptiveWrapper{
+		Type: "message",
+		Attachments: []teamsAdaptive{{
+			ContentType: "application/vnd.microsoft.card.adaptive",
+			Content: teamsCardBody{
+				Schema:  "http://adaptivecards.io/schemas/adaptive-card.json",
+				Type:    "AdaptiveCard",
+				Version: "1.4",
+				Body:    body,
+				Actions: actions,
 			},
 		}},
 	}
-	return postJSON(ctx, webhookURL, body, nil)
+	return postJSON(ctx, webhookURL, card, nil)
 }
 
 // ── BuildMessage ──────────────────────────────────────────────────────────────
