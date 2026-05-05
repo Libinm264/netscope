@@ -993,6 +993,22 @@ export async function fetchSigmaMatches(params?: {
   return get("/enterprise/sigma/matches", params as Record<string, string | number>);
 }
 
+// ── v0.7 Agent performance telemetry ─────────────────────────────────────────
+
+export interface PerfSample {
+  ts: string;
+  cpu_pct: number;
+  mem_mb: number;
+  packets_dropped: number;
+}
+
+export async function fetchAgentPerf(
+  agentId: string,
+  limit = 10,
+): Promise<{ agent_id: string; samples: PerfSample[] }> {
+  return get(`/agents/${agentId}/perf`, { limit });
+}
+
 // ── v0.6 Behavioral Baseline + Anomaly Detection ─────────────────────────────
 
 export type AnomalySeverity = "low" | "medium" | "high";

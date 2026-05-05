@@ -1,4 +1,5 @@
 mod hub_client;
+mod perf;
 
 use anyhow::Result;
 use capture::{list_interfaces, start_capture, CaptureError};
@@ -284,8 +285,10 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
             match HubClient::new_with_id(&url, &key, &shared_id) {
                 Ok(hb_client) => {
                     let mut first = true;
+                    let mut sampler = perf::PerfSampler::new();
                     loop {
-                        match hb_client.send_heartbeat(&iface_hb, "pcap", false) {
+                        let snap = sampler.sample();
+                        match hb_client.send_heartbeat(&iface_hb, "pcap", false, &snap) {
                             Ok(()) => {
                                 if first {
                                     info!(
@@ -294,6 +297,12 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
                                     );
                                     first = false;
                                 }
+                                info!(
+                                    cpu_pct   = %format!("{:.1}", snap.cpu_pct),
+                                    mem_mb    = snap.mem_mb,
+                                    dropped   = snap.packets_dropped,
+                                    "Heartbeat sent"
+                                );
                             }
                             Err(e) => warn!("heartbeat failed: {}", e),
                         }
@@ -441,9 +450,17 @@ fn run_ebpf(
             match HubClient::new(url, key) {
                 Ok(hb_client) => {
                     thread::spawn(move || {
+                        let mut sampler = perf::PerfSampler::new();
                         loop {
-                            if let Err(e) = hb_client.send_heartbeat("", "ebpf", true) {
+                            let snap = sampler.sample();
+                            if let Err(e) = hb_client.send_heartbeat("", "ebpf", true, &snap) {
                                 tracing::warn!("heartbeat failed: {}", e);
+                            } else {
+                                tracing::info!(
+                                    cpu_pct = %format!("{:.1}", snap.cpu_pct),
+                                    mem_mb  = snap.mem_mb,
+                                    "Heartbeat sent (eBPF)"
+                                );
                             }
 
                             // Poll for any pending remote config update from the Fleet dashboard.

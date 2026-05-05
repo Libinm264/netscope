@@ -347,6 +347,7 @@ func main() {
 	v1.Post("/alerts/:id/test",           apiLimit, middleware.RequireAdmin(), alertH.TestDelivery)
 	// Phase 11 — agent flow count
 	v1.Get("/agents/stats",               apiLimit,                            agentH.Stats)
+	v1.Get("/agents/:id/perf",            apiLimit,                            agentH.PerfHistory)
 
 	// ── Phase 12 — Enterprise: org, members, teams, SSO config, license ──────
 	// Seed the initial local admin account if ADMIN_EMAIL + ADMIN_PASSWORD are set.
@@ -1194,6 +1195,17 @@ func runMigrations(ch *clickhouse.Client) error {
 			version     UInt64                 DEFAULT 1
 		) ENGINE = ReplacingMergeTree(version)
 		ORDER BY integration`,
+
+		// Phase 31: Agent performance telemetry (v0.7)
+		`CREATE TABLE IF NOT EXISTS agent_perf (
+			agent_id        String,
+			ts              DateTime64(3, 'UTC') DEFAULT now64(),
+			cpu_pct         Float32  DEFAULT 0,
+			mem_mb          UInt64   DEFAULT 0,
+			packets_dropped UInt64   DEFAULT 0
+		) ENGINE = MergeTree()
+		ORDER BY (agent_id, ts)
+		TTL ts + INTERVAL 30 DAY`,
 	}
 
 	for _, q := range ddl {

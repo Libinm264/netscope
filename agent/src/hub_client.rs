@@ -225,12 +225,15 @@ impl HubClient {
     }
 
     /// POST a heartbeat to /api/v1/agents/heartbeat.
-    /// Reports OS, interface, capture mode, and eBPF status to the Hub.
+    ///
+    /// Reports OS, interface, capture mode, eBPF status, and performance
+    /// metrics (CPU %, RSS memory, dropped-packet count) to the Hub.
     pub fn send_heartbeat(
         &self,
         interface: &str,
         capture_mode: &str,
         ebpf_enabled: bool,
+        perf: &crate::perf::PerfSnapshot,
     ) -> anyhow::Result<()> {
         // std::env::consts::OS returns "macos" on Apple platforms but the hub
         // validates against the kernel name "darwin".  Normalise here.
@@ -239,13 +242,16 @@ impl HubClient {
             other   => other,
         }.to_string();
         let body = serde_json::json!({
-            "agent_id":    self.agent_id,
-            "hostname":    self.hostname,
-            "version":     env!("CARGO_PKG_VERSION"),
-            "interface":   interface,
-            "os":          os,
-            "capture_mode": capture_mode,
-            "ebpf_enabled": ebpf_enabled,
+            "agent_id":       self.agent_id,
+            "hostname":       self.hostname,
+            "version":        env!("CARGO_PKG_VERSION"),
+            "interface":      interface,
+            "os":             os,
+            "capture_mode":   capture_mode,
+            "ebpf_enabled":   ebpf_enabled,
+            "cpu_pct":        perf.cpu_pct,
+            "mem_mb":         perf.mem_mb,
+            "packets_dropped": perf.packets_dropped,
         });
         let url = format!("{}/api/v1/agents/heartbeat", self.hub_url);
         let resp = self.client

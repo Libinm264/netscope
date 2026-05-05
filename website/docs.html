@@ -356,6 +356,12 @@ footer a:hover{color:var(--text)}
     <a href="#privacy-headers" class="sidebar-link">Sensitive headers</a>
     <a href="#privacy-body" class="sidebar-link">JSON body redaction</a>
     <a href="#privacy-extend" class="sidebar-link">Extending patterns</a>
+    <a href="#performance" class="sidebar-link" style="margin-top:.25rem">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Performance Telemetry
+    </a>
+    <a href="#performance-api" class="sidebar-link">Perf history API</a>
+    <a href="#performance-storage" class="sidebar-link">ClickHouse storage</a>
   </div>
   <div class="sidebar-divider"></div>
 
@@ -1674,6 +1680,140 @@ dash = ns.dashboards.create(
   <p class="docs-p">
     Run <code class="mono">cargo test -p parser</code> after any change — 31 unit tests cover every built-in
     pattern and verify the recursive walk, case-insensitivity, and non-JSON passthrough behaviour.
+  </p>
+
+</section>
+
+<!-- ── PERFORMANCE TELEMETRY ── -->
+<section class="docs-section fade-in" id="performance">
+  <span class="section-eyebrow" style="color:var(--orange)">v0.7 · New Feature</span>
+  <h2 class="docs-h1">Performance Telemetry</h2>
+  <p class="docs-p">
+    Every NetScope agent (v0.7+) reports CPU usage, resident memory (RSS), and a cumulative packet-drop
+    counter on each heartbeat (every 30 seconds). The Hub stores the samples in ClickHouse with a
+    30-day TTL and exposes them via a REST endpoint. The Fleet dashboard renders a live sparkline per
+    agent card so you can verify agent overhead at a glance.
+  </p>
+  <p class="docs-p">
+    Agents running in <strong>pcap</strong> or <strong>eBPF</strong> mode both report identical
+    telemetry. Older agents that predate v0.7 simply omit the telemetry fields — the Hub treats
+    missing fields as zero and never writes a <code class="mono">agent_perf</code> row for them.
+  </p>
+
+  <div class="info-box" style="border-color:rgba(251,146,60,.2);background:rgba(251,146,60,.04);margin:2rem 0">
+    <strong style="color:var(--orange)">Benchmark</strong><br/>
+    In lab testing at sustained 1 Gbps (mixed HTTP/1.1, HTTP/2, DNS, TLS), the agent uses
+    <strong style="color:#fff">&lt;1% CPU</strong> on a single core and under
+    <strong style="color:#fff">200 MB RSS</strong>. Run <code class="mono">GET /api/v1/agents/:id/perf?limit=60</code>
+    against your own fleet to pull the last 60 samples and verify independently.
+  </div>
+
+  <h2 class="docs-h2" id="performance-api">Perf history API</h2>
+  <p class="docs-p">
+    Retrieve historical performance samples for a specific agent:
+  </p>
+
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header">
+      <span>HTTP</span>
+      <button class="copy-btn" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre>GET /api/v1/agents/{agent_id}/perf?limit=60
+
+# Response
+{
+  "agent_id": "4f8a2c1e-...",
+  "samples": [
+    {
+      "ts":              "2026-05-04T12:00:00Z",
+      "cpu_pct":         0.42,
+      "mem_mb":          124,
+      "packets_dropped": 0
+    },
+    ...
+  ]
+}</pre>
+  </div>
+
+  <div class="table-wrap" style="margin:1.5rem 0">
+    <table class="docs-table">
+      <thead><tr><th>Parameter</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">agent_id</td><td>path param</td><td>UUID of the agent (from the fleet list)</td></tr>
+        <tr><td class="mono">limit</td><td>query, int</td><td>Number of samples to return, newest first. Default 60, max 1440 (24 h at 1 sample/min)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="table-wrap" style="margin:1.5rem 0">
+    <table class="docs-table">
+      <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">ts</td><td>DateTime64(3)</td><td>UTC timestamp of the heartbeat</td></tr>
+        <tr><td class="mono">cpu_pct</td><td>Float32</td><td>CPU usage of the agent process, normalised to a single core (0–100)</td></tr>
+        <tr><td class="mono">mem_mb</td><td>UInt64</td><td>Resident set size (RSS) of the agent process in megabytes</td></tr>
+        <tr><td class="mono">packets_dropped</td><td>UInt64</td><td>Cumulative number of flows dropped due to back-pressure since agent start</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="docs-h2" id="performance-storage">ClickHouse storage</h2>
+  <p class="docs-p">
+    Performance samples are stored in the <code class="mono">agent_perf</code> table, which uses a
+    standard <code class="mono">MergeTree</code> engine ordered by <code class="mono">(agent_id, ts)</code>
+    for efficient per-agent range scans. A TTL clause automatically drops rows older than 30 days.
+  </p>
+
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header">
+      <span>SQL — ClickHouse DDL</span>
+      <button class="copy-btn" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15 H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre>CREATE TABLE IF NOT EXISTS agent_perf (
+    agent_id        String,
+    ts              DateTime64(3, 'UTC') DEFAULT now64(),
+    cpu_pct         Float32  DEFAULT 0,
+    mem_mb          UInt64   DEFAULT 0,
+    packets_dropped UInt64   DEFAULT 0
+) ENGINE = MergeTree()
+ORDER BY (agent_id, ts)
+TTL ts + INTERVAL 30 DAY;</pre>
+  </div>
+
+  <p class="docs-p">
+    To query the rolling average CPU across your whole fleet over the last hour:
+  </p>
+
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header">
+      <span>SQL — example query</span>
+      <button class="copy-btn" onclick="copyCode(this)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15 H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
+      </button>
+    </div>
+    <pre>SELECT
+    agent_id,
+    avg(cpu_pct)         AS avg_cpu,
+    max(mem_mb)          AS peak_mem_mb,
+    max(packets_dropped) AS total_drops
+FROM agent_perf
+WHERE ts >= now() - INTERVAL 1 HOUR
+GROUP BY agent_id
+ORDER BY avg_cpu DESC;</pre>
+  </div>
+
+  <p class="docs-p">
+    The Fleet UI fetches the last 10 samples per agent and renders a CPU sparkline inside each agent
+    card. The sparkline colour shifts from indigo (healthy) to amber (&gt;50%) to red (&gt;80%) to
+    surface high-load agents at a glance. A non-zero <code class="mono">packets_dropped</code> count
+    surfaces as a warning badge on the card.
   </p>
 
 </section>

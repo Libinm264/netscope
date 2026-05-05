@@ -871,6 +871,100 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
 
 <div class="divider"></div>
 
+<!-- ── PERFORMANCE BENCHMARK ── -->
+<section id="performance" style="padding:110px 0;position:relative;overflow:hidden">
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 30% 50%,rgba(251,146,60,.04),transparent);pointer-events:none"></div>
+  <div class="container">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5rem;align-items:center">
+
+      <!-- Text -->
+      <div class="reveal" style="order:1">
+        <span style="display:inline-flex;align-items:center;gap:.5rem;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.15);padding:.3rem .85rem;border-radius:100px;margin-bottom:1.25rem">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          New in v0.7 · Performance Telemetry
+        </span>
+        <h2 class="section-title">&lt;1% CPU<br/>at 1 Gbps.</h2>
+        <p class="section-body" style="margin-bottom:2rem">
+          Every agent reports CPU usage, resident memory, and packet-drop counters on each heartbeat. The Fleet dashboard renders a live sparkline per agent so you can verify — and prove — that NetScope is invisible at any traffic volume.
+        </p>
+        <div style="display:flex;flex-direction:column;gap:.875rem">
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--orange);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">Real numbers, not estimates</strong> — sysinfo samples CPU delta across the 30-second heartbeat window, not process lifetime</p>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--orange);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">30-day history</strong> — samples stored in ClickHouse with a TTL; query trends or export to Grafana</p>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--orange);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">Drop counter alert</strong> — non-zero <code style="color:var(--orange);background:rgba(251,146,60,.08);padding:.1rem .4rem;border-radius:4px">packets_dropped</code> surfaces on the card instantly, before your SREs notice</p>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start">
+            <div style="width:6px;height:6px;border-radius:50%;background:var(--orange);margin-top:.45rem;flex-shrink:0"></div>
+            <p style="font-size:.875rem;color:var(--muted2)"><strong style="color:#fff">Cross-platform</strong> — Linux, macOS, and Windows agents all report identical telemetry via sysinfo</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:.75rem;margin-top:2rem;flex-wrap:wrap">
+          <a href="docs.html#performance" class="btn btn-outline" style="border-color:rgba(251,146,60,.3);color:var(--orange)">Telemetry docs →</a>
+          <a href="docs.html#agent-config" class="btn btn-outline">Agent config →</a>
+        </div>
+      </div>
+
+      <!-- Visual: mock agent perf card -->
+      <div class="reveal reveal-delay-1" style="order:2">
+        <div style="background:var(--bg2);border:1px solid rgba(251,146,60,.15);border-radius:16px;padding:1.75rem;font-family:'JetBrains Mono',monospace;box-shadow:0 0 60px rgba(251,146,60,.04)">
+
+          <!-- Header -->
+          <div style="font-size:.7rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:1.25rem">Agent Fleet · live performance</div>
+
+          <!-- Agent card 1 -->
+          <div style="background:rgba(255,255,255,.02);border:1px solid rgba(251,146,60,.12);border-radius:10px;padding:1rem;margin-bottom:.75rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+              <span style="color:#fff;font-size:.82rem;font-weight:600">prod-web-01</span>
+              <span style="display:flex;align-items:center;gap:.4rem;font-size:.7rem;color:#34d399"><span style="width:6px;height:6px;border-radius:50%;background:#34d399;display:inline-block"></span>Online</span>
+            </div>
+            <!-- Sparkline SVG -->
+            <svg width="100%" height="24" viewBox="0 0 200 24" preserveAspectRatio="none" style="margin-bottom:.5rem">
+              <polyline points="0,20 25,18 50,16 75,14 100,17 125,13 150,10 175,9 200,8" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>
+            </svg>
+            <div style="display:flex;gap:1rem;font-size:.72rem">
+              <span><span style="color:#818cf8;font-weight:600">0.4%</span> <span style="color:var(--muted)">cpu</span></span>
+              <span style="color:var(--muted)">·</span>
+              <span><span style="color:var(--muted2)">124</span> <span style="color:var(--muted)">MB</span></span>
+            </div>
+          </div>
+
+          <!-- Agent card 2 - higher load, amber -->
+          <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:1rem;margin-bottom:.75rem">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+              <span style="color:#fff;font-size:.82rem;font-weight:600">k8s-node-03</span>
+              <span style="display:flex;align-items:center;gap:.4rem;font-size:.7rem;color:#34d399"><span style="width:6px;height:6px;border-radius:50%;background:#34d399;display:inline-block"></span>Online</span>
+            </div>
+            <svg width="100%" height="24" viewBox="0 0 200 24" preserveAspectRatio="none" style="margin-bottom:.5rem">
+              <polyline points="0,18 25,14 50,10 75,8 100,12 125,6 150,8 175,4 200,6" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>
+            </svg>
+            <div style="display:flex;gap:1rem;font-size:.72rem">
+              <span><span style="color:#fbbf24;font-weight:600">0.8%</span> <span style="color:var(--muted)">cpu</span></span>
+              <span style="color:var(--muted)">·</span>
+              <span><span style="color:var(--muted2)">198</span> <span style="color:var(--muted)">MB</span></span>
+            </div>
+          </div>
+
+          <!-- Headline stat -->
+          <div style="border-top:1px solid rgba(251,146,60,.1);margin-top:1rem;padding-top:1rem;display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:.7rem;color:var(--muted)">Fleet avg CPU @ 1 Gbps</div>
+            <div style="font-size:1.25rem;font-weight:700;color:var(--orange);font-family:system-ui,sans-serif">&lt;1%</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
 <!-- ── TERMINAL ── -->
 <section id="demo">
   <div class="container">

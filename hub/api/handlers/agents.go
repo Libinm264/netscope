@@ -101,14 +101,18 @@ func (h *AgentHandler) Register(c *fiber.Ctx) error {
 
 func (h *AgentHandler) Heartbeat(c *fiber.Ctx) error {
 	var req struct {
-		AgentID     string `json:"agent_id"`
-		Hostname    string `json:"hostname"`
-		Version     string `json:"version"`
-		Interface   string `json:"interface"`
-		OS          string `json:"os"`
-		CaptureMode string `json:"capture_mode"`
-		EbpfEnabled bool   `json:"ebpf_enabled"`
-		Cluster     string `json:"cluster,omitempty"`
+		AgentID        string  `json:"agent_id"`
+		Hostname       string  `json:"hostname"`
+		Version        string  `json:"version"`
+		Interface      string  `json:"interface"`
+		OS             string  `json:"os"`
+		CaptureMode    string  `json:"capture_mode"`
+		EbpfEnabled    bool    `json:"ebpf_enabled"`
+		Cluster        string  `json:"cluster,omitempty"`
+		// Performance telemetry (v0.7+) — optional: older agents omit these.
+		CpuPct         float64 `json:"cpu_pct"`
+		MemMB          uint64  `json:"mem_mb"`
+		PacketsDropped uint64  `json:"packets_dropped"`
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "invalid body"})
@@ -131,6 +135,10 @@ func (h *AgentHandler) Heartbeat(c *fiber.Ctx) error {
 		len(req.Interface) > maxStrLen || len(req.Version) > 64 {
 		return c.Status(400).JSON(fiber.Map{"error": "field value too long"})
 	}
+	// Clamp CPU to a sane range — guard against instrumentation bugs.
+	if req.CpuPct < 0 || req.CpuPct > 100 {
+		req.CpuPct = 0
+	}
 
 	if h.CH == nil {
 		return c.Status(503).JSON(fiber.Map{"error": "ClickHouse not available"})
@@ -147,7 +155,61 @@ func (h *AgentHandler) Heartbeat(c *fiber.Ctx) error {
 	); err != nil {
 		return util.InternalError(c, err)
 	}
+
+	// Persist perf sample if the agent sent telemetry.
+	if req.CpuPct > 0 || req.MemMB > 0 {
+		_ = h.CH.Exec(c.Context(),
+			`INSERT INTO agent_perf (agent_id, ts, cpu_pct, mem_mb, packets_dropped)
+             VALUES (?, ?, ?, ?, ?)`,
+			req.AgentID, now, req.CpuPct, req.MemMB, req.PacketsDropped,
+		)
+	}
+
 	return c.JSON(fiber.Map{"ok": true, "ts": now})
+}
+
+// PerfHistory returns the last N performance samples for a specific agent.
+//
+// GET /api/v1/agents/:id/perf?limit=60
+func (h *AgentHandler) PerfHistory(c *fiber.Ctx) error {
+	agentID := c.Params("id")
+	if agentID == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "agent_id required"})
+	}
+	limit := c.QueryInt("limit", 60)
+	if limit < 1 || limit > 1440 {
+		limit = 60
+	}
+	if h.CH == nil {
+		return c.JSON(fiber.Map{"samples": []struct{}{}})
+	}
+
+	rows, err := h.CH.Query(c.Context(),
+		`SELECT ts, cpu_pct, mem_mb, packets_dropped
+         FROM agent_perf
+         WHERE agent_id = ?
+         ORDER BY ts DESC
+         LIMIT ?`, agentID, limit)
+	if err != nil {
+		return util.InternalError(c, err)
+	}
+	defer rows.Close()
+
+	type sample struct {
+		TS             time.Time `json:"ts"`
+		CpuPct         float64   `json:"cpu_pct"`
+		MemMB          uint64    `json:"mem_mb"`
+		PacketsDropped uint64    `json:"packets_dropped"`
+	}
+	samples := make([]sample, 0, limit)
+	for rows.Next() {
+		var s sample
+		if err := rows.Scan(&s.TS, &s.CpuPct, &s.MemMB, &s.PacketsDropped); err != nil {
+			continue
+		}
+		samples = append(samples, s)
+	}
+	return c.JSON(fiber.Map{"agent_id": agentID, "samples": samples})
 }
 
 func (h *AgentHandler) Stats(c *fiber.Ctx) error {

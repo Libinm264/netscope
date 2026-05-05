@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Server, Plus, X, Copy, Check, RefreshCw, Cpu, Globe2, Box } from "lucide-react";
+import { Server, Plus, X, Copy, Check, RefreshCw, Cpu, Globe2, Box, Activity } from "lucide-react";
 import { clsx } from "clsx";
-import { fetchAgents, createEnrollmentToken } from "@/lib/api";
-import type { Agent, EnrollmentToken } from "@/lib/api";
+import { fetchAgents, fetchAgentPerf, createEnrollmentToken } from "@/lib/api";
+import type { Agent, PerfSample, EnrollmentToken } from "@/lib/api";
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 
@@ -81,6 +81,116 @@ function CopyButton({ text, className }: { text: string; className?: string }) {
     >
       {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
     </button>
+  );
+}
+
+// ── CPU sparkline ──────────────────────────────────────────────────────────────
+
+function Sparkline({ cpus, color }: { cpus: number[]; color: string }) {
+  if (cpus.length < 2) return null;
+  const W = 56, H = 14;
+  const max = Math.max(...cpus, 1);
+  const pts = cpus
+    .map((v, i) => {
+      const x = ((i / (cpus.length - 1)) * W).toFixed(1);
+      const y = (H - (v / max) * H).toFixed(1);
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  return (
+    <svg width={W} height={H} className="overflow-visible shrink-0">
+      <polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        opacity={0.85}
+      />
+    </svg>
+  );
+}
+
+// ── Performance bar (sparkline + latest CPU + mem) ────────────────────────────
+
+function PerfBar({ agentId }: { agentId: string }) {
+  const [samples, setSamples] = useState<PerfSample[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = await fetchAgentPerf(agentId, 10);
+        if (!cancelled) setSamples(data.samples ?? []);
+      } catch {
+        // no perf data yet — older agent or first heartbeat
+      }
+    };
+    load();
+    const id = setInterval(load, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [agentId]);
+
+  if (samples.length === 0) return null;
+
+  // API returns samples DESC (newest first); reverse for sparkline (oldest→newest left→right)
+  const latest = samples[0];
+  const cpuPct = latest.cpu_pct ?? 0;
+  const memMB  = latest.mem_mb  ?? 0;
+  const dropped = latest.packets_dropped ?? 0;
+
+  const cpuColor =
+    cpuPct > 80 ? "#f87171" :
+    cpuPct > 50 ? "#fbbf24" : "#818cf8";
+
+  const cpuClass =
+    cpuPct > 80 ? "text-red-400" :
+    cpuPct > 50 ? "text-amber-400" : "text-indigo-400";
+
+  // Build sparkline series oldest→newest
+  const sparkCpus = [...samples].reverse().map(s => s.cpu_pct ?? 0);
+
+  return (
+    <div className="flex items-center gap-2.5 pt-2 mt-1 border-t border-white/[0.04]">
+      <Activity size={10} className="text-slate-600 shrink-0" />
+      <Sparkline cpus={sparkCpus} color={cpuColor} />
+
+      {/* CPU % */}
+      <div className="text-[10px] tabular-nums leading-none">
+        <span className={clsx("font-semibold", cpuClass)}>
+          {cpuPct.toFixed(1)}%
+        </span>
+        <span className="text-slate-600 ml-0.5">cpu</span>
+      </div>
+
+      {/* Divider */}
+      <span className="text-slate-700 text-[10px]">·</span>
+
+      {/* Memory */}
+      <div className="text-[10px] tabular-nums leading-none text-slate-500">
+        <span className="text-slate-400">
+          {memMB < 1024
+            ? `${memMB}`
+            : `${(memMB / 1024).toFixed(1)}G`}
+        </span>
+        <span className="ml-0.5">{memMB < 1024 ? "MB" : "GB"}</span>
+      </div>
+
+      {/* Drop counter — only when non-zero */}
+      {dropped > 0 && (
+        <>
+          <span className="text-slate-700 text-[10px]">·</span>
+          <span className="text-[10px] text-amber-500 tabular-nums">
+            ⚠ {dropped.toLocaleString()} drops
+          </span>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -399,6 +509,9 @@ export default function AgentsPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* Performance sparkline — only renders if perf data available */}
+                <PerfBar agentId={agent.agent_id} />
               </div>
             );
           })}
