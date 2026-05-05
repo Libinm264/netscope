@@ -596,6 +596,8 @@ netscope/
 
 > Packet capture requires Administrator rights — run as Administrator or use the Npcap service.
 
+> **⚠️ Windows SmartScreen notice:** The NetScope installer is not yet Authenticode-signed. When you run the `.exe`, Windows SmartScreen may show *"Windows protected your PC."* Click **More info → Run anyway** to proceed. The binary is built from this open-source repository via [GitHub Actions](.github/workflows/build-desktop.yml) — you can verify the build provenance in the Actions tab. EV code signing is on the roadmap.
+
 ---
 
 ### Linux
