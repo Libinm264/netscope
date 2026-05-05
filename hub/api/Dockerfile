@@ -1,21 +1,37 @@
+# syntax=docker/dockerfile:1.7
+#
+# Multi-arch Go image (linux/amd64 + linux/arm64)
+#
+# The builder stage is pinned to $BUILDPLATFORM so the Go toolchain always
+# runs natively on the CI host (amd64).  CGO_ENABLED=0 + GOOS/GOARCH lets Go
+# cross-compile for the target arch without QEMU — producing a correct, fully
+# static binary that is then copied into the minimal target-platform runtime.
+
 # ── Stage 1: build ────────────────────────────────────────────────────────────
-FROM golang:1.25-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.22-alpine AS builder
+
+# Declare the target platform args injected by docker buildx.
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
 
 RUN apk add --no-cache git ca-certificates tzdata
 
 WORKDIR /src
 
-# Layer 1: download deps declared in go.sum (cached unless go.mod/go.sum change).
+# Layer 1: download module graph (cached until go.mod / go.sum change).
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/root/go/pkg/mod \
+    go mod download
 
-# Layer 2: copy source, tidy (resolves any packages added to go.mod after the
-# last committed go mod tidy), then compile.
+# Layer 2: compile — cross-compile natively with CGO disabled.
 COPY . .
-RUN go mod tidy && \
-    CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -trimpath -o /hub-api .
+RUN --mount=type=cache,target=/root/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+    go build -ldflags="-s -w" -trimpath -o /hub-api .
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
+# Minimal target-platform image — just the static binary.
 FROM alpine:3.19
 
 RUN apk add --no-cache ca-certificates tzdata wget

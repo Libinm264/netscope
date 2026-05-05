@@ -40,12 +40,20 @@ jobs:
       - name: Test
         run: go test ./... -timeout 60s
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Docker build (dry-run)
         uses: docker/build-push-action@v5
         with:
           context: hub/api
           push: false
+          # Build for the local platform only in CI dry-run — cross-arch is
+          # validated in the publish workflow where QEMU + caching are set up.
+          platforms: linux/amd64
           tags: netscope-hub-api:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   # ── Next.js Web ──────────────────────────────────────────────────────────────
   web:
@@ -65,7 +73,7 @@ jobs:
           cache-dependency-path: hub/web/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Type-check
         run: npx tsc --noEmit
@@ -82,9 +90,15 @@ jobs:
           AUTH0_CLIENT_ID: ci-client-id
           AUTH0_CLIENT_SECRET: ci-client-secret
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Docker build (dry-run)
         uses: docker/build-push-action@v5
         with:
           context: hub/web
           push: false
+          platforms: linux/amd64
           tags: netscope-hub-web:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
