@@ -374,6 +374,24 @@ footer a:hover{color:var(--text)}
     </a>
     <a href="#replay-api" class="sidebar-link">Replay API</a>
     <a href="#replay-ui" class="sidebar-link">Timeline UI</a>
+    <a href="#nl-search" class="sidebar-link" style="margin-top:.25rem">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      NL Flow Search
+    </a>
+    <a href="#nl-search-api" class="sidebar-link">Search API</a>
+    <a href="#inventory" class="sidebar-link" style="margin-top:.25rem">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/></svg>
+      API Inventory
+    </a>
+    <a href="#inventory-api" class="sidebar-link">Inventory API</a>
+    <a href="#alert-threads" class="sidebar-link" style="margin-top:.25rem">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      Alert Threads
+    </a>
+    <a href="#docker-compose" class="sidebar-link" style="margin-top:.25rem">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 7h10M7 12h10M7 17h4"/></svg>
+      Docker Compose
+    </a>
   </div>
   <div class="sidebar-divider"></div>
 
@@ -2044,6 +2062,186 @@ X-Api-Key: &lt;admin-key&gt;
     CORS configuration is required.
   </p>
 
+</section>
+
+<!-- ── NL FLOW SEARCH ── -->
+<section id="nl-search" class="docs-section">
+  <div class="docs-badge" style="background:rgba(129,140,248,.08);border-color:rgba(129,140,248,.2);color:#818cf8">
+    New in v0.7 · Natural Language Flow Search
+  </div>
+  <h1 class="docs-h1">Natural Language Flow Search</h1>
+  <p class="docs-p">
+    A plain-English search bar lives at the top of the <strong>Flows</strong> page.
+    Type a question — the AI translates it into protocol, IP, and time filters and
+    applies them directly to the flow table. No modal, no query language, no copy-paste.
+  </p>
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header"><span>Example queries</span></div>
+    <pre>show me DNS failures in the last 30 minutes
+outbound connections to port 443 from 10.0.0.5
+TLS flows to external IPs today
+HTTP errors on prod-web-01 in the last hour</pre>
+  </div>
+  <p class="docs-p">
+    Relative time phrases ("last hour", "today", "yesterday") are resolved against
+    the current UTC clock at query time. The AI's interpretation is shown as an
+    explanation chip below the search bar — hit × to reset all filters.
+  </p>
+  <h2 class="docs-h2" id="nl-search-api">Search API</h2>
+  <p class="docs-p">
+    The search bar calls <code class="mono">POST /api/v1/copilot/search</code> directly.
+    You can call it from scripts to build automated filter pipelines.
+  </p>
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header">
+      <span>POST /api/v1/copilot/search</span>
+      <button class="copy-btn" onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>
+    </div>
+    <pre>POST /api/v1/copilot/search
+Content-Type: application/json
+X-Api-Key: &lt;key&gt;
+
+{"query": "DNS failures in the last 30 minutes"}
+
+# Response
+{
+  "filters": {
+    "protocol": "DNS",
+    "from": "2026-05-05T13:30:00Z",
+    "to":   "2026-05-05T14:00:00Z"
+  },
+  "explanation": "DNS flows from the last 30 minutes"
+}</pre>
+  </div>
+  <p class="docs-p">
+    Requires <code class="mono">ANTHROPIC_API_KEY</code> to be set on the Hub.
+    Returns HTTP 503 when the key is absent.
+  </p>
+</section>
+
+<!-- ── API INVENTORY ── -->
+<section id="inventory" class="docs-section">
+  <div class="docs-badge" style="background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.2);color:#34d399">
+    New in v0.7 · Passive API Inventory
+  </div>
+  <h1 class="docs-h1">Passive API Inventory</h1>
+  <p class="docs-p">
+    NetScope auto-discovers every HTTP, HTTP/2, and gRPC endpoint called across your
+    fleet by analysing observed traffic — no instrumentation, no code changes, no
+    service registry required. The <strong>API Inventory</strong> page (sidebar) gives
+    you a live registry of your internal APIs with latency, error rate, and call volume.
+  </p>
+  <p class="docs-p">
+    Endpoints marked <strong style="color:#34d399">New today</strong> were first seen
+    within the last 24 hours — useful for detecting shadow APIs or unexpected new
+    service integrations.
+  </p>
+  <h2 class="docs-h2" id="inventory-api">Inventory API</h2>
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header">
+      <span>GET /api/v1/inventory/endpoints</span>
+      <button class="copy-btn" onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>
+    </div>
+    <pre>GET /api/v1/inventory/endpoints?window=24h&amp;hostname=prod-web-01
+
+# Response
+{
+  "window": "24h",
+  "total": 42,
+  "endpoints": [
+    {
+      "hostname":    "prod-web-01",
+      "protocol":   "HTTP",
+      "method":     "POST",
+      "path":       "/api/v1/payments",
+      "call_count":  1248,
+      "error_count": 12,
+      "error_rate":  0.96,
+      "p95_ms":      84.3,
+      "avg_ms":      31.2,
+      "agent_count": 2,
+      "first_seen":  "2026-05-04T08:12:00Z",
+      "last_seen":   "2026-05-05T13:58:00Z",
+      "is_new":      false
+    }
+  ]
+}</pre>
+  </div>
+  <p class="docs-p">Query parameters: <code class="mono">window</code> (1h/6h/24h/7d), <code class="mono">hostname</code> (exact match), <code class="mono">search</code> (path substring).</p>
+</section>
+
+<!-- ── ALERT THREADS ── -->
+<section id="alert-threads" class="docs-section">
+  <div class="docs-badge" style="background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.2);color:#fbbf24">
+    New in v0.7 · Slack &amp; Teams Rich Alert Threads
+  </div>
+  <h1 class="docs-h1">Slack &amp; Teams Rich Alert Threads</h1>
+  <p class="docs-p">
+    Alert notifications now carry enough context to start triaging without opening the Hub.
+    Slack uses <strong>Block Kit</strong>; Teams uses <strong>Adaptive Cards 1.4</strong>.
+  </p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin:1.75rem 0">
+    <div style="padding:1.25rem;border-radius:10px;border:1px solid rgba(251,191,36,.15);background:rgba(251,191,36,.04)">
+      <p style="font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#fbbf24;margin-bottom:.75rem">Every alert includes</p>
+      <ul style="font-size:.875rem;color:var(--muted2);list-style:disc;padding-left:1.25rem;line-height:1.8">
+        <li>Rule name, metric, value &amp; threshold</li>
+        <li>Timestamp (UTC)</li>
+        <li>Up to 5 recent flows inline</li>
+        <li>"View in NetScope" link</li>
+        <li>"▶ Replay Incident" deep link</li>
+      </ul>
+    </div>
+    <div style="padding:1.25rem;border-radius:10px;border:1px solid rgba(129,140,248,.15);background:rgba(129,140,248,.04)">
+      <p style="font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#818cf8;margin-bottom:.75rem">Resolve endpoint</p>
+      <p style="font-size:.875rem;color:var(--muted2)">Record a resolution with an optional note for audit purposes:</p>
+      <pre style="margin-top:.75rem;font-size:.78rem;background:rgba(0,0,0,.3);padding:.75rem;border-radius:6px;color:#94a3b8">POST /api/v1/alerts/{id}/resolve
+{"note": "Restarted the payment service"}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ── DOCKER COMPOSE ── -->
+<section id="docker-compose" class="docs-section">
+  <div class="docs-badge" style="background:rgba(0,212,255,.08);border-color:rgba(0,212,255,.2);color:var(--cyan)">
+    New in v0.7 · One-Command Docker Compose
+  </div>
+  <h1 class="docs-h1">One-Command Docker Compose</h1>
+  <p class="docs-p">
+    The entire NetScope stack — ClickHouse, Hub API, and the web dashboard — starts
+    with a single command. No Kubernetes, no manual service wiring.
+  </p>
+  <div class="code-block" style="margin:1.5rem 0">
+    <div class="code-header">
+      <span>Quick start</span>
+      <button class="copy-btn" onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>
+    </div>
+    <pre>git clone https://github.com/Libinm264/netscope.git
+cd netscope
+
+# Fill in secrets — at minimum CLICKHOUSE_PASSWORD and API_KEY
+cp .env.example .env
+$EDITOR .env
+
+docker compose up -d
+
+# Dashboard → http://localhost:3000
+# Hub API   → http://localhost:8080</pre>
+  </div>
+  <p class="docs-p">
+    Services start in dependency order: ClickHouse must pass <code class="mono">/ping</code>
+    before the Hub API starts; the Hub API must pass <code class="mono">/health</code> before
+    the web UI starts. A clean first boot takes under 60 seconds on any machine with
+    Docker installed.
+  </p>
+  <p class="docs-p">
+    After the stack is up, open the <strong>Fleet</strong> page in the dashboard
+    to get a one-line agent install command with a short-lived enrollment token —
+    no admin API key is exposed to the enrolled machine.
+  </p>
+  <p class="docs-p">
+    See <code class="mono">.env.example</code> at the repository root for the full list
+    of environment variables, including optional SMTP, Anthropic API key, and port overrides.
+  </p>
 </section>
 
 </div><!-- .docs-content -->

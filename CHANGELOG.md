@@ -10,7 +10,7 @@ Community features are marked **✅ Community**; Enterprise-only features are ma
 
 **Released:** 2026-05-05
 
-The v0.7 release makes NetScope the first network observability platform that lets you *replay an incident* as it happened, guard privacy with zero-config PII masking, and prove sub-1% CPU overhead with live sparklines in the dashboard.
+The v0.7 release closes the loop on incident response: replay any anomaly as a protocol lane timeline, search flows in plain English, auto-discover every API your services call, get richer Slack/Teams alert threads with inline flow context, and spin up the entire stack with a single `docker compose up`.
 
 ---
 
@@ -103,6 +103,96 @@ Stop burning storage on routine traffic. NetScope now operates in two modes, swi
 GET  /api/v1/agents/{id}/sampling       → { mode: "metadata" | "full" }
 POST /api/v1/agents/{id}/sampling       → { mode: "full" }   (admin only)
 ```
+
+> ✅ Community · ✅ Enterprise
+
+---
+
+### 🔍 Natural Language Flow Search (V2) — *New*
+
+Stop writing filter queries. Type plain English in the new search bar at the top of the **Flows** page and the AI translates it directly into protocol/IP/time filters — no modal, no separate screen, results update in place.
+
+**Example queries:**
+- *"DNS failures in the last 30 minutes"*
+- *"Outbound connections to port 443 from 10.0.0.5"*
+- *"HTTP errors in the last hour on prod-web-01"*
+- *"TLS flows to external IPs today"*
+
+The AI infers time windows from relative phrases ("last hour", "today", "yesterday") using the current UTC clock. When it applies filters, an explanation chip appears below the search bar confirming what was searched. Hit × to reset.
+
+Powered by the same Claude backend as the AI Copilot — requires `ANTHROPIC_API_KEY` on the Hub.
+
+> ✅ Community · ✅ Enterprise
+
+---
+
+### 🗂️ Passive API Inventory (V3) — *New*
+
+NetScope now auto-discovers every HTTP, HTTP/2, and gRPC endpoint called across your fleet — **zero instrumentation required**. The new **API Inventory** page (sidebar → *API Inventory*) shows:
+
+| Column | Description |
+|---|---|
+| Protocol | HTTP, HTTP/2, or gRPC |
+| Method | GET / POST / PUT / DELETE … |
+| Path | Full request path |
+| Agent | Which host observed it |
+| Calls | Total request count in the selected window |
+| Error rate | % of 4xx/5xx responses, colour-coded |
+| p95 latency | 95th percentile response time |
+| Last seen | How recently the endpoint was called |
+
+**"New today" badge** — endpoints discovered in the last 24 hours are highlighted so you immediately see new API surface area.
+
+**Filters:** path substring search, agent hostname, and 1h/6h/24h/7d window selector.
+
+> ✅ Community · ✅ Enterprise
+
+---
+
+### 🧵 Slack & Teams Rich Alert Threads (V4) — *New*
+
+Alert notifications now arrive as **structured threads** with enough context to start triaging without opening the Hub.
+
+**Slack (Block Kit):**
+- Header block with rule name
+- Metric / value / threshold / timestamp in a 4-field grid
+- Up to 5 recent flows inline (`PROTOCOL src → dst — info`)
+- Action buttons: **View in NetScope** and **▶ Replay Incident** (deep link to the timeline)
+
+**Microsoft Teams (Adaptive Card):**
+- `AdaptiveCard 1.4` schema — renders natively in Teams with no connector required
+- Same fact set and flow context as Slack
+- `Action.OpenUrl` buttons for Hub and Replay
+
+**Resolve endpoint:** `POST /api/v1/alerts/{id}/resolve` records a resolution with an optional note — useful for runbooks and audit trails.
+
+> ✅ Community · ✅ Enterprise
+
+---
+
+### 🐳 One-Command Docker Compose (V5) — *New*
+
+The entire NetScope stack now starts with a single command:
+
+```bash
+# 1 — Copy and fill in secrets
+cp .env.example .env
+
+# 2 — Start everything
+docker compose up -d
+```
+
+What starts:
+
+| Container | Image | Port |
+|---|---|---|
+| `netscope-clickhouse` | `clickhouse/clickhouse-server:24.3` | 9000 / 8123 |
+| `netscope-hub-api` | Built from `hub/api/Dockerfile` | 8080 |
+| `netscope-hub-web` | Built from `hub/web/Dockerfile` | 3000 |
+
+**Health-check chain:** ClickHouse must pass its `/ping` before the Hub API starts; the Hub API must pass its `/health` before the web UI starts. A clean first-boot takes under 60 seconds on any machine with Docker installed.
+
+**Enroll your first agent** from the Fleet page in the dashboard — you get a one-line install command with a short-lived enrollment token, no admin key exposed.
 
 > ✅ Community · ✅ Enterprise
 
@@ -445,10 +535,10 @@ The Incidents page (`/incidents`) surfaces the chronological sequence of alert f
 
 | ID | Feature | Description |
 |---|---|---|
-| V2 | Natural Language Flow Search | Type a question; get filtered flows — no query language needed |
-| V3 | Passive API Inventory | Auto-discover every internal API endpoint from observed HTTP(S) traffic |
-| V4 | Slack/Teams Alert Threads | Each alert opens a dedicated thread; updates post as the incident evolves |
-| V5 | One-Command Docker Compose | `curl ... | sh` spins up Hub + ClickHouse + Agent in a single step |
+| G1 | gRPC proto upload | Upload `.proto` files; Hub decodes gRPC bodies and displays named fields |
+| G2 | Auto-escalation sampling | Switch to full capture automatically when anomaly score exceeds threshold |
+| G3 | Slack thread resolution reply | Post a follow-up into the original alert thread when `POST /alerts/:id/resolve` is called |
+| G4 | Multi-region hub federation | Cross-region flow query and consolidated fleet map across datacentres |
 
 ---
 

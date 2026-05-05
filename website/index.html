@@ -671,6 +671,50 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
           <p>Click "Replay" on any anomaly to pull all flows in a ±5 min window and render them as a protocol lane timeline — HTTP, DNS, TLS, TCP in parallel. Click any block to inspect headers and payload.</p>
         </div>
 
+        <div class="feat" style="border-color:rgba(129,140,248,.15);position:relative;overflow:hidden">
+          <div style="position:absolute;top:.75rem;right:.75rem;font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#818cf8;background:rgba(129,140,248,.1);padding:.2rem .5rem;border-radius:4px">New · v0.7</div>
+          <div class="feat-icon" style="background:rgba(129,140,248,.08);border-color:rgba(129,140,248,.15)">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke="#818cf8">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6m-3-3h6"/>
+            </svg>
+          </div>
+          <h4>Natural language flow search</h4>
+          <p>Type "show me DNS failures in the last hour" in the Flows page search bar. The AI translates it to filters instantly — no query language, no modal, results update in place.</p>
+        </div>
+
+        <div class="feat" style="border-color:rgba(34,197,94,.15);position:relative;overflow:hidden">
+          <div style="position:absolute;top:.75rem;right:.75rem;font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--green);background:rgba(34,197,94,.1);padding:.2rem .5rem;border-radius:4px">New · v0.7</div>
+          <div class="feat-icon" style="background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.15)">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke="var(--green)">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>
+            </svg>
+          </div>
+          <h4>Passive API inventory</h4>
+          <p>Every HTTP, HTTP/2, and gRPC endpoint called across your fleet — auto-discovered from observed traffic. Call volume, error rate, and p95 latency per endpoint. Zero instrumentation.</p>
+        </div>
+
+        <div class="feat" style="border-color:rgba(251,191,36,.15);position:relative;overflow:hidden">
+          <div style="position:absolute;top:.75rem;right:.75rem;font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--yellow);background:rgba(251,191,36,.1);padding:.2rem .5rem;border-radius:4px">New · v0.7</div>
+          <div class="feat-icon" style="background:rgba(251,191,36,.08);border-color:rgba(251,191,36,.15)">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke="var(--yellow)">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <h4>Slack & Teams rich alert threads</h4>
+          <p>Alert notifications include the top 5 triggering flows inline, metric context, and one-click "Replay Incident" deep link. Block Kit for Slack. Adaptive Cards for Teams.</p>
+        </div>
+
+        <div class="feat" style="border-color:rgba(0,212,255,.15);position:relative;overflow:hidden">
+          <div style="position:absolute;top:.75rem;right:.75rem;font-size:.6rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--cyan);background:rgba(0,212,255,.1);padding:.2rem .5rem;border-radius:4px">New · v0.7</div>
+          <div class="feat-icon" style="background:rgba(0,212,255,.08);border-color:rgba(0,212,255,.15)">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="1.75" stroke-linecap="round" stroke="var(--cyan)">
+              <rect x="2" y="2" width="20" height="20" rx="2"/><path d="M7 7h10M7 12h10M7 17h4"/>
+            </svg>
+          </div>
+          <h4>One-command Docker Compose</h4>
+          <p><code style="font-family:monospace;font-size:.8em;background:rgba(255,255,255,.06);padding:.1em .35em;border-radius:3px">docker compose up -d</code> starts ClickHouse, Hub API, and the dashboard in under 60 seconds. Health-check chain ensures each service waits for its dependency.</p>
+        </div>
+
       </div>
     </div>
   </div>
