@@ -89,8 +89,8 @@ jobs:
         run: |
           VERSION="${{ steps.tag.outputs.value }}"
           TARGET="${{ matrix.target }}"
-          BINARY="agent/target/${TARGET}/release/netscope-agent"
-          FILENAME="netscope-agent-${VERSION}-${TARGET}.tar.gz"
+          BINARY="agent/target/${TARGET}/release/nexor-agent"
+          FILENAME="nexor-agent-${VERSION}-${TARGET}.tar.gz"
           tar -czf "${FILENAME}" -C "$(dirname ${BINARY})" "$(basename ${BINARY})"
           echo "ASSET_NAME=${FILENAME}" >> $GITHUB_ENV
 

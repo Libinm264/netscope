@@ -1,13 +1,13 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: netscope-hub
-  namespace: netscope
+  name: nexor-hub
+  namespace: nexor
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: netscope-hub
+    name: nexor-hub
   minReplicas: 2
   maxReplicas: 10
   metrics:

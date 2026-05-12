@@ -1,4 +1,4 @@
-name: Build NetScope Desktop
+name: Build Nexor Desktop
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: context.ref.replace('refs/tags/', ''),
-              name: `NetScope ${context.ref.replace('refs/tags/', '')}`,
+              name: `Nexor ${context.ref.replace('refs/tags/', '')}`,
               body: 'See CHANGELOG for details.',
               draft: true,
               prerelease: false,

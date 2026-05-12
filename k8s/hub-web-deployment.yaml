@@ -1,34 +1,34 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: netscope-hub-web
-  namespace: netscope
+  name: nexor-hub-web
+  namespace: nexor
   labels:
-    app: netscope-hub-web
+    app: nexor-hub-web
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: netscope-hub-web
+      app: nexor-hub-web
   template:
     metadata:
       labels:
-        app: netscope-hub-web
+        app: nexor-hub-web
     spec:
       containers:
         - name: hub-web
-          image: ghcr.io/netscope/hub-web:latest
+          image: ghcr.io/nexor/hub-web:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
               name: http
           env:
             - name: NEXT_PUBLIC_API_URL
-              value: "http://netscope-hub"
+              value: "http://nexor-hub"
             - name: NEXT_PUBLIC_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: netscope-hub-secret
+                  name: nexor-hub-secret
                   key: API_KEY
           livenessProbe:
             httpGet:
@@ -53,14 +53,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: netscope-hub-web
-  namespace: netscope
+  name: nexor-hub-web
+  namespace: nexor
   labels:
-    app: netscope-hub-web
+    app: nexor-hub-web
 spec:
   type: ClusterIP
   selector:
-    app: netscope-hub-web
+    app: nexor-hub-web
   ports:
     - name: http
       port: 80

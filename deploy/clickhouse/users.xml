@@ -1,14 +1,14 @@
 <!-- ClickHouse user config injected by docker-compose.
-     Grants the 'netscope' user full access to the 'netscope' database
+     Grants the 'nexor' user full access to the 'nexor' database
      and disables the default 'default' user for production safety. -->
 <clickhouse>
   <users>
-    <netscope>
+    <nexor>
       <password_sha256_hex from_env="CLICKHOUSE_PASSWORD_SHA256"/>
       <networks><ip>::/0</ip></networks>
       <profile>default</profile>
       <quota>default</quota>
       <access_management>0</access_management>
-    </netscope>
+    </nexor>
   </users>
 </clickhouse>

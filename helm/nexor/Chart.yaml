@@ -1,6 +1,6 @@
 apiVersion: v2
-name: netscope
-description: NetScope — real-time network observability platform
+name: nexor
+description: Nexor — real-time network observability platform
 type: application
 version: 0.7.0
 appVersion: "0.7.0"
@@ -10,10 +10,10 @@ keywords:
   - security
   - pcap
   - ebpf
-home: https://github.com/netscope/netscope
+home: https://github.com/klyzar/nexor
 sources:
-  - https://github.com/netscope/netscope
+  - https://github.com/klyzar/nexor
 maintainers:
-  - name: NetScope
-icon: https://raw.githubusercontent.com/netscope/netscope/main/docs/logo.png
+  - name: Klyzar
+icon: https://raw.githubusercontent.com/klyzar/nexor/main/docs/logo.png
 dependencies: []

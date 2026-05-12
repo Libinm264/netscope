@@ -51,7 +51,7 @@ jobs:
           # Build for the local platform only in CI dry-run — cross-arch is
           # validated in the publish workflow where QEMU + caching are set up.
           platforms: linux/amd64
-          tags: netscope-hub-api:ci
+          tags: nexor-hub-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -99,6 +99,6 @@ jobs:
           context: hub/web
           push: false
           platforms: linux/amd64
-          tags: netscope-hub-web:ci
+          tags: nexor-hub-web:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max

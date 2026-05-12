@@ -2,15 +2,15 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: {{ include "netscope.name" . }}-hub
+  name: {{ include "nexor.name" . }}-hub
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "netscope.labels" . | nindent 4 }}
+    {{- include "nexor.labels" . | nindent 4 }}
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "netscope.name" . }}-hub
+    name: {{ include "nexor.name" . }}-hub
   minReplicas: {{ .Values.hub.autoscaling.minReplicas }}
   maxReplicas: {{ .Values.hub.autoscaling.maxReplicas }}
   metrics:

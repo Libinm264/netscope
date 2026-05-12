@@ -1,5 +1,5 @@
-# Default values for the NetScope Helm chart.
-# Override with: helm install netscope ./helm/netscope -f my-values.yaml
+# Default values for the Nexor Helm chart.
+# Override with: helm install nexor ./helm/nexor -f my-values.yaml
 
 global:
   # Image pull secrets (e.g. for ghcr.io private repos)
@@ -12,7 +12,7 @@ hub:
   replicaCount: 2
 
   image:
-    repository: ghcr.io/netscope/hub-api
+    repository: ghcr.io/nexor/hub-api
     tag: latest
     pullPolicy: Always
 
@@ -38,12 +38,12 @@ hub:
   config:
     port: "8080"
     kafkaBrokers: "redpanda:9092"
-    kafkaTopic: "netscope-flows"
+    kafkaTopic: "nexor-flows"
     allowedOrigins: "*"
 
   # Set these via --set hub.secret.* or an external Secrets Manager
   secret:
-    clickhouseDSN: "clickhouse://default:@clickhouse:9000/netscope"
+    clickhouseDSN: "clickhouse://default:@clickhouse:9000/nexor"
     apiKey: "changeme"
 
 # ── Hub Web (Next.js dashboard) ────────────────────────────────────────────────
@@ -51,7 +51,7 @@ web:
   replicaCount: 2
 
   image:
-    repository: ghcr.io/netscope/hub-web
+    repository: ghcr.io/nexor/hub-web
     tag: latest
     pullPolicy: Always
 
@@ -73,7 +73,7 @@ agent:
   enabled: true
 
   image:
-    repository: ghcr.io/netscope/agent
+    repository: ghcr.io/nexor/agent
     tag: latest
     pullPolicy: Always
 
@@ -92,10 +92,10 @@ agent:
 ingress:
   enabled: false
   ingressClassName: nginx
-  host: netscope.example.com
+  host: nexor.example.com
   tls:
     enabled: false
-    secretName: netscope-tls
+    secretName: nexor-tls
     certManagerIssuer: ""   # e.g. "letsencrypt-prod"
   annotations: {}
 

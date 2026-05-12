@@ -3,7 +3,7 @@ name: Build eBPF Agent (Linux)
 # Builds the eBPF-enabled Linux agent:
 #   1. Compiles BPF kernel programs to bpfel-unknown-none via cargo xtask
 #   2. Compiles the agent with --features ebpf (embeds the BPF ELF via include_bytes!)
-#   3. Uploads netscope-agent-ebpf-<version>-<target>.tar.gz to the GitHub release
+#   3. Uploads nexor-agent-ebpf-<version>-<target>.tar.gz to the GitHub release
 #
 # This workflow runs ONLY on Linux runners because:
 #   • The BPF target (bpfel-unknown-none) requires the nightly compiler + linux-headers
@@ -94,7 +94,7 @@ jobs:
         run: which bpf-linker || cargo install bpf-linker
 
       # ── Step 1: Build BPF kernel programs ────────────────────────────────────
-      # Produces: agent/ebpf/target/bpfel-unknown-none/release/netscope-ebpf
+      # Produces: agent/ebpf/target/bpfel-unknown-none/release/nexor-ebpf
       # The agent Cargo.toml then embeds this ELF via include_bytes!
       - name: Build eBPF kernel programs
         working-directory: agent
@@ -108,15 +108,15 @@ jobs:
         run: cargo build --release --target ${{ matrix.target }} --features ebpf
 
       # ── Package as tar.gz ─────────────────────────────────────────────────────
-      # Name format: netscope-agent-ebpf-<version>-<target>.tar.gz
+      # Name format: nexor-agent-ebpf-<version>-<target>.tar.gz
       # The "ebpf" infix distinguishes this from the plain pcap-only binary.
       - name: Package
         shell: bash
         run: |
           VERSION="${{ steps.tag.outputs.value }}"
           TARGET="${{ matrix.target }}"
-          BINARY="agent/target/${TARGET}/release/netscope-agent"
-          FILENAME="netscope-agent-ebpf-${VERSION}-${TARGET}.tar.gz"
+          BINARY="agent/target/${TARGET}/release/nexor-agent"
+          FILENAME="nexor-agent-ebpf-${VERSION}-${TARGET}.tar.gz"
           tar -czf "${FILENAME}" -C "$(dirname ${BINARY})" "$(basename ${BINARY})"
           echo "ASSET_NAME=${FILENAME}" >> $GITHUB_ENV
 

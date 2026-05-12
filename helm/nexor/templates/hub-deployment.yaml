@@ -1,16 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "netscope.name" . }}-hub
+  name: {{ include "nexor.name" . }}-hub
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "netscope.labels" . | nindent 4 }}
-    {{- include "netscope.hub.selectorLabels" . | nindent 4 }}
+    {{- include "nexor.labels" . | nindent 4 }}
+    {{- include "nexor.hub.selectorLabels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.hub.replicaCount }}
   selector:
     matchLabels:
-      {{- include "netscope.hub.selectorLabels" . | nindent 6 }}
+      {{- include "nexor.hub.selectorLabels" . | nindent 6 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -19,7 +19,7 @@ spec:
   template:
     metadata:
       labels:
-        {{- include "netscope.hub.selectorLabels" . | nindent 8 }}
+        {{- include "nexor.hub.selectorLabels" . | nindent 8 }}
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/path: "/metrics"
@@ -49,12 +49,12 @@ spec:
             - name: CLICKHOUSE_DSN
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "netscope.name" . }}-secret
+                  name: {{ include "nexor.name" . }}-secret
                   key: CLICKHOUSE_DSN
             - name: API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "netscope.name" . }}-secret
+                  name: {{ include "nexor.name" . }}-secret
                   key: API_KEY
           livenessProbe:
             httpGet:
@@ -79,14 +79,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "netscope.name" . }}-hub
+  name: {{ include "nexor.name" . }}-hub
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "netscope.labels" . | nindent 4 }}
+    {{- include "nexor.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.hub.service.type }}
   selector:
-    {{- include "netscope.hub.selectorLabels" . | nindent 4 }}
+    {{- include "nexor.hub.selectorLabels" . | nindent 4 }}
   ports:
     - name: http
       port: {{ .Values.hub.service.port }}

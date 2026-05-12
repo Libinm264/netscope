@@ -2,10 +2,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "netscope.name" . }}
+  name: {{ include "nexor.name" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "netscope.labels" . | nindent 4 }}
+    {{- include "nexor.labels" . | nindent 4 }}
   annotations:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
@@ -32,35 +32,35 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ include "netscope.name" . }}-hub
+                name: {{ include "nexor.name" . }}-hub
                 port:
                   name: http
           - path: /health
             pathType: Exact
             backend:
               service:
-                name: {{ include "netscope.name" . }}-hub
+                name: {{ include "nexor.name" . }}-hub
                 port:
                   name: http
           - path: /metrics
             pathType: Exact
             backend:
               service:
-                name: {{ include "netscope.name" . }}-hub
+                name: {{ include "nexor.name" . }}-hub
                 port:
                   name: http
           - path: /install
             pathType: Exact
             backend:
               service:
-                name: {{ include "netscope.name" . }}-hub
+                name: {{ include "nexor.name" . }}-hub
                 port:
                   name: http
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: {{ include "netscope.name" . }}-web
+                name: {{ include "nexor.name" . }}-web
                 port:
                   name: http
 {{- end }}

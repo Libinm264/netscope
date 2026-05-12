@@ -25,11 +25,11 @@ jobs:
         include:
           - name: hub-api
             context: hub/api
-            image: ghcr.io/${{ github.repository_owner }}/netscope-hub-api
+            image: ghcr.io/${{ github.repository_owner }}/nexor-hub-api
 
           - name: hub-web
             context: hub/web
-            image: ghcr.io/${{ github.repository_owner }}/netscope-hub-web
+            image: ghcr.io/${{ github.repository_owner }}/nexor-hub-web
 
     steps:
       - uses: actions/checkout@v4

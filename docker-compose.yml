@@ -1,4 +1,4 @@
-# NetScope v0.7 — One-command stack
+# Nexor v0.7 — One-command stack
 # ─────────────────────────────────────────────────────────────────────────────
 # Usage:
 #   cp .env.example .env   # fill in secrets
@@ -17,7 +17,7 @@ services:
   # ── ClickHouse ───────────────────────────────────────────────────────────────
   clickhouse:
     image: clickhouse/clickhouse-server:24.3-alpine
-    container_name: netscope-clickhouse
+    container_name: nexor-clickhouse
     restart: unless-stopped
     ports:
       - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"   # HTTP interface (optional — disable in prod)
@@ -25,10 +25,10 @@ services:
     volumes:
       - clickhouse_data:/var/lib/clickhouse
       - clickhouse_logs:/var/log/clickhouse-server
-      - ./deploy/clickhouse/users.xml:/etc/clickhouse-server/users.d/netscope.xml:ro
+      - ./deploy/clickhouse/users.xml:/etc/clickhouse-server/users.d/nexor.xml:ro
     environment:
-      CLICKHOUSE_DB:       netscope
-      CLICKHOUSE_USER:     netscope
+      CLICKHOUSE_DB:       nexor
+      CLICKHOUSE_USER:     nexor
       CLICKHOUSE_PASSWORD: "${CLICKHOUSE_PASSWORD:?Set CLICKHOUSE_PASSWORD in .env}"
     ulimits:
       nofile: { soft: 262144, hard: 262144 }
@@ -43,12 +43,12 @@ services:
     build:
       context: ./hub/api
       dockerfile: Dockerfile
-    container_name: netscope-hub-api
+    container_name: nexor-hub-api
     restart: unless-stopped
     ports:
       - "${HUB_API_PORT:-8080}:8080"
     environment:
-      CLICKHOUSE_DSN:   "clickhouse://netscope:${CLICKHOUSE_PASSWORD}@clickhouse:9000/netscope"
+      CLICKHOUSE_DSN:   "clickhouse://nexor:${CLICKHOUSE_PASSWORD}@clickhouse:9000/nexor"
       API_KEY:          "${API_KEY:?Set API_KEY in .env}"
       PRODUCTION:       "true"
       ALLOWED_ORIGINS:  "${ALLOWED_ORIGINS:-http://localhost:3000}"
@@ -77,7 +77,7 @@ services:
     build:
       context: ./hub/web
       dockerfile: Dockerfile
-    container_name: netscope-hub-web
+    container_name: nexor-hub-web
     restart: unless-stopped
     ports:
       - "${HUB_WEB_PORT:-3000}:3000"

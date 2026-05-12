@@ -1,20 +1,20 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "netscope.name" . }}-web
+  name: {{ include "nexor.name" . }}-web
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "netscope.labels" . | nindent 4 }}
-    {{- include "netscope.web.selectorLabels" . | nindent 4 }}
+    {{- include "nexor.labels" . | nindent 4 }}
+    {{- include "nexor.web.selectorLabels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.web.replicaCount }}
   selector:
     matchLabels:
-      {{- include "netscope.web.selectorLabels" . | nindent 6 }}
+      {{- include "nexor.web.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "netscope.web.selectorLabels" . | nindent 8 }}
+        {{- include "nexor.web.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
@@ -29,11 +29,11 @@ spec:
               containerPort: {{ .Values.web.service.targetPort }}
           env:
             - name: NEXT_PUBLIC_API_URL
-              value: "http://{{ include "netscope.name" . }}-hub"
+              value: "http://{{ include "nexor.name" . }}-hub"
             - name: NEXT_PUBLIC_API_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "netscope.name" . }}-secret
+                  name: {{ include "nexor.name" . }}-secret
                   key: API_KEY
           livenessProbe:
             httpGet:
@@ -53,14 +53,14 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "netscope.name" . }}-web
+  name: {{ include "nexor.name" . }}-web
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "netscope.labels" . | nindent 4 }}
+    {{- include "nexor.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.web.service.type }}
   selector:
-    {{- include "netscope.web.selectorLabels" . | nindent 4 }}
+    {{- include "nexor.web.selectorLabels" . | nindent 4 }}
   ports:
     - name: http
       port: {{ .Values.web.service.port }}
