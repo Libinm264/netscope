@@ -1,4 +1,4 @@
-# NetScope Hub — local development overrides
+# Nexor Hub — local development overrides
 # ──────────────────────────────────────────────────────────────────────────────
 # Use this file to build the api and web services from local source instead of
 # pulling pre-built images from GHCR.

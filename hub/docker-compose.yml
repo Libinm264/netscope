@@ -1,4 +1,4 @@
-# NetScope Hub — Docker Compose
+# Nexor Hub — Docker Compose
 # ──────────────────────────────────────────────────────────────────────────────
 # Quick start (no config required for local dev):
 #
@@ -7,7 +7,7 @@
 #   open http://localhost          # dashboard via Caddy
 #
 # Or use the one-liner installer:
-#   curl -sSL https://netscope.ie/hub-quickstart.sh | sh
+#   curl -sSL https://nexor.ie/hub-quickstart.sh | sh
 # ──────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -42,7 +42,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        rpk topic create netscope.flows --brokers redpanda:9092 --partitions 4 || true
+        rpk topic create nexor.flows --brokers redpanda:9092 --partitions 4 || true
         echo "Topic ready."
     restart: "no"
 
@@ -53,9 +53,9 @@ services:
       - "127.0.0.1:8123:8123"   # HTTP (localhost only — not exposed to LAN)
       - "127.0.0.1:9000:9000"   # Native
     environment:
-      CLICKHOUSE_DB:       netscope
-      CLICKHOUSE_USER:     netscope
-      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-netscope_pass}
+      CLICKHOUSE_DB:       nexor
+      CLICKHOUSE_USER:     nexor
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-nexor_pass}
     volumes:
       - clickhouse_data:/var/lib/clickhouse
     ulimits:
@@ -69,7 +69,7 @@ services:
 
   # ── Go / Fiber API ────────────────────────────────────────────────────────
   api:
-    image: ghcr.io/libinm264/netscope-hub-api:latest
+    image: ghcr.io/libinm264/nexor-hub-api:latest
     # Build locally instead of pulling from GHCR (for development):
     # build:
     #   context: ./api
@@ -78,13 +78,13 @@ services:
       - "127.0.0.1:8080:8080"   # Direct access (localhost only)
     environment:
       PORT:            8080
-      CLICKHOUSE_DSN:  clickhouse://netscope:${CLICKHOUSE_PASSWORD:-netscope_pass}@clickhouse:9000/netscope
+      CLICKHOUSE_DSN:  clickhouse://nexor:${CLICKHOUSE_PASSWORD:-nexor_pass}@clickhouse:9000/nexor
       KAFKA_BROKERS:   redpanda:9092
-      KAFKA_TOPIC:     ${KAFKA_TOPIC:-netscope.flows}
+      KAFKA_TOPIC:     ${KAFKA_TOPIC:-nexor.flows}
       API_KEY:         ${API_KEY:?API_KEY must be set in .env}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
       APP_URL:         ${APP_URL:-http://localhost}
-      ORG_NAME:        ${ORG_NAME:-NetScope}
+      ORG_NAME:        ${ORG_NAME:-Nexor}
       # GeoIP (optional — omit to skip geo enrichment)
       GEOIP_CITY_DB:   ${GEOIP_CITY_DB:-}
       GEOIP_ASN_DB:    ${GEOIP_ASN_DB:-}
@@ -112,7 +112,7 @@ services:
 
   # ── Next.js Web Dashboard ─────────────────────────────────────────────────
   web:
-    image: ghcr.io/libinm264/netscope-hub-web:latest
+    image: ghcr.io/libinm264/nexor-hub-web:latest
     # Build locally instead of pulling from GHCR (for development):
     # build:
     #   context: ./web
