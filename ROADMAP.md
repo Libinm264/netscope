@@ -1,7 +1,7 @@
-# NetScope Roadmap
+# Nexor Roadmap
 
 This document tracks what has shipped and what is planned for each release.
-The goal is to evolve NetScope from a passive network visibility tool into a
+The goal is to evolve Nexor from a passive network visibility tool into a
 full-stack security observability platform.
 
 ---
@@ -63,7 +63,7 @@ a proxy.
 cargo xtask build-ebpf --release
 
 # Step 2 — run the agent in eBPF mode
-sudo netscope-agent ebpf \
+sudo nexor-agent ebpf \
   --hub-url http://your-hub:8080 \
   --api-key YOUR_API_KEY
 ```

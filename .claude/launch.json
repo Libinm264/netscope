@@ -2,21 +2,21 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "netscope-desktop",
+      "name": "nexor-desktop",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 1420,
       "cwd": "/Users/libinmathew/ClaudeProject/netscope/desktop"
     },
     {
-      "name": "netscope-hub-web",
+      "name": "nexor-hub-web",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000,
       "cwd": "/Users/libinmathew/ClaudeProject/netscope/hub/web"
     }
   ,{
-      "name": "netscope-website",
+      "name": "nexor-website",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "-p", "4000", "."],
       "port": 4000,

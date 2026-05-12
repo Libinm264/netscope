@@ -1,6 +1,6 @@
-# NetScope Changelog
+# Nexor Changelog
 
-All notable changes to NetScope are documented here.  
+All notable changes to Nexor are documented here.  
 Format: user-facing features first, internals second.  
 Community features are marked **✅ Community**; Enterprise-only features are marked **🔒 Enterprise**.
 
@@ -16,7 +16,7 @@ The v0.7 release closes the loop on incident response: replay any anomaly as a p
 
 ### 🎬 Incident Replay Timeline (V1) — *New*
 
-**The headline feature.** When an anomaly fires, click the new **Replay** button on any anomaly row. NetScope pulls every flow captured in a ±5-minute window around the incident and renders them as a parallel protocol lane timeline.
+**The headline feature.** When an anomaly fires, click the new **Replay** button on any anomaly row. Nexor pulls every flow captured in a ±5-minute window around the incident and renders them as a parallel protocol lane timeline.
 
 - **Five protocol lanes in parallel:** HTTP (blue), HTTP/2 & gRPC (indigo), DNS (magenta), TLS (cyan), TCP/UDP (slate)
 - **Red trigger line** marks the exact moment the anomaly was detected across every lane
@@ -49,7 +49,7 @@ Credentials, tokens, and payment data are redacted **inside the Rust agent** bef
 
 Values are replaced with `[REDACTED]` inline. The field name is preserved for debugging; only the value is masked.
 
-**Configurable:** Add your own regex patterns to `~/.config/netscope/agent.toml`:
+**Configurable:** Add your own regex patterns to `~/.config/nexor/agent.toml`:
 ```toml
 [privacy]
 extra_patterns = ["x-internal-token", "x-session-id"]
@@ -83,7 +83,7 @@ GET /api/v1/agents/{agent_id}/perf?limit=20
 
 ### ⚡ Adaptive Sampling (T4) — *New*
 
-Stop burning storage on routine traffic. NetScope now operates in two modes, switchable per-agent from the Fleet UI with **zero restart**.
+Stop burning storage on routine traffic. Nexor now operates in two modes, switchable per-agent from the Fleet UI with **zero restart**.
 
 | | Metadata mode (default) | Full capture |
 |---|---|---|
@@ -128,7 +128,7 @@ Powered by the same Claude backend as the AI Copilot — requires `ANTHROPIC_API
 
 ### 🗂️ Passive API Inventory (V3) — *New*
 
-NetScope now auto-discovers every HTTP, HTTP/2, and gRPC endpoint called across your fleet — **zero instrumentation required**. The new **API Inventory** page (sidebar → *API Inventory*) shows:
+Nexor now auto-discovers every HTTP, HTTP/2, and gRPC endpoint called across your fleet — **zero instrumentation required**. The new **API Inventory** page (sidebar → *API Inventory*) shows:
 
 | Column | Description |
 |---|---|
@@ -157,7 +157,7 @@ Alert notifications now arrive as **structured threads** with enough context to 
 - Header block with rule name
 - Metric / value / threshold / timestamp in a 4-field grid
 - Up to 5 recent flows inline (`PROTOCOL src → dst — info`)
-- Action buttons: **View in NetScope** and **▶ Replay Incident** (deep link to the timeline)
+- Action buttons: **View in Nexor** and **▶ Replay Incident** (deep link to the timeline)
 
 **Microsoft Teams (Adaptive Card):**
 - `AdaptiveCard 1.4` schema — renders natively in Teams with no connector required
@@ -172,7 +172,7 @@ Alert notifications now arrive as **structured threads** with enough context to 
 
 ### 🐳 One-Command Docker Compose (V5) — *New*
 
-The entire NetScope stack now starts with a single command:
+The entire Nexor stack now starts with a single command:
 
 ```bash
 # 1 — Copy and fill in secrets
@@ -186,9 +186,9 @@ What starts:
 
 | Container | Image | Port |
 |---|---|---|
-| `netscope-clickhouse` | `clickhouse/clickhouse-server:24.3` | 9000 / 8123 |
-| `netscope-hub-api` | Built from `hub/api/Dockerfile` | 8080 |
-| `netscope-hub-web` | Built from `hub/web/Dockerfile` | 3000 |
+| `nexor-clickhouse` | `clickhouse/clickhouse-server:24.3` | 9000 / 8123 |
+| `nexor-hub-api` | Built from `hub/api/Dockerfile` | 8080 |
+| `nexor-hub-web` | Built from `hub/web/Dockerfile` | 3000 |
 
 **Health-check chain:** ClickHouse must pass its `/ping` before the Hub API starts; the Hub API must pass its `/health` before the web UI starts. A clean first-boot takes under 60 seconds on any machine with Docker installed.
 
@@ -200,7 +200,7 @@ What starts:
 
 ### 🍎 macOS Code Signing (T3) — *Done*
 
-The macOS `.dmg` is now signed and notarised with an Apple Developer ID certificate. Users open NetScope with a standard double-click — no "unidentified developer" bypass required.
+The macOS `.dmg` is now signed and notarised with an Apple Developer ID certificate. Users open Nexor with a standard double-click — no "unidentified developer" bypass required.
 
 - **Identity:** Developer ID Application (validated against Apple's notarisation service in CI)
 - **CI:** All six Apple environment variables are wired in `build-desktop.yml`; signing runs automatically on every tagged release build
@@ -229,7 +229,7 @@ Powered by Claude. The API key lives on your server — it never passes through 
 
 ### 📊 Behavioural Anomaly Detection — *New in v0.6*
 
-NetScope builds a **7-day rolling baseline** for every agent/protocol pair, broken down by hour-of-week (168 buckets). When observed traffic deviates significantly from the expected mean, an anomaly event fires.
+Nexor builds a **7-day rolling baseline** for every agent/protocol pair, broken down by hour-of-week (168 buckets). When observed traffic deviates significantly from the expected mean, an anomaly event fires.
 
 - **Z-score thresholding** — flags spikes and drops (e.g. "HTTP traffic 4.3σ above baseline")
 - **Three severity levels** — High / Medium / Low, colour-coded in the dashboard
@@ -244,7 +244,7 @@ NetScope builds a **7-day rolling baseline** for every agent/protocol pair, brok
 
 ### 📋 Custom Dashboards — *New in v0.6*
 
-Build and save bespoke dashboards combining any metric NetScope tracks. Each dashboard is a named, persistent layout of widgets:
+Build and save bespoke dashboards combining any metric Nexor tracks. Each dashboard is a named, persistent layout of widgets:
 
 - **Widget types:** timeseries chart, protocol breakdown donut, top-N table, stat card
 - **Saved to Hub** — accessible from any browser; shared across your team
@@ -256,12 +256,12 @@ Build and save bespoke dashboards combining any metric NetScope tracks. Each das
 
 ### 🐍 Python SDK — *New in v0.6*
 
-`pip install netscope-sdk` gives you a full Python client for NetScope:
+`pip install nexor-sdk` gives you a full Python client for Nexor:
 
 ```python
-from netscope import NetScopeClient
+from nexor import NexorClient
 
-client = NetScopeClient(hub_url="https://hub.example.com", api_key="...")
+client = NexorClient(hub_url="https://hub.example.com", api_key="...")
 
 # Query flows
 flows = client.flows.list(protocol="HTTP", hours=1)
@@ -273,7 +273,7 @@ client.alerts.create(metric="http_error_rate", threshold=0.05, ...)
 result = client.copilot.ask("Which IPs had more than 100 failed connections today?")
 ```
 
-Full async support via `AsyncNetScopeClient`. Runnable examples in `sdk/examples/`.
+Full async support via `AsyncNexorClient`. Runnable examples in `sdk/examples/`.
 
 > ✅ Community · ✅ Enterprise
 
@@ -307,7 +307,7 @@ The Linux eBPF agent attaches to the kernel network stack and maps every connect
 - **Zero kernel module** — uses CO-RE BPF programs; works on any kernel ≥ 5.8 with BTF
 
 ```bash
-sudo netscope-agent-ebpf \
+sudo nexor-agent-ebpf \
   --hub-url https://hub.example.com \
   --api-key <key>
 ```
@@ -330,7 +330,7 @@ Ingest VPC Flow Logs from AWS, GCP, and Azure alongside your on-prem pcap/eBPF f
 
 ### 🔗 OpenTelemetry Trace Correlation
 
-NetScope parses `traceparent` headers from HTTP and HTTP/2 flows and indexes the trace ID. Filter flows by trace ID to jump from an anomalous span in Jaeger or Tempo directly to the underlying network activity.
+Nexor parses `traceparent` headers from HTTP and HTTP/2 flows and indexes the trace ID. Filter flows by trace ID to jump from an anomalous span in Jaeger or Tempo directly to the underlying network activity.
 
 ```
 GET /api/v1/flows?trace_id=4bf92f3577b34da6a3ce929d0e0e4736
@@ -473,7 +473,7 @@ Every external IP is enriched with:
 
 ### 🔐 TLS Certificate Fleet Monitor
 
-NetScope tracks every unique TLS certificate seen across the fleet and alerts before they expire:
+Nexor tracks every unique TLS certificate seen across the fleet and alerts before they expire:
 
 - **Certificate inventory** — CN, issuer, SANs, fingerprint, first/last seen
 - **Expiry dashboard** — expired / critical (< 7 days) / warning (< 30 days) / OK

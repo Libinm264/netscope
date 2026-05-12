@@ -1,4 +1,4 @@
-# ── NetScope Hub — Caddyfile ──────────────────────────────────────────────────
+# ── Nexor Hub — Caddyfile ──────────────────────────────────────────────────
 # Dev:  CADDY_HOSTNAME is unset  → HTTP only on :80
 # Prod: CADDY_HOSTNAME=hub.example.com → automatic HTTPS via Let's Encrypt
 #

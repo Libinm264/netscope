@@ -1,4 +1,4 @@
-# NetScope v0.4 — Enterprise Readiness Release
+# Nexor v0.4 — Enterprise Readiness Release
 
 **Date:** 2026-04-27  
 **Tags:** `v0.4.0` · Community (MIT) + Enterprise (BSL-1.1)
@@ -8,7 +8,7 @@
 ## What's New
 
 v0.4 is the **Enterprise Readiness** milestone — four shipped priority phases that bring
-production-grade security, integrations, and analytics to NetScope while keeping the
+production-grade security, integrations, and analytics to Nexor while keeping the
 Community edition genuinely powerful and MIT-licensed.
 
 ---
@@ -56,11 +56,11 @@ Configure at `Settings → Storage`.
 
 ```bash
 # Hub (Docker)
-docker pull ghcr.io/libinm264/netscope-hub:v0.4.0
+docker pull ghcr.io/libinm264/nexor-hub:v0.4.0
 docker compose up -d hub
 
 # Agent (Linux)
-curl -sSL https://netscope.ie/install.sh | sudo sh
+curl -sSL https://nexor.ie/install.sh | sudo sh
 
 # macOS desktop
 # Download the .dmg from the Releases page
@@ -85,17 +85,17 @@ None. The API is fully backward-compatible with v0.3 agents.
 - **AI anomaly baseline** — unsupervised ML model trained on your own traffic to surface
   novel threats that Sigma rules miss.
 
-Full roadmap: [netscope.ie/#roadmap](https://netscope.ie/#roadmap)
+Full roadmap: [nexor.ie/#roadmap](https://nexor.ie/#roadmap)
 
 ---
 
 ## Customer Email Template
 
-> Subject: **NetScope v0.4 is live — Detection, Storage Export & More**
+> Subject: **Nexor v0.4 is live — Detection, Storage Export & More**
 >
 > Hi [Name],
 >
-> NetScope v0.4 shipped today. Here's what's new for you:
+> Nexor v0.4 shipped today. Here's what's new for you:
 >
 > **If you're on Community (free):**
 > - 🔍 Five built-in Sigma detection rules are now active on your hub — catching port
@@ -117,12 +117,12 @@ Full roadmap: [netscope.ie/#roadmap](https://netscope.ie/#roadmap)
 > automatically. Your existing agents need no changes.
 >
 > ```
-> docker pull ghcr.io/libinm264/netscope-hub:v0.4.0 && docker compose up -d hub
+> docker pull ghcr.io/libinm264/nexor-hub:v0.4.0 && docker compose up -d hub
 > ```
 >
-> Full release notes: https://github.com/Libinm264/netscope/releases/tag/v0.4.0  
-> What's new on the website: https://netscope.ie/#changelog
+> Full release notes: https://github.com/Libinm264/nexor/releases/tag/v0.4.0  
+> What's new on the website: https://nexor.ie/#changelog
 >
 > As always, ping us on GitHub Discussions or reply to this email with any questions.
 >
-> — The NetScope team
+> — The Nexor team

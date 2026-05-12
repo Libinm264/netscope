@@ -1,4 +1,4 @@
-# NetScope v0.7.0 — Incident Intelligence Release
+# Nexor v0.7.0 — Incident Intelligence Release
 
 **Date:** 2026-05-05  
 **Tags:** `v0.7.0` · Community (MIT) + Enterprise (BSL-1.1)
@@ -45,7 +45,7 @@ Auto-discovers every HTTP, HTTP/2, and gRPC endpoint called across your fleet wi
 
 Alert notifications now carry structured context:
 
-- **Slack Block Kit** — rule name, metric/threshold, up to 5 inline flows, "View in NetScope" + "▶ Replay" action buttons
+- **Slack Block Kit** — rule name, metric/threshold, up to 5 inline flows, "View in Nexor" + "▶ Replay" action buttons
 - **Microsoft Teams Adaptive Card** — same facts rendered natively in Teams (no connector needed)
 - **PagerDuty Events v2** and **OpsGenie** integrations added
 - `POST /api/v1/alerts/{id}/resolve` for runbook-style resolution notes
@@ -74,7 +74,7 @@ Credentials, tokens, and payment fields are redacted **inside the Rust agent** b
 | Passwords | `password`, `passwd`, `new_password`, `current_password` |
 | Payment data | `card_number`, `cvv`, `ssn`, `credit_card` |
 
-Custom patterns via `~/.config/netscope/agent.toml` `[privacy] extra_patterns`.
+Custom patterns via `~/.config/nexor/agent.toml` `[privacy] extra_patterns`.
 
 ### 📈 T2 — Agent Performance Telemetry
 
@@ -117,17 +117,17 @@ API: `GET/POST /api/v1/agents/{id}/sampling`
 
 | Asset | Platform |
 |---|---|
-| `netscope-agent-v0.7.0-aarch64-apple-darwin.tar.gz` | macOS ARM64 |
-| `netscope-agent-v0.7.0-x86_64-apple-darwin.tar.gz` | macOS Intel |
-| `netscope-agent-v0.7.0-x86_64-unknown-linux-gnu.tar.gz` | Linux x86_64 |
-| `netscope-agent-v0.7.0-aarch64-unknown-linux-gnu.tar.gz` | Linux ARM64 |
-| `NetScope_0.7.0_aarch64.dmg` | Desktop macOS ARM64 |
-| `NetScope_0.7.0_x64.dmg` | Desktop macOS Intel |
-| `NetScope_0.7.0_x64-setup.exe` | Desktop Windows x64 |
-| `NetScope_0.7.0_amd64.AppImage` | Desktop Linux |
+| `nexor-agent-v0.7.0-aarch64-apple-darwin.tar.gz` | macOS ARM64 |
+| `nexor-agent-v0.7.0-x86_64-apple-darwin.tar.gz` | macOS Intel |
+| `nexor-agent-v0.7.0-x86_64-unknown-linux-gnu.tar.gz` | Linux x86_64 |
+| `nexor-agent-v0.7.0-aarch64-unknown-linux-gnu.tar.gz` | Linux ARM64 |
+| `Nexor_0.7.0_aarch64.dmg` | Desktop macOS ARM64 |
+| `Nexor_0.7.0_x64.dmg` | Desktop macOS Intel |
+| `Nexor_0.7.0_x64-setup.exe` | Desktop Windows x64 |
+| `Nexor_0.7.0_amd64.AppImage` | Desktop Linux |
 | `latest.json` | Auto-updater manifest |
-| `ghcr.io/libinm264/netscope-hub-api:0.7.0` | Docker Hub API |
-| `ghcr.io/libinm264/netscope-hub-web:0.7.0` | Docker Hub Web |
+| `ghcr.io/libinm264/nexor-hub-api:0.7.0` | Docker Hub API |
+| `ghcr.io/libinm264/nexor-hub-web:0.7.0` | Docker Hub Web |
 
 Docker images also tagged `:latest` and `:0.7`.
 

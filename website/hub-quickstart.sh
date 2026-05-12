@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
-# NetScope Hub — one-line quickstart
+# Nexor Hub — one-line quickstart
 # Usage:
-#   curl -sSL https://netscope.ie/hub-quickstart.sh | sh
-#   curl -sSL https://netscope.ie/hub-quickstart.sh | DOMAIN=hub.example.com sh
+#   curl -sSL https://nexor.io/hub-quickstart.sh | sh
+#   curl -sSL https://nexor.io/hub-quickstart.sh | DOMAIN=hub.example.com sh
 #
 # What this does:
 #   1. Checks Docker is installed
@@ -13,9 +13,9 @@
 
 set -e
 
-REPO="Libinm264/netscope"
+REPO="Libinm264/nexor"
 RAW="https://raw.githubusercontent.com/${REPO}/main/hub"
-INSTALL_DIR="${NETSCOPE_DIR:-$HOME/.netscope-hub}"
+INSTALL_DIR="${NEXOR_DIR:-$HOME/.nexor-hub}"
 DOMAIN="${DOMAIN:-}"
 
 # ── Colours ───────────────────────────────────────────────────────────────────
@@ -107,7 +107,7 @@ pull_images() {
 
 # ── Start stack ───────────────────────────────────────────────────────────────
 start_stack() {
-  info "Starting NetScope Hub..."
+  info "Starting Nexor Hub..."
   cd "$INSTALL_DIR"
   docker compose up -d
   success "Stack started"
@@ -135,16 +135,16 @@ print_summary() {
   [ -n "$DOMAIN" ] && URL="https://${DOMAIN}"
 
   printf "\n${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
-  printf "${BOLD}  NetScope Hub is running!${RESET}\n"
+  printf "${BOLD}  Nexor Hub is running!${RESET}\n"
   printf "${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n"
   printf "  Dashboard  ${CYAN}${URL}${RESET}\n"
   printf "  API        ${CYAN}http://localhost:8080${RESET}\n"
   printf "  API Key    ${YELLOW}${API_KEY_VAL}${RESET}\n\n"
   printf "  Manage:    cd ${INSTALL_DIR} && docker compose ...\n\n"
   printf "  Connect an agent:\n"
-  printf "  ${CYAN}curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=${URL} HUB_API_KEY=${API_KEY_VAL} sh${RESET}\n\n"
-  printf "  Stop:      ${YELLOW}docker compose -p netscope-hub down${RESET}\n"
-  printf "  Logs:      ${YELLOW}docker compose -p netscope-hub logs -f${RESET}\n\n"
+  printf "  ${CYAN}curl -sSL https://nexor.io/install.sh | sudo HUB_URL=${URL} HUB_API_KEY=${API_KEY_VAL} sh${RESET}\n\n"
+  printf "  Stop:      ${YELLOW}docker compose -p nexor-hub down${RESET}\n"
+  printf "  Logs:      ${YELLOW}docker compose -p nexor-hub logs -f${RESET}\n\n"
 }
 
 # ── Main ──────────────────────────────────────────────────────────────────────

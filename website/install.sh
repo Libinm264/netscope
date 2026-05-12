@@ -1,16 +1,16 @@
 #!/usr/bin/env sh
-# NetScope Agent — one-line installer
+# Nexor Agent — one-line installer
 # Usage:
-#   curl -sSL https://netscope.ie/install.sh | sudo sh
-#   curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=https://hub.example.com sh
+#   curl -sSL https://nexor.io/install.sh | sudo sh
+#   curl -sSL https://nexor.io/install.sh | sudo HUB_URL=https://hub.example.com sh
 #
 # Supports: macOS (ARM64 / Intel), Linux (x86_64 / ARM64)
-# Installs: /usr/local/bin/netscope-agent
+# Installs: /usr/local/bin/nexor-agent
 
 set -e
 
-REPO="Libinm264/netscope"
-BINARY="netscope-agent"
+REPO="Libinm264/nexor"
+BINARY="nexor-agent"
 INSTALL_DIR="/usr/local/bin"
 VERSION="${VERSION:-latest}"
 
@@ -26,7 +26,7 @@ info()    { printf "${CYAN}  →${RESET}  %s\n" "$1"; }
 success() { printf "${GREEN}  ✓${RESET}  %s\n" "$1"; }
 warn()    { printf "${YELLOW}  ⚠${RESET}  %s\n" "$1"; }
 fatal()   { printf "${RED}  ✗${RESET}  %s\n" "$1"; exit 1; }
-banner()  { printf "\n${BOLD}${CYAN}NetScope Agent Installer${RESET}\n\n"; }
+banner()  { printf "\n${BOLD}${CYAN}Nexor Agent Installer${RESET}\n\n"; }
 
 # ── Detect OS + arch ───────────────────────────────────────────────────────────
 detect_platform() {
@@ -49,7 +49,7 @@ detect_platform() {
       esac
       ;;
     *)
-      fatal "Unsupported OS: $OS. Windows users: download from https://netscope.ie/#download"
+      fatal "Unsupported OS: $OS. Windows users: download from https://nexor.io/#download"
       ;;
   esac
 }
@@ -94,13 +94,13 @@ download_and_install() {
   info "Installing to ${INSTALL_DIR}/${BINARY}..."
   mv "$BINARY_PATH" "${INSTALL_DIR}/${BINARY}"
 
-  success "Installed: $(${INSTALL_DIR}/${BINARY} --version 2>/dev/null || echo "netscope-agent ${VERSION}")"
+  success "Installed: $(${INSTALL_DIR}/${BINARY} --version 2>/dev/null || echo "nexor-agent ${VERSION}")"
 }
 
 # ── Optional: write config ──────────────────────────────────────────────────────
 write_config() {
   if [ -n "$HUB_URL" ]; then
-    CONFIG_DIR="${HOME}/.config/netscope"
+    CONFIG_DIR="${HOME}/.config/nexor"
     mkdir -p "$CONFIG_DIR"
     cat > "${CONFIG_DIR}/agent.env" <<EOF
 HUB_URL=${HUB_URL}
@@ -114,15 +114,15 @@ EOF
 install_service() {
   if [ "$OS" = "Linux" ] && [ -d /etc/systemd/system ] && [ -n "$HUB_URL" ]; then
     info "Installing systemd service..."
-    cat > /etc/systemd/system/netscope-agent.service <<EOF
+    cat > /etc/systemd/system/nexor-agent.service <<EOF
 [Unit]
-Description=NetScope Agent
+Description=Nexor Agent
 After=network.target
 Wants=network.target
 
 [Service]
 Type=simple
-EnvironmentFile=-${HOME}/.config/netscope/agent.env
+EnvironmentFile=-${HOME}/.config/nexor/agent.env
 ExecStart=${INSTALL_DIR}/${BINARY} start
 Restart=on-failure
 RestartSec=5
@@ -131,9 +131,9 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
     systemctl daemon-reload
-    systemctl enable netscope-agent
-    systemctl start netscope-agent
-    success "Service installed and started (systemctl status netscope-agent)"
+    systemctl enable nexor-agent
+    systemctl start nexor-agent
+    success "Service installed and started (systemctl status nexor-agent)"
   fi
 }
 
@@ -145,9 +145,9 @@ download_and_install
 write_config
 install_service
 
-printf "\n${BOLD}Done!${RESET} Run: ${CYAN}netscope-agent list-interfaces${RESET}\n\n"
+printf "\n${BOLD}Done!${RESET} Run: ${CYAN}nexor-agent list-interfaces${RESET}\n\n"
 
 if [ -z "$HUB_URL" ]; then
   printf "${YELLOW}Tip:${RESET} Re-run with HUB_URL to connect to your hub:\n"
-  printf "  ${CYAN}curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=https://hub.example.com sh${RESET}\n\n"
+  printf "  ${CYAN}curl -sSL https://nexor.io/install.sh | sudo HUB_URL=https://hub.example.com sh${RESET}\n\n"
 fi

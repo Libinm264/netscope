@@ -34,7 +34,7 @@ Desktop.ini
 *.pem
 *.key
 
-# ── NetScope session files ────────────────────────────────────────────────────
+# ── Nexor session files ────────────────────────────────────────────────────
 *.nscope
 
 # ── Build artefacts ───────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ hub/web/.next/
 hub/web/tsconfig.tsbuildinfo
 hub/web/next-env.d.ts
 
-# ── GeoIP tarballs and databases (binary — extract to ~/.netscope/ instead) ──
+# ── GeoIP tarballs and databases (binary — extract to ~/.nexor/ instead) ──
 *.tar.gz
 *.mmdb
 

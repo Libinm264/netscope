@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetScope — See Everything on Your Network</title>
+  <title>Nexor — See Everything on Your Network</title>
   <meta name="description" content="Real-time packet capture, deep protocol decode, GeoIP & threat intel, and a fleet-wide SaaS hub. Built with Rust and ClickHouse." />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -382,7 +382,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
 <!-- ── NAV ── -->
 <nav>
   <a href="/" class="nav-logo">
-    <img src="icon.svg" alt="" />NetScope
+    <img src="icon.svg" alt="" />Nexor
   </a>
   <ul class="nav-links">
     <li><a href="#how">How it works</a></li>
@@ -390,7 +390,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
     <li><a href="#features">Features</a></li>
     <li><a href="#pricing">Pricing</a></li>
     <li><a href="docs.html">Docs</a></li>
-    <li><a href="https://github.com/Libinm264/netscope" target="_blank" rel="noopener">GitHub ↗</a></li>
+    <li><a href="https://github.com/Libinm264/nexor" target="_blank" rel="noopener">GitHub ↗</a></li>
   </ul>
   <div class="nav-right">
     <a href="#how" class="btn btn-cyan">Deploy free →</a>
@@ -420,7 +420,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
     <div class="hero-actions">
       <a href="#how" class="btn btn-cyan">Deploy the hub →</a>
       <a href="docs.html" class="btn btn-outline">Read the docs</a>
-      <a href="https://github.com/Libinm264/netscope" class="btn btn-outline" target="_blank" rel="noopener">
+      <a href="https://github.com/Libinm264/nexor" class="btn btn-outline" target="_blank" rel="noopener">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.163 22 16.418 22 12c0-5.523-4.477-10-10-10z"/></svg>
         GitHub
       </a>
@@ -428,8 +428,8 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
 
     <div class="hero-cmd">
       <span class="prompt mono">$</span>
-      <code>curl -sSL https://netscope.ie/hub-quickstart.sh | sh</code>
-      <button class="copy-btn" onclick="copyText(this,'curl -sSL https://netscope.ie/hub-quickstart.sh | sh')">
+      <code>curl -sSL https://nexor.ie/hub-quickstart.sh | sh</code>
+      <button class="copy-btn" onclick="copyText(this,'curl -sSL https://nexor.ie/hub-quickstart.sh | sh')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
       </button>
     </div>
@@ -438,7 +438,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
     <div class="hero-mockup">
       <div class="mockup-titlebar">
         <div class="mockup-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
-        <span class="mockup-title">NetScope Hub · Live Flows</span>
+        <span class="mockup-title">Nexor Hub · Live Flows</span>
         <span class="live-pill"><span class="live-dot"></span>Live</span>
       </div>
       <div class="mockup-stats">
@@ -492,7 +492,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
         <div class="step-num">01</div>
         <h3>Deploy the hub</h3>
         <p>One curl starts ClickHouse, Kafka, the API, and the web dashboard in Docker. A random API key is generated automatically.</p>
-        <div class="step-cmd"><span class="p">$</span><code>curl -sSL https://netscope.ie/hub-quickstart.sh | sh</code></div>
+        <div class="step-cmd"><span class="p">$</span><code>curl -sSL https://nexor.ie/hub-quickstart.sh | sh</code></div>
       </div>
       <div class="step">
         <div class="step-num">02</div>
@@ -800,10 +800,10 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
           <span style="font-size:.78rem;color:var(--muted);font-family:'JetBrains Mono',monospace">hunt_threats.py</span>
         </div>
         <div style="padding:1.5rem;font-family:'JetBrains Mono',monospace;font-size:.8rem;line-height:1.75;overflow-x:auto">
-          <div><span style="color:var(--muted)"># pip install netscope-sdk</span></div>
-          <div><span style="color:var(--purple)">from</span> <span style="color:var(--cyan)">netscope_sdk</span> <span style="color:var(--purple)">import</span> NetScope</div>
+          <div><span style="color:var(--muted)"># pip install nexor-sdk</span></div>
+          <div><span style="color:var(--purple)">from</span> <span style="color:var(--cyan)">nexor_sdk</span> <span style="color:var(--purple)">import</span> Nexor</div>
           <br/>
-          <div><span style="color:#fff">ns</span> <span style="color:var(--muted2)">=</span> NetScope(</div>
+          <div><span style="color:#fff">ns</span> <span style="color:var(--muted2)">=</span> Nexor(</div>
           <div>&nbsp;&nbsp;<span style="color:var(--green)">url</span><span style="color:var(--muted2)">=</span><span style="color:var(--orange)">"https://hub.example.com"</span><span style="color:var(--muted2)">,</span></div>
           <div>&nbsp;&nbsp;<span style="color:var(--green)">token</span><span style="color:var(--muted2)">=</span><span style="color:var(--orange)">"nst_xxxxxxxxxxxx"</span></div>
           <div>)</div>
@@ -832,7 +832,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
         </span>
         <h2 class="section-title" style="margin-top:.5rem">Automate<br/>everything.</h2>
         <p class="section-body" style="margin-bottom:2rem">
-          The <strong style="color:#fff">netscope-sdk</strong> gives you programmatic access to every Hub capability — flows, alerts, anomalies, dashboards, incidents, Sigma rules, and the AI Copilot — from a clean Python API.
+          The <strong style="color:#fff">nexor-sdk</strong> gives you programmatic access to every Hub capability — flows, alerts, anomalies, dashboards, incidents, Sigma rules, and the AI Copilot — from a clean Python API.
         </p>
         <div style="display:flex;flex-direction:column;gap:.875rem">
           <div style="display:flex;gap:.75rem;align-items:flex-start">
@@ -850,7 +850,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
         </div>
         <div style="display:flex;gap:.75rem;margin-top:2rem;flex-wrap:wrap">
           <a href="docs.html#sdk" class="btn btn-cyan">SDK docs →</a>
-          <a href="https://github.com/Libinm264/netscope/tree/main/sdk/python" target="_blank" class="btn btn-outline">View on GitHub ↗</a>
+          <a href="https://github.com/Libinm264/nexor/tree/main/sdk/python" target="_blank" class="btn btn-outline">View on GitHub ↗</a>
         </div>
       </div>
 
@@ -947,7 +947,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
         </span>
         <h2 class="section-title">&lt;1% CPU<br/>at 1 Gbps.</h2>
         <p class="section-body" style="margin-bottom:2rem">
-          Every agent reports CPU usage, resident memory, and packet-drop counters on each heartbeat. The Fleet dashboard renders a live sparkline per agent so you can verify — and prove — that NetScope is invisible at any traffic volume.
+          Every agent reports CPU usage, resident memory, and packet-drop counters on each heartbeat. The Fleet dashboard renders a live sparkline per agent so you can verify — and prove — that Nexor is invisible at any traffic volume.
         </p>
         <div style="display:flex;flex-direction:column;gap:.875rem">
           <div style="display:flex;gap:.75rem;align-items:flex-start">
@@ -1065,17 +1065,17 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
       <div class="terminal reveal reveal-delay-2">
         <div class="terminal-bar">
           <div class="dots"><div class="dot" style="background:#ff5f57"></div><div class="dot" style="background:#febc2e"></div><div class="dot" style="background:#28c840"></div></div>
-          <div class="title">zsh — netscope-agent</div>
+          <div class="title">zsh — nexor-agent</div>
         </div>
         <div class="terminal-body" id="terminal-body">
           <div class="line-comment"># Install and enrol the agent</div>
           <div class="line-cmd"><span class="ps">$</span> curl -sSL "http://hub/install?token=abc123" | INTERFACE=eth0 sh</div>
-          <div class="line-ok">  ✓  Agent installed → /usr/local/bin/netscope-agent</div>
+          <div class="line-ok">  ✓  Agent installed → /usr/local/bin/nexor-agent</div>
           <div class="line-ok">  ✓  Enrolled — agent_id: 4f8a2c1e</div>
           <div class="line-info">  →  Capturing on eth0 (pcap mode)...</div>
           <br/>
           <div class="line-comment"># Switch to eBPF for process attribution (Linux)</div>
-          <div class="line-cmd"><span class="ps">$</span> sudo netscope-agent-ebpf --hub-url http://hub --api-key …</div>
+          <div class="line-cmd"><span class="ps">$</span> sudo nexor-agent-ebpf --hub-url http://hub --api-key …</div>
           <div class="line-ok">  ✓  eBPF probe loaded</div>
           <div class="line-out">DNS  chrome → 8.8.8.8:53        api.example.com   0.8ms</div>
           <div class="line-out">TLS  node   → 104.18.3.12:443   registry.npmjs.org 12ms</div>
@@ -1092,7 +1092,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
   <div class="container">
     <div class="social-inner stagger">
       <div class="testimonial">
-        <p class="testimonial-text">"Deployed NetScope on our 40-node K8s cluster in 20 minutes. The Sigma rules caught a Bitcoin miner that had been running for 3 days on a compromised container — the eBPF process attribution made it obvious."</p>
+        <p class="testimonial-text">"Deployed Nexor on our 40-node K8s cluster in 20 minutes. The Sigma rules caught a Bitcoin miner that had been running for 3 days on a compromised container — the eBPF process attribution made it obvious."</p>
         <div class="testimonial-author">
           <div class="testimonial-avatar">MK</div>
           <div><div class="testimonial-name">Marcus K.</div><div class="testimonial-role">Senior SRE · FinTech startup</div></div>
@@ -1106,7 +1106,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
         </div>
       </div>
       <div class="testimonial">
-        <p class="testimonial-text">"We evaluated Zeek and Suricata. NetScope was running on bare metal in under 5 minutes and the web UI is leagues ahead. The behavioural baseline caught our dev team's accidental port scan before anyone noticed."</p>
+        <p class="testimonial-text">"We evaluated Zeek and Suricata. Nexor was running on bare metal in under 5 minutes and the web UI is leagues ahead. The behavioural baseline caught our dev team's accidental port scan before anyone noticed."</p>
         <div class="testimonial-author">
           <div class="testimonial-avatar">RP</div>
           <div><div class="testimonial-name">Ryan P.</div><div class="testimonial-role">Security Architect · Healthcare</div></div>
@@ -1157,7 +1157,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Incident workflow · Compliance reports</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Priority email support</li>
         </ul>
-        <a href="mailto:hello@netscope.ie" class="plan-cta plan-cta-cyan">Contact sales →</a>
+        <a href="mailto:hello@nexor.ie" class="plan-cta plan-cta-cyan">Contact sales →</a>
       </div>
 
       <div class="plan">
@@ -1173,7 +1173,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>SOC 2 / ISO 27001 compliance docs</li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Dedicated support &amp; SLAs</li>
         </ul>
-        <a href="mailto:hello@netscope.ie" class="plan-cta plan-cta-ghost">Talk to us →</a>
+        <a href="mailto:hello@nexor.ie" class="plan-cta plan-cta-ghost">Talk to us →</a>
       </div>
 
     </div>
@@ -1190,7 +1190,7 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
     <div class="cta-actions reveal reveal-delay-2">
       <a href="#how" class="btn btn-cyan">Deploy free →</a>
       <a href="docs.html" class="btn btn-outline">Read the docs</a>
-      <a href="https://github.com/Libinm264/netscope" class="btn btn-outline" target="_blank" rel="noopener">Star on GitHub ★</a>
+      <a href="https://github.com/Libinm264/nexor" class="btn btn-outline" target="_blank" rel="noopener">Star on GitHub ★</a>
     </div>
   </div>
 </section>
@@ -1199,16 +1199,16 @@ footer{border-top:1px solid var(--border);padding:3rem 0}
 <footer>
   <div class="container">
     <div class="footer-inner">
-      <a href="/" class="footer-logo"><img src="icon.svg" alt="NetScope" />NetScope</a>
+      <a href="/" class="footer-logo"><img src="icon.svg" alt="Nexor" />Nexor</a>
       <ul class="footer-links">
         <li><a href="#how">How it works</a></li>
         <li><a href="#features">Features</a></li>
         <li><a href="#pricing">Pricing</a></li>
         <li><a href="docs.html">Docs</a></li>
-        <li><a href="https://github.com/Libinm264/netscope" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="mailto:hello@netscope.ie">Contact</a></li>
+        <li><a href="https://github.com/Libinm264/nexor" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="mailto:hello@nexor.ie">Contact</a></li>
       </ul>
-      <span class="footer-right">© 2025 NetScope · MIT License</span>
+      <span class="footer-right">© 2025 Nexor · MIT License</span>
     </div>
   </div>
 </footer>

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetScope Docs — Desktop, Agent &amp; Hub</title>
-  <meta name="description" content="Full documentation for NetScope Desktop, Capture Agent, and SaaS Hub. Installation, features, configuration, and API reference." />
+  <title>Nexor Docs — Desktop, Agent &amp; Hub</title>
+  <meta name="description" content="Full documentation for Nexor Desktop, Capture Agent, and SaaS Hub. Installation, features, configuration, and API reference." />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -326,14 +326,14 @@ footer a:hover{color:var(--text)}
 <!-- ── NAV ── -->
 <nav>
   <a href="index.html" class="nav-logo">
-    <img src="icon.svg" alt="NetScope" />
-    NetScope
+    <img src="icon.svg" alt="Nexor" />
+    Nexor
   </a>
   <ul class="nav-links">
     <li><a href="index.html">Home</a></li>
     <li><a href="docs.html" class="active">Docs</a></li>
     <li><a href="index.html#pricing">Pricing</a></li>
-    <li><a href="https://github.com/libinmathew/netscope" target="_blank">GitHub</a></li>
+    <li><a href="https://github.com/libinmathew/nexor" target="_blank">GitHub</a></li>
   </ul>
   <div class="nav-right">
     <a href="index.html#download" class="btn btn-outline">Download</a>
@@ -558,9 +558,9 @@ footer a:hover{color:var(--text)}
 
 <!-- Page hero -->
 <div class="page-hero fade-in">
-  <div class="breadcrumb"><a href="index.html">NetScope</a> <span>›</span> Documentation</div>
+  <div class="breadcrumb"><a href="index.html">Nexor</a> <span>›</span> Documentation</div>
   <h1>Documentation</h1>
-  <p>Everything you need to install, configure, and operate NetScope across all three products.</p>
+  <p>Everything you need to install, configure, and operate Nexor across all three products.</p>
 </div>
 
 <!-- Product nav -->
@@ -592,9 +592,9 @@ footer a:hover{color:var(--text)}
 <!-- ══════════════════════════════════════════════════════════════ -->
 <section class="docs-section fade-in" id="overview">
   <span class="section-eyebrow ey-desktop">Getting Started</span>
-  <h2 class="docs-h1">What is NetScope?</h2>
+  <h2 class="docs-h1">What is Nexor?</h2>
   <p class="docs-p">
-    NetScope is a full-stack network observability platform built for security and operations teams. It consists of three products that work independently or together: a native <strong>Desktop App</strong> for live packet capture, a headless <strong>Capture Agent</strong> for server and cloud deployments, and a <strong>SaaS Hub</strong> that aggregates flows from any number of agents into a searchable, alerting-capable analytics platform.
+    Nexor is a full-stack network observability platform built for security and operations teams. It consists of three products that work independently or together: a native <strong>Desktop App</strong> for live packet capture, a headless <strong>Capture Agent</strong> for server and cloud deployments, and a <strong>SaaS Hub</strong> that aggregates flows from any number of agents into a searchable, alerting-capable analytics platform.
   </p>
   <p class="docs-p">
     The entire pipeline — from raw packets to searchable flows — is designed for high throughput with minimal overhead. The capture core is written in Rust; the Hub backend uses Go with ClickHouse for storage, giving you sub-second query times even on hundreds of millions of flows.
@@ -635,7 +635,7 @@ footer a:hover{color:var(--text)}
 <!-- ══════════════════════════════════════════════════════════════ -->
 <section class="docs-section fade-in" id="desktop">
   <span class="section-eyebrow ey-desktop">Desktop App</span>
-  <h2 class="docs-h1">NetScope Desktop</h2>
+  <h2 class="docs-h1">Nexor Desktop</h2>
   <p class="docs-p">
     A native macOS and Windows application that turns your laptop or workstation into a real-time packet analyser. No tcpdump, no Wireshark filters — just open the app, pick an interface, and see enriched, decoded flows in milliseconds.
   </p>
@@ -669,13 +669,13 @@ footer a:hover{color:var(--text)}
     <div class="feat-card">
       <div class="feat-card fc-icon fc-indigo">🔗</div>
       <h4>Hub Connect Mode</h4>
-      <p>One toggle streams all captured flows to your NetScope Hub, letting you centralise data from every machine in your team.</p>
+      <p>One toggle streams all captured flows to your Nexor Hub, letting you centralise data from every machine in your team.</p>
     </div>
   </div>
 
   <!-- Installation -->
   <h2 class="docs-h2" id="desktop-install">Installation</h2>
-  <p class="docs-p">NetScope Desktop ships as a signed .dmg (macOS) and .exe installer (Windows). Download from the <a href="index.html#download">download page</a> and run the installer — no additional runtime dependencies required.</p>
+  <p class="docs-p">Nexor Desktop ships as a signed .dmg (macOS) and .exe installer (Windows). Download from the <a href="index.html#download">download page</a> and run the installer — no additional runtime dependencies required.</p>
 
   <div class="callout callout-warn">
     <div class="callout-icon">⚠️</div>
@@ -711,7 +711,7 @@ footer a:hover{color:var(--text)}
 
   <!-- Protocol Support -->
   <h2 class="docs-h2" id="desktop-protocols">Protocol Support</h2>
-  <p class="docs-p">NetScope decodes the following application-layer protocols with full field extraction:</p>
+  <p class="docs-p">Nexor decodes the following application-layer protocols with full field extraction:</p>
 
   <div class="docs-table-wrap">
     <table class="docs-table">
@@ -825,7 +825,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
 <!-- ══════════════════════════════════════════════════════════════ -->
 <section class="docs-section fade-in" id="agent">
   <span class="section-eyebrow ey-agent">Capture Agent</span>
-  <h2 class="docs-h1">NetScope Capture Agent</h2>
+  <h2 class="docs-h1">Nexor Capture Agent</h2>
   <p class="docs-p">
     A lightweight, headless capture daemon designed for servers, cloud VMs, Kubernetes nodes, and network appliances. Deploy it once and it reports flows to the Hub continuously — no GUI, no manual intervention, zero local storage.
   </p>
@@ -879,13 +879,13 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
 <span class="tok-cmd">curl</span> <span class="tok-flag">-sSL</span> <span class="tok-str">"https://your-hub.example.com/api/v1/agents/install?token=nst_xxx"</span> | <span class="tok-cmd">sudo bash</span></code></pre>
   </div>
 
-  <p class="docs-p">This script detects your OS and architecture, downloads the correct binary, installs it to <span class="mono">/usr/local/bin/netscope-agent</span>, writes a systemd unit (Linux) or launchd plist (macOS), and starts the service automatically.</p>
+  <p class="docs-p">This script detects your OS and architecture, downloads the correct binary, installs it to <span class="mono">/usr/local/bin/nexor-agent</span>, writes a systemd unit (Linux) or launchd plist (macOS), and starts the service automatically.</p>
 
   <div class="callout callout-info">
     <div class="callout-icon">ℹ️</div>
     <div class="callout-body">
       <strong>Manual Installation</strong>
-      Download the binary from the <a href="index.html#download">releases page</a> and run <span class="mono">netscope-agent --hub https://… --token nst_xxx</span>. Use your init system to run it as a service.
+      Download the binary from the <a href="index.html#download">releases page</a> and run <span class="mono">nexor-agent --hub https://… --token nst_xxx</span>. Use your init system to run it as a service.
     </div>
   </div>
 
@@ -903,7 +903,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
         Copy
       </button>
     </div>
-    <pre><code>netscope-agent \
+    <pre><code>nexor-agent \
   <span class="tok-flag">--hub</span>       <span class="tok-str">https://hub.example.com</span> \
   <span class="tok-flag">--token</span>     <span class="tok-str">nst_xxxxxxxxxxxxxxxx</span> \
   <span class="tok-flag">--iface</span>     <span class="tok-str">eth0</span> \
@@ -922,7 +922,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
         Copy
       </button>
     </div>
-    <pre><code>netscope-agent \
+    <pre><code>nexor-agent \
   <span class="tok-flag">--hub</span>   <span class="tok-str">https://hub.example.com</span> \
   <span class="tok-flag">--token</span> <span class="tok-str">nst_xxxxxxxxxxxxxxxx</span> \
   <span class="tok-flag">--iface</span> <span class="tok-str">eth0</span> \
@@ -947,11 +947,11 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
 
   <!-- Configuration -->
   <h2 class="docs-h2" id="agent-config">Configuration</h2>
-  <p class="docs-p">The agent can be configured via command-line flags, environment variables, or a YAML config file at <span class="mono">/etc/netscope/agent.yaml</span>.</p>
+  <p class="docs-p">The agent can be configured via command-line flags, environment variables, or a YAML config file at <span class="mono">/etc/nexor/agent.yaml</span>.</p>
 
   <div class="code-block">
     <div class="code-header">
-      <span class="code-lang">yaml — /etc/netscope/agent.yaml</span>
+      <span class="code-lang">yaml — /etc/nexor/agent.yaml</span>
       <button class="code-copy" onclick="copyCode(this)">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         Copy
@@ -983,9 +983,9 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
 <!-- ══════════════════════════════════════════════════════════════ -->
 <section class="docs-section fade-in" id="hub">
   <span class="section-eyebrow ey-hub">SaaS Hub</span>
-  <h2 class="docs-h1">NetScope Hub</h2>
+  <h2 class="docs-h1">Nexor Hub</h2>
   <p class="docs-p">
-    The Hub is the central brain of a NetScope deployment. It receives flows from any number of agents and Desktop instances, stores them in ClickHouse, and exposes a rich web UI and REST API for search, alerting, anomaly detection, compliance, and more.
+    The Hub is the central brain of a Nexor deployment. It receives flows from any number of agents and Desktop instances, stores them in ClickHouse, and exposes a rich web UI and REST API for search, alerting, anomaly detection, compliance, and more.
   </p>
 
   <div class="feat-grid">
@@ -1033,7 +1033,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
         Copy
       </button>
     </div>
-    <pre><code><span class="tok-cmd">curl</span> <span class="tok-flag">-sSL</span> <span class="tok-str">https://netscope.io/hub-quickstart.sh</span> | <span class="tok-cmd">sudo bash</span>
+    <pre><code><span class="tok-cmd">curl</span> <span class="tok-flag">-sSL</span> <span class="tok-str">https://nexor.io/hub-quickstart.sh</span> | <span class="tok-cmd">sudo bash</span>
 <span class="tok-comment"># → installs ClickHouse, downloads hub binary, creates systemd service</span>
 <span class="tok-comment"># → hub available at http://localhost:8080 within ~60 seconds</span></code></pre>
   </div>
@@ -1056,7 +1056,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
       </button>
     </div>
     <pre><code><span class="tok-key">CH_ADDR</span><span class="tok-op">=</span><span class="tok-str">localhost:9000</span>
-<span class="tok-key">CH_DB</span><span class="tok-op">=</span><span class="tok-str">netscope</span>
+<span class="tok-key">CH_DB</span><span class="tok-op">=</span><span class="tok-str">nexor</span>
 <span class="tok-key">APP_URL</span><span class="tok-op">=</span><span class="tok-str">https://hub.example.com</span>
 <span class="tok-key">FRONTEND_URL</span><span class="tok-op">=</span><span class="tok-str">https://hub.example.com</span>
 <span class="tok-key">SESSION_SECRET</span><span class="tok-op">=</span><span class="tok-str">change-me-64-random-chars</span>
@@ -1113,7 +1113,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
   </div>
 
   <h3 class="docs-h3">Sigma Detection Rules</h3>
-  <p class="docs-p">NetScope Hub implements a Sigma-compatible rule engine (Detection page). Import standard Sigma YAML rules or write custom ones. Rules are evaluated continuously against the incoming flow stream, with matches creating incidents automatically.</p>
+  <p class="docs-p">Nexor Hub implements a Sigma-compatible rule engine (Detection page). Import standard Sigma YAML rules or write custom ones. Rules are evaluated continuously against the incoming flow stream, with matches creating incidents automatically.</p>
 
   <div class="code-block">
     <div class="code-header">
@@ -1124,7 +1124,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
       </button>
     </div>
     <pre><code><span class="tok-key">title</span><span class="tok-op">:</span>       <span class="tok-str">Suspicious DNS Tunnelling</span>
-<span class="tok-key">id</span><span class="tok-op">:</span>         <span class="tok-str">netscope-dns-tunnel-001</span>
+<span class="tok-key">id</span><span class="tok-op">:</span>         <span class="tok-str">nexor-dns-tunnel-001</span>
 <span class="tok-key">status</span><span class="tok-op">:</span>     <span class="tok-str">stable</span>
 <span class="tok-key">level</span><span class="tok-op">:</span>      <span class="tok-str">high</span>
 <span class="tok-key">detection</span><span class="tok-op">:</span>
@@ -1150,7 +1150,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
   <p class="docs-p">The Certs page shows every TLS certificate seen in flows, with expiry date, issuer, SANs, and the set of hosts that presented it. Expired or soon-to-expire certificates are highlighted. Certificate changes (e.g. unexpected issuer rotation) can trigger alerts.</p>
 
   <h3 class="docs-h3">Policies</h3>
-  <p class="docs-p">Define network policies — permitted and denied communication paths — under the Policies page. NetScope automatically flags policy violations as they occur in the flow stream.</p>
+  <p class="docs-p">Define network policies — permitted and denied communication paths — under the Policies page. Nexor automatically flags policy violations as they occur in the flow stream.</p>
 
   <!-- AI Copilot -->
   <h2 class="docs-h2" id="hub-copilot">AI Copilot</h2>
@@ -1313,7 +1313,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
 <!-- ══════════════════════════════════════════════════════════════ -->
 <section class="docs-section fade-in" id="sdk">
   <span class="section-eyebrow ey-desktop">Python SDK</span>
-  <h2 class="docs-h1">netscope-sdk</h2>
+  <h2 class="docs-h1">nexor-sdk</h2>
   <p class="docs-p">
     The official Python SDK gives you programmatic access to every Hub capability — query flows, manage alert rules, stream real-time events, build dashboards, triage incidents, run Sigma rules, and chat with the AI Copilot — all from a clean, idiomatic Python API.
   </p>
@@ -1355,7 +1355,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
         Copy
       </button>
     </div>
-    <pre><code><span class="tok-cmd">pip install</span> <span class="tok-str">netscope-sdk</span></code></pre>
+    <pre><code><span class="tok-cmd">pip install</span> <span class="tok-str">nexor-sdk</span></code></pre>
   </div>
 
   <div class="callout callout-tip">
@@ -1363,7 +1363,7 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
     <div class="callout-body">
       <strong>Quick start</strong>
       Generate an API token in <strong>Hub → Settings → Tokens &amp; Audit</strong>, then set
-      <span class="mono">NETSCOPE_HUB</span> and <span class="mono">NETSCOPE_TOKEN</span> environment variables. All examples below read these variables automatically.
+      <span class="mono">NEXOR_HUB</span> and <span class="mono">NEXOR_TOKEN</span> environment variables. All examples below read these variables automatically.
     </div>
   </div>
 
@@ -1375,9 +1375,9 @@ Label       <span class="tok-op">:</span>  <span class="tok-str">Alice-MacBook</
         Copy
       </button>
     </div>
-    <pre><code><span class="tok-key">from</span> netscope_sdk <span class="tok-key">import</span> NetScope
+    <pre><code><span class="tok-key">from</span> nexor_sdk <span class="tok-key">import</span> Nexor
 
-ns = NetScope(
+ns = Nexor(
     url=<span class="tok-str">"https://hub.example.com"</span>,
     token=<span class="tok-str">"nst_xxxxxxxxxxxxxxxxxxxx"</span>,
 )
@@ -1507,7 +1507,7 @@ chat = ns.copilot.chat()
         Copy
       </button>
     </div>
-    <pre><code><span class="tok-key">from</span> netscope_sdk.resources.dashboards <span class="tok-key">import</span> DashboardsResource <span class="tok-key">as</span> D
+    <pre><code><span class="tok-key">from</span> nexor_sdk.resources.dashboards <span class="tok-key">import</span> DashboardsResource <span class="tok-key">as</span> D
 
 dash = ns.dashboards.create(
     name=<span class="tok-str">"Security Overview"</span>,
@@ -1555,7 +1555,7 @@ dash = ns.dashboards.create(
     <div class="callout-icon">ℹ️</div>
     <div class="callout-body">
       <strong>Error handling</strong>
-      All SDK errors derive from <span class="mono">NetScopeError</span>. Specific subclasses:
+      All SDK errors derive from <span class="mono">NexorError</span>. Specific subclasses:
       <span class="mono">AuthError</span> (401), <span class="mono">ForbiddenError</span> (403),
       <span class="mono">NotFoundError</span> (404), <span class="mono">RateLimitError</span> (429),
       <span class="mono">ServerError</span> (5xx), <span class="mono">ConnectionError</span> (network unreachable).
@@ -1570,7 +1570,7 @@ dash = ns.dashboards.create(
         Copy
       </button>
     </div>
-    <pre><code><span class="tok-key">from</span> netscope_sdk <span class="tok-key">import</span> NetScopeError, AuthError, RateLimitError
+    <pre><code><span class="tok-key">from</span> nexor_sdk <span class="tok-key">import</span> NexorError, AuthError, RateLimitError
 
 <span class="tok-key">try</span>:
     flows = ns.flows.list(protocol=<span class="tok-str">"TLS"</span>)
@@ -1578,7 +1578,7 @@ dash = ns.dashboards.create(
     <span class="tok-key">print</span>(<span class="tok-str">"Invalid or expired token"</span>)
 <span class="tok-key">except</span> RateLimitError:
     <span class="tok-key">print</span>(<span class="tok-str">"Rate limited — back off and retry"</span>)
-<span class="tok-key">except</span> NetScopeError <span class="tok-key">as</span> e:
+<span class="tok-key">except</span> NexorError <span class="tok-key">as</span> e:
     <span class="tok-key">print</span>(<span class="tok-str">f"HTTP </span>{e.status_code}<span class="tok-str">: </span>{e}<span class="tok-str">"</span>)</code></pre>
   </div>
 
@@ -1591,7 +1591,7 @@ dash = ns.dashboards.create(
   <span class="section-eyebrow" style="color:var(--green)">v0.7 · New Feature</span>
   <h2 class="docs-h1">Privacy &amp; PII Masking</h2>
   <p class="docs-p">
-    NetScope's <strong>PII masking engine</strong> runs inside the Rust capture agent, redacting sensitive data
+    Nexor's <strong>PII masking engine</strong> runs inside the Rust capture agent, redacting sensitive data
     <em>before</em> any flow is batched or transmitted to the Hub. Authorization tokens, session cookies, payment
     card numbers, passwords, and identity fields are replaced with the literal string
     <code class="mono">[REDACTED]</code> at parse time — they never touch the network, never reach ClickHouse,
@@ -1604,7 +1604,7 @@ dash = ns.dashboards.create(
 
   <div class="info-box" style="border-color:rgba(52,211,153,.2);background:rgba(52,211,153,.04);margin:2rem 0">
     <strong style="color:var(--green)">GDPR / CCPA compliance note</strong><br/>
-    With PII masking enabled, NetScope does not transmit personal data (Art. 4(1) GDPR) to the Hub.
+    With PII masking enabled, Nexor does not transmit personal data (Art. 4(1) GDPR) to the Hub.
     Your ClickHouse instance stores only network-level metadata and redacted application-layer payloads.
   </div>
 
@@ -1719,7 +1719,7 @@ dash = ns.dashboards.create(
   <span class="section-eyebrow" style="color:var(--orange)">v0.7 · New Feature</span>
   <h2 class="docs-h1">Performance Telemetry</h2>
   <p class="docs-p">
-    Every NetScope agent (v0.7+) reports CPU usage, resident memory (RSS), and a cumulative packet-drop
+    Every Nexor agent (v0.7+) reports CPU usage, resident memory (RSS), and a cumulative packet-drop
     counter on each heartbeat (every 30 seconds). The Hub stores the samples in ClickHouse with a
     30-day TTL and exposes them via a REST endpoint. The Fleet dashboard renders a live sparkline per
     agent card so you can verify agent overhead at a glance.
@@ -1853,7 +1853,7 @@ ORDER BY avg_cpu DESC;</pre>
   <span class="section-eyebrow" style="color:#818cf8">v0.7 · New Feature</span>
   <h2 class="docs-h1">Adaptive Sampling</h2>
   <p class="docs-p">
-    NetScope agents default to <strong>metadata-only</strong> mode — they capture every connection's
+    Nexor agents default to <strong>metadata-only</strong> mode — they capture every connection's
     headers, timing, DNS queries, TLS handshakes, and protocol attribution, but discard
     HTTP request/response body content before it is batched or transmitted. This keeps CPU and
     memory overhead near zero even at multi-gigabit traffic volumes.
@@ -2126,7 +2126,7 @@ X-Api-Key: &lt;key&gt;
   </div>
   <h1 class="docs-h1">Passive API Inventory</h1>
   <p class="docs-p">
-    NetScope auto-discovers every HTTP, HTTP/2, and gRPC endpoint called across your
+    Nexor auto-discovers every HTTP, HTTP/2, and gRPC endpoint called across your
     fleet by analysing observed traffic — no instrumentation, no code changes, no
     service registry required. The <strong>API Inventory</strong> page (sidebar) gives
     you a live registry of your internal APIs with latency, error rate, and call volume.
@@ -2187,7 +2187,7 @@ X-Api-Key: &lt;key&gt;
         <li>Rule name, metric, value &amp; threshold</li>
         <li>Timestamp (UTC)</li>
         <li>Up to 5 recent flows inline</li>
-        <li>"View in NetScope" link</li>
+        <li>"View in Nexor" link</li>
         <li>"▶ Replay Incident" deep link</li>
       </ul>
     </div>
@@ -2207,7 +2207,7 @@ X-Api-Key: &lt;key&gt;
   </div>
   <h1 class="docs-h1">One-Command Docker Compose</h1>
   <p class="docs-p">
-    The entire NetScope stack — ClickHouse, Hub API, and the web dashboard — starts
+    The entire Nexor stack — ClickHouse, Hub API, and the web dashboard — starts
     with a single command. No Kubernetes, no manual service wiring.
   </p>
   <div class="code-block" style="margin:1.5rem 0">
@@ -2215,8 +2215,8 @@ X-Api-Key: &lt;key&gt;
       <span>Quick start</span>
       <button class="copy-btn" onclick="copyCode(this)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy</button>
     </div>
-    <pre>git clone https://github.com/Libinm264/netscope.git
-cd netscope
+    <pre>git clone https://github.com/Libinm264/nexor.git
+cd nexor
 
 # Fill in secrets — at minimum CLICKHOUSE_PASSWORD and API_KEY
 cp .env.example .env
@@ -2250,7 +2250,7 @@ docker compose up -d
 
 <!-- ── FOOTER ── -->
 <footer>
-  <p>&copy; 2025 NetScope · <a href="index.html">Home</a> · <a href="https://github.com/libinmathew/netscope" target="_blank">GitHub</a> · <a href="mailto:hello@netscope.io">hello@netscope.io</a></p>
+  <p>&copy; 2025 Nexor · <a href="index.html">Home</a> · <a href="https://github.com/libinmathew/nexor" target="_blank">GitHub</a> · <a href="mailto:hello@nexor.io">hello@nexor.io</a></p>
 </footer>
 
 <script>

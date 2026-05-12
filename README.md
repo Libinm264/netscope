@@ -1,12 +1,12 @@
 <div align="center">
 
-# NetScope
+# Nexor
 
 **A unified, cross-platform network observability platform**
 
 Real-time packet capture · Deep protocol inspection · GeoIP & threat intelligence · SaaS hub · eBPF agent
 
-[![Build NetScope Desktop](https://github.com/Libinm264/netscope/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/Libinm264/netscope/actions/workflows/build-desktop.yml)
+[![Build Nexor Desktop](https://github.com/Libinm264/nexor/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/Libinm264/nexor/actions/workflows/build-desktop.yml)
 ![Rust](https://img.shields.io/badge/Rust-2021_edition-orange?logo=rust)
 ![Tauri](https://img.shields.io/badge/Tauri-2.x-blue?logo=tauri)
 ![React](https://img.shields.io/badge/React-18.3-61dafb?logo=react)
@@ -29,7 +29,7 @@ Real-time packet capture · Deep protocol inspection · GeoIP & threat intellige
 - [Technology Stack](#technology-stack)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Running NetScope](#running-netscope)
+- [Running Nexor](#running-nexor)
   - [Desktop Application](#desktop-application)
   - [CLI Agent](#cli-agent)
   - [Hub API Server](#hub-api-server)
@@ -54,14 +54,14 @@ Real-time packet capture · Deep protocol inspection · GeoIP & threat intellige
 
 ## Overview
 
-NetScope is a full-stack network observability platform built for developers, security engineers, and network operators. It captures live traffic, decodes it into human-readable flows with deep protocol inspection, enriches every connection with geographic and threat data, and streams everything to a centralised hub for fleet-wide visibility.
+Nexor is a full-stack network observability platform built for developers, security engineers, and network operators. It captures live traffic, decodes it into human-readable flows with deep protocol inspection, enriches every connection with geographic and threat data, and streams everything to a centralised hub for fleet-wide visibility.
 
 It ships as three complementary pieces:
 
 | Component | What it does |
 |---|---|
 | **Desktop app** (macOS / Windows / Linux) | Wireshark-inspired 3-pane UI with live capture, GeoIP flags, threat badges, certificate audit, analytics, and service map |
-| **CLI agent** (`netscope-agent`) | Headless capture for servers, containers, and CI environments; streams flows to the hub |
+| **CLI agent** (`nexor-agent`) | Headless capture for servers, containers, and CI environments; streams flows to the hub |
 | **Hub** (Go API + Next.js dashboard) | Multi-tenant SaaS backend — Kafka ingestion, ClickHouse analytics, real-time SSE streaming, alerting, compliance, RBAC |
 
 ---
@@ -73,7 +73,7 @@ It ships as three complementary pieces:
 ### 1 — Self-host the Hub
 
 ```bash
-curl -sSL https://netscope.ie/hub-quickstart.sh | sh
+curl -sSL https://nexor.ie/hub-quickstart.sh | sh
 ```
 
 This pulls pre-built images from GHCR (ClickHouse, Redpanda/Kafka, Go API, Next.js dashboard), generates a random API key, starts everything, and waits for the API health check.
@@ -84,7 +84,7 @@ When it finishes, the terminal prints:
   API Key    <your-generated-key>
 
   Connect an agent:
-  curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=http://localhost HUB_API_KEY=<key> sh
+  curl -sSL https://nexor.ie/install.sh | sudo HUB_URL=http://localhost HUB_API_KEY=<key> sh
 ```
 
 **Open `http://localhost`** — the hub dashboard is live.
@@ -96,10 +96,10 @@ When it finishes, the terminal prints:
 Copy the `Connect an agent` command printed by the quickstart, or run:
 
 ```bash
-curl -sSL https://netscope.ie/install.sh | sudo HUB_URL=http://<your-hub> HUB_API_KEY=<your-key> sh
+curl -sSL https://nexor.ie/install.sh | sudo HUB_URL=http://<your-hub> HUB_API_KEY=<your-key> sh
 ```
 
-This downloads the pre-built `netscope-agent` binary for your OS/arch, installs it to `/usr/local/bin`, and writes a config to `~/.config/netscope/agent.env`.
+This downloads the pre-built `nexor-agent` binary for your OS/arch, installs it to `/usr/local/bin`, and writes a config to `~/.config/nexor/agent.env`.
 
 ---
 
@@ -107,17 +107,17 @@ This downloads the pre-built `netscope-agent` binary for your OS/arch, installs 
 
 ```bash
 # List available interfaces
-netscope-agent list-interfaces
+nexor-agent list-interfaces
 
 # Start capture and stream flows to the hub
-sudo netscope-agent capture \
+sudo nexor-agent capture \
   --interface en0 \
   --output hub \
   --hub-url http://localhost:8080 \
   --api-key <your-key>
 ```
 
-> **Linux (systemd):** if you passed `HUB_URL` and `HUB_API_KEY` to the installer, a `netscope-agent.service` unit is created and started automatically — no manual step needed.
+> **Linux (systemd):** if you passed `HUB_URL` and `HUB_API_KEY` to the installer, a `nexor-agent.service` unit is created and started automatically — no manual step needed.
 >
 > **macOS:** run the `capture` command above manually. There is no launchd integration yet.
 
@@ -128,7 +128,7 @@ Open `http://localhost` — flows from every connected agent appear in the Live 
 ### Updating / Managing the Hub
 
 ```bash
-cd ~/.netscope-hub
+cd ~/.nexor-hub
 
 # Pull latest images and restart
 docker compose pull && docker compose up -d
@@ -189,7 +189,7 @@ docker compose down -v
 | **Time-series metrics** | `GET /api/v1/metrics/timeseries?hours=N` — per-minute flow counts; `GET /api/v1/metrics/protocols` — per-protocol breakdown |
 | **GeoIP + threat enrichment** | Hub-side enrichment on ingest; data available to all downstream consumers |
 | **Alert rules** | Configurable thresholds (flows/min, HTTP error rate, DNS NXDOMAIN rate, anomaly σ); 6 delivery channels: webhook, Slack, PagerDuty, OpsGenie, Teams, **Email (SMTP)**; exponential back-off retry (1 s → 5 s → 30 s) |
-| **HMAC webhook signatures** | Every webhook delivery includes `X-NetScope-Signature: sha256=<hmac>` using a per-rule secret generated at creation time |
+| **HMAC webhook signatures** | Every webhook delivery includes `X-Nexor-Signature: sha256=<hmac>` using a per-rule secret generated at creation time |
 | **Agent heartbeat** | `POST /api/v1/agents/heartbeat` — agents call periodically; updates `last_seen` via ReplacingMergeTree insert |
 | **TLS certificate fleet** | Certs extracted from ingested TLS flows; expiry dashboard across entire agent fleet |
 | **RBAC** | `admin` / `viewer` roles on API tokens; `RequireAdmin` middleware on write endpoints |
@@ -218,7 +218,7 @@ docker compose down -v
 ### System Architecture
 
 ```
-┌─────────────────────────────── NetScope Desktop ──────────────────────────────────┐
+┌─────────────────────────────── Nexor Desktop ──────────────────────────────────┐
 │                                                                                    │
 │  ┌──────────────────────────────┐       ┌───────────────────────────────────────┐ │
 │  │    React Frontend (UI)       │       │       Tauri Backend (Rust)            │ │
@@ -253,7 +253,7 @@ docker compose down -v
 
                                               ║  HTTPS  (agents push flows)
                           ┌───────────────────╨───────────────────────────────────┐
-                          │                NetScope Hub                            │
+                          │                Nexor Hub                            │
                           │                                                        │
                           │  Go/Fiber API  ──►  Kafka  ──►  ClickHouse consumer  │
                           │                 ──►  ClickHouse  (direct write)       │
@@ -352,7 +352,7 @@ Tracks active TCP connections keyed by `(src_ip, dst_ip, src_port, dst_port)`. B
 | `state.rs` | `SharedState` (Arc<Mutex<AppState>>): flows ring-buffer, capture status, stop channel, GeoIP reader, threat scorer, hub config |
 | `dto.rs` | All serde-serializable JSON types sent to frontend: `FlowDto`, `GeoInfoDto`, `ThreatInfoDto`, all protocol sub-DTOs |
 | `db.rs` | SQLite schema, session serialization, load/replay of stored flows |
-| `geoip.rs` | MaxMind GeoLite2-City + ASN reader; skips private/RFC1918 IPs; auto-loads from `~/.netscope/` |
+| `geoip.rs` | MaxMind GeoLite2-City + ASN reader; skips private/RFC1918 IPs; auto-loads from `~/.nexor/` |
 | `threat.rs` | Offline threat scorer: CIDR blocklist, port heuristics (C2, Tor, Telnet); returns `ThreatResult` with score + level + reasons |
 | `hub.rs` | Hub API client (reqwest): `test_connection`, `query_flows` with filters; converts `HubFlowRecord` → `FlowDto` |
 
@@ -366,7 +366,7 @@ Tracks active TCP connections keyed by `(src_ip, dst_ip, src_port, dst_port)`. B
 | `AnalyticsPane` | Per-endpoint p50/p95/p99 latency bars, error rate, sortable by count/latency/errors |
 | `ServiceMapPane` | SVG force-directed graph (spring simulation); IP nodes sized by flow count; edges coloured by protocol; pan + zoom; positions cached across packets |
 | `CertSidebar` | TLS cert fleet panel: all certs seen in session, sorted by expiry severity, count badge on toolbar |
-| `GeoIpBanner` | Amber warning bar when GeoIP databases are absent; auto-detects `~/.netscope/` |
+| `GeoIpBanner` | Amber warning bar when GeoIP databases are absent; auto-detects `~/.nexor/` |
 | `HubConnectModal` | Hub URL + API token form; test connection; protocol/IP/limit query filters; load hub flows |
 | `ErrorBoundary` | React class component: catches render crashes and shows error + stack instead of a blank screen |
 | `FilterBar` | Real-time filter with protocol shortcuts and free-text search |
@@ -403,7 +403,7 @@ Tracks active TCP connections keyed by `(src_ip, dst_ip, src_port, dst_port)`. B
 ### Project Structure
 
 ```
-netscope/
+nexor/
 ├── .github/
 │   └── workflows/
 │       └── build-desktop.yml       # CI: matrix build macOS / Windows / Linux
@@ -574,7 +574,7 @@ netscope/
 | Node.js | 18 LTS+ | [nodejs.org](https://nodejs.org) or `brew install node` |
 
 > **libpcap** ships with macOS — no extra install needed.  
-> **Permissions:** Go to **System Settings → Privacy & Security → Local Network** and enable NetScope if prompted.
+> **Permissions:** Go to **System Settings → Privacy & Security → Local Network** and enable Nexor if prompted.
 
 ---
 
@@ -596,7 +596,7 @@ netscope/
 
 > Packet capture requires Administrator rights — run as Administrator or use the Npcap service.
 
-> **⚠️ Windows SmartScreen notice:** The NetScope installer is not yet Authenticode-signed. When you run the `.exe`, Windows SmartScreen may show *"Windows protected your PC."* Click **More info → Run anyway** to proceed. The binary is built from this open-source repository via [GitHub Actions](.github/workflows/build-desktop.yml) — you can verify the build provenance in the Actions tab. EV code signing is on the roadmap.
+> **⚠️ Windows SmartScreen notice:** The Nexor installer is not yet Authenticode-signed. When you run the `.exe`, Windows SmartScreen may show *"Windows protected your PC."* Click **More info → Run anyway** to proceed. The binary is built from this open-source repository via [GitHub Actions](.github/workflows/build-desktop.yml) — you can verify the build provenance in the Actions tab. EV code signing is on the roadmap.
 
 ---
 
@@ -626,8 +626,8 @@ source ~/.bashrc && nvm install 20 && nvm use 20
 
 ```bash
 # Capture privileges (pick one)
-sudo setcap cap_net_raw+ep /path/to/netscope-agent  # preferred: no root at runtime
-sudo netscope-agent capture --interface eth0         # or: run with sudo
+sudo setcap cap_net_raw+ep /path/to/nexor-agent  # preferred: no root at runtime
+sudo nexor-agent capture --interface eth0         # or: run with sudo
 ```
 
 ---
@@ -636,33 +636,33 @@ sudo netscope-agent capture --interface eth0         # or: run with sudo
 
 ### Option A — Pre-built Releases
 
-Download from the [**Releases page**](https://github.com/Libinm264/netscope/releases):
+Download from the [**Releases page**](https://github.com/Libinm264/nexor/releases):
 
 | Platform | File |
 |---|---|
-| macOS (Apple Silicon) | `NetScope_aarch64.dmg` |
-| macOS (Intel) | `NetScope_x86_64.dmg` |
-| Windows | `NetScope_x64_en-US.msi` |
-| Linux portable | `netscope_amd64.AppImage` |
-| Linux Debian | `netscope_amd64.deb` |
+| macOS (Apple Silicon) | `Nexor_aarch64.dmg` |
+| macOS (Intel) | `Nexor_x86_64.dmg` |
+| Windows | `Nexor_x64_en-US.msi` |
+| Linux portable | `nexor_amd64.AppImage` |
+| Linux Debian | `nexor_amd64.deb` |
 
 ```bash
 # macOS: clear quarantine if Gatekeeper blocks it
-xattr -cr /Applications/NetScope.app
+xattr -cr /Applications/Nexor.app
 
 # Linux AppImage
-chmod +x NetScope_*.AppImage && ./NetScope_*.AppImage
+chmod +x Nexor_*.AppImage && ./Nexor_*.AppImage
 ```
 
 ### Option B — Build from Source
 
 ```bash
-git clone https://github.com/Libinm264/netscope.git
-cd netscope
+git clone https://github.com/Libinm264/nexor.git
+cd nexor
 
 # CLI agent
 cd agent && cargo build --release
-# → agent/target/release/netscope-agent
+# → agent/target/release/nexor-agent
 
 # Desktop app
 cd ../desktop && npm install && npm run tauri build
@@ -673,7 +673,7 @@ cd ../desktop && npm install && npm run tauri build
 
 ---
 
-## Running NetScope
+## Running Nexor
 
 ### Desktop Application
 
@@ -686,19 +686,19 @@ Launch from your Applications folder / Start Menu / AppImage. On first launch:
 
 ```bash
 # List available interfaces
-netscope-agent list-interfaces
+nexor-agent list-interfaces
 
 # Basic capture
-netscope-agent capture --interface en0
+nexor-agent capture --interface en0
 
 # With BPF filter
-netscope-agent capture --interface eth0 --filter "tcp port 80 or udp port 53"
+nexor-agent capture --interface eth0 --filter "tcp port 80 or udp port 53"
 
 # Save to JSONL
-netscope-agent capture --interface en0 --output flows.jsonl
+nexor-agent capture --interface en0 --output flows.jsonl
 
 # Stream to hub
-netscope-agent capture --interface en0 \
+nexor-agent capture --interface en0 \
     --hub-url https://hub.example.com \
     --api-key ns_your_token_here
 ```
@@ -708,7 +708,7 @@ netscope-agent capture --interface en0 \
 | Variable | Default | Description |
 |---|---|---|
 | `RUST_LOG` | `info` | Log verbosity (`error`, `warn`, `info`, `debug`, `trace`) |
-| `NETSCOPE_INTERFACE` | — | Default interface (overridden by `--interface`) |
+| `NEXOR_INTERFACE` | — | Default interface (overridden by `--interface`) |
 
 ### eBPF Capture Mode (Linux)
 
@@ -726,7 +726,7 @@ cargo xtask build-ebpf --release
 **Step 2 — run the agent in eBPF mode:**
 
 ```bash
-sudo netscope-agent ebpf \
+sudo nexor-agent ebpf \
   --hub-url http://your-hub:8080 \
   --api-key YOUR_API_KEY
 ```
@@ -734,7 +734,7 @@ sudo netscope-agent ebpf \
 The agent auto-detects `libssl.so` via `ldconfig`. Override with:
 
 ```bash
-sudo netscope-agent ebpf --libssl-path /usr/lib/x86_64-linux-gnu/libssl.so.3
+sudo nexor-agent ebpf --libssl-path /usr/lib/x86_64-linux-gnu/libssl.so.3
 ```
 
 **What you get vs. pcap mode:**
@@ -779,7 +779,7 @@ npm run build && npm start                  # production
 
 ### Starting a Capture
 
-1. Open NetScope desktop.
+1. Open Nexor desktop.
 2. Select an interface from the **Interface** dropdown.
 3. _(Optional)_ Enter a BPF filter: `host 8.8.8.8`, `tcp port 443`, etc.
 4. Click **▶ Start** — flows appear in real time.
@@ -803,18 +803,18 @@ The filter bar applies instantly without stopping the capture:
 
 ### GeoIP Enrichment
 
-NetScope uses the free **MaxMind GeoLite2** databases to show country flags and ASN info on every row.
+Nexor uses the free **MaxMind GeoLite2** databases to show country flags and ASN info on every row.
 
 **Setup:**
 
 1. Create a free account at [dev.maxmind.com](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data).
 2. Download `GeoLite2-City.mmdb` and `GeoLite2-ASN.mmdb`.
-3. Place them in `~/.netscope/`:
+3. Place them in `~/.nexor/`:
 
 ```bash
-mkdir -p ~/.netscope
-cp GeoLite2-City.mmdb ~/.netscope/
-cp GeoLite2-ASN.mmdb  ~/.netscope/
+mkdir -p ~/.nexor
+cp GeoLite2-City.mmdb ~/.nexor/
+cp GeoLite2-ASN.mmdb  ~/.nexor/
 ```
 
 The app auto-loads the databases on startup. If they are missing, an amber banner appears in the toolbar with a link to download them.
@@ -823,7 +823,7 @@ The app auto-loads the databases on startup. If they are missing, an amber banne
 
 ### Threat Intelligence
 
-NetScope scores every flow against a built-in offline threat database — no external service required:
+Nexor scores every flow against a built-in offline threat database — no external service required:
 
 - **CIDR blocklist** — Known Tor exit nodes, C2 infrastructure, and malicious ranges.
 - **Port heuristics** — C2 ports (4444, 1337, 31337), Tor (9001, 9030), Telnet (23).
@@ -832,7 +832,7 @@ Flows are tagged `HIGH` / `MED` / `LOW` with colored row highlights and `⚠` ba
 
 ### Hub Connect Mode
 
-Connect the desktop app to a running NetScope Hub to query historical and fleet-wide flows:
+Connect the desktop app to a running Nexor Hub to query historical and fleet-wide flows:
 
 1. Click the **⛓ Hub** button in the toolbar.
 2. Enter your Hub URL and API token.
@@ -891,7 +891,7 @@ Open `http://localhost:3000` (or your deployed URL) after starting the hub.
 
 **Alerts (`/alerts`)**
 - Create rules with any of 6 delivery channels — including **email**
-- After creating a webhook rule, the **secret is shown once** — copy it to verify `X-NetScope-Signature` in your receiver
+- After creating a webhook rule, the **secret is shown once** — copy it to verify `X-Nexor-Signature` in your receiver
 - Toggle rules on/off without deleting them; view recent firing history
 
 **Settings (`/settings`)**
