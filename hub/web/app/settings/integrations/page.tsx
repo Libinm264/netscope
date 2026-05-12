@@ -48,7 +48,7 @@ const SINKS: SinkMeta[] = [
       { key: "url",     label: "Elasticsearch URL", placeholder: "https://elastic.company.com:9200" },
       { key: "api_key", label: "API Key (Base64)",  placeholder: "id:api_key_value", secret: true,
         hint: "Encoded Elasticsearch API key (id:api_key, Base64 encoded)." },
-      { key: "index",   label: "Index",             placeholder: "netscope-audit (optional)" },
+      { key: "index",   label: "Index",             placeholder: "nexor-audit (optional)" },
     ],
   },
   {

@@ -1,13 +1,13 @@
-"""NetScope SDK — Incidents resource."""
+"""Klyzar SDK — Incidents resource."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from netscope_sdk.models import Incident
+from nexor_sdk.models import Incident
 
 if TYPE_CHECKING:
-    from netscope_sdk.client import _BaseClient
+    from nexor_sdk.client import _BaseClient
 
 
 class IncidentsResource:

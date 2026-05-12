@@ -8,7 +8,7 @@ import (
 
 	"github.com/twmb/franz-go/pkg/kgo"
 
-	"github.com/netscope/hub-api/models"
+	"github.com/klyzar/hub-api/models"
 )
 
 // Producer publishes flow records to a Kafka/Redpanda topic.

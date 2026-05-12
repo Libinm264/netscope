@@ -13,8 +13,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/netscope/hub-api/models"
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/models"
+	"github.com/klyzar/hub-api/util"
 )
 
 var httpClient = &http.Client{Timeout: 10 * time.Second}
@@ -46,7 +46,7 @@ func FireAlert(ctx context.Context, rule models.AlertRule, payload models.Webhoo
 
 // FireWebhook posts the raw WebhookPayload JSON to any HTTP endpoint.
 // If webhookSecret is non-empty, the request is signed with HMAC-SHA256 and the
-// signature sent in the X-NetScope-Signature header.
+// signature sent in the X-Nexor-Signature header.
 func FireWebhook(ctx context.Context, url string, payload models.WebhookPayload, webhookSecret string) bool {
 	headers := map[string]string{}
 	if webhookSecret != "" {
@@ -54,7 +54,7 @@ func FireWebhook(ctx context.Context, url string, payload models.WebhookPayload,
 		mac := hmac.New(sha256.New, []byte(webhookSecret))
 		mac.Write(data)
 		sig := hex.EncodeToString(mac.Sum(nil))
-		headers["X-NetScope-Signature"] = "sha256=" + sig
+		headers["X-Nexor-Signature"] = "sha256=" + sig
 	}
 	return postJSON(ctx, url, payload, headers)
 }
@@ -99,7 +99,7 @@ func FireSlack(ctx context.Context, webhookURL string, payload models.WebhookPay
 		emoji = "⚠️"
 	}
 
-	headerText := fmt.Sprintf("%s *NetScope Alert: %s*", emoji, payload.RuleName)
+	headerText := fmt.Sprintf("%s *Nexor Alert: %s*", emoji, payload.RuleName)
 
 	fields := []slackText{
 		{Type: "mrkdwn", Text: fmt.Sprintf("*Metric*\n%s", payload.Metric)},
@@ -111,7 +111,7 @@ func FireSlack(ctx context.Context, webhookURL string, payload models.WebhookPay
 	blocks := []slackBlock{
 		{
 			Type: "header",
-			Text: &slackText{Type: "plain_text", Text: fmt.Sprintf("NetScope Alert: %s", payload.RuleName), Emoji: true},
+			Text: &slackText{Type: "plain_text", Text: fmt.Sprintf("Nexor Alert: %s", payload.RuleName), Emoji: true},
 		},
 		{Type: "section", Fields: fields},
 		{Type: "divider"},
@@ -140,7 +140,7 @@ func FireSlack(ctx context.Context, webhookURL string, payload models.WebhookPay
 	elems := []slackElem{
 		{
 			Type:     "button",
-			Text:     &slackText{Type: "plain_text", Text: "View in NetScope", Emoji: true},
+			Text:     &slackText{Type: "plain_text", Text: "View in Nexor", Emoji: true},
 			URL:      payload.HubURL + "/anomalies",
 			ActionID: "open_hub",
 		},
@@ -186,11 +186,11 @@ func FirePagerDuty(ctx context.Context, routingKey string, payload models.Webhoo
 	body := pdPayload{
 		RoutingKey:  routingKey,
 		EventAction: "trigger",
-		DedupKey:    fmt.Sprintf("netscope-%s", payload.AlertID),
+		DedupKey:    fmt.Sprintf("nexor-%s", payload.AlertID),
 		Payload: pdDetails{
 			Summary:   payload.Message,
 			Severity:  "critical",
-			Source:    "netscope-hub",
+			Source:    "nexor-hub",
 			Timestamp: payload.FiredAt.UTC().Format(time.RFC3339),
 			CustomDetails: map[string]string{
 				"metric":    payload.Metric,
@@ -218,11 +218,11 @@ type opsgeniePayload struct {
 // webhookURL should be the OpsGenie API key.
 func FireOpsGenie(ctx context.Context, apiKey string, payload models.WebhookPayload) bool {
 	body := opsgeniePayload{
-		Message:     fmt.Sprintf("[NetScope] %s", payload.RuleName),
-		Alias:       fmt.Sprintf("netscope-%s", payload.AlertID),
+		Message:     fmt.Sprintf("[Nexor] %s", payload.RuleName),
+		Alias:       fmt.Sprintf("nexor-%s", payload.AlertID),
 		Description: payload.Message,
 		Priority:    "P2",
-		Tags:        []string{"netscope", payload.Metric},
+		Tags:        []string{"nexor", payload.Metric},
 		Details: map[string]string{
 			"metric":    payload.Metric,
 			"value":     fmt.Sprintf("%.2f", payload.Value),
@@ -281,7 +281,7 @@ func FireTeams(ctx context.Context, webhookURL string, payload models.WebhookPay
 	body := []any{
 		map[string]any{
 			"type": "TextBlock",
-			"text": fmt.Sprintf("🚨 NetScope Alert: %s", payload.RuleName),
+			"text": fmt.Sprintf("🚨 Nexor Alert: %s", payload.RuleName),
 			"size": "Large", "weight": "Bolder", "color": color,
 		},
 		map[string]any{
@@ -309,7 +309,7 @@ func FireTeams(ctx context.Context, webhookURL string, payload models.WebhookPay
 		})
 	}
 
-	actions := []teamsAction{{Type: "Action.OpenUrl", Title: "View in NetScope", URL: payload.HubURL + "/anomalies"}}
+	actions := []teamsAction{{Type: "Action.OpenUrl", Title: "View in Nexor", URL: payload.HubURL + "/anomalies"}}
 	if payload.ReplayURL != "" {
 		actions = append(actions, teamsAction{Type: "Action.OpenUrl", Title: "▶ Replay Incident", URL: payload.ReplayURL})
 	}
@@ -339,7 +339,7 @@ func BuildMessage(rule models.AlertRule, value float64) string {
 		condStr = rule.Condition
 	}
 	return fmt.Sprintf(
-		"[NetScope] %s: %s is %.2f (%s threshold %.2f over last %d min)",
+		"[Nexor] %s: %s is %.2f (%s threshold %.2f over last %d min)",
 		rule.Name, rule.Metric, value, condStr, rule.Threshold, rule.WindowMinutes,
 	)
 }
@@ -402,7 +402,7 @@ func tryPost(ctx context.Context, url string, data []byte, extraHeaders map[stri
 		return false, true // can't build request — fatal
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "NetScope-Hub/0.1")
+	req.Header.Set("User-Agent", "Nexor-Hub/0.1")
 	for k, v := range extraHeaders {
 		req.Header.Set(k, v)
 	}

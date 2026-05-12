@@ -1,14 +1,14 @@
-"""NetScope SDK — Flows resource."""
+"""Klyzar SDK — Flows resource."""
 
 from __future__ import annotations
 
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Any
 
-from netscope_sdk.models import Flow, TimeseriesPoint
+from nexor_sdk.models import Flow, TimeseriesPoint
 
 if TYPE_CHECKING:
-    from netscope_sdk.client import _BaseClient
+    from nexor_sdk.client import _BaseClient
 
 
 class FlowsResource:
@@ -54,7 +54,7 @@ class FlowsResource:
         :param hours:    Look back N hours (default: all available)
         :param limit:    Max rows to return (default 200, max 10 000)
         :param offset:   Pagination offset
-        :returns: List of :class:`~netscope_sdk.models.Flow` objects
+        :returns: List of :class:`~nexor_sdk.models.Flow` objects
         """
         params: dict[str, Any] = {"limit": limit, "offset": offset}
         if protocol:

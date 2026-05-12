@@ -44,7 +44,7 @@ func CreateJiraIssue(cfg JiraConfig, title, description, priority string) (strin
 			},
 			"issuetype": map[string]string{"name": cfg.IssueType},
 			"priority":  map[string]string{"name": jiraPriority},
-			"labels":    []string{"netscope", "security"},
+			"labels":    []string{"nexor", "security"},
 		},
 	}
 

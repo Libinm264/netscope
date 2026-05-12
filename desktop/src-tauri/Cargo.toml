@@ -1,10 +1,10 @@
 [package]
-name = "netscope-desktop"
+name = "nexor-desktop"
 version = "0.6.0"
 edition = "2021"
 
 [lib]
-name = "netscope_desktop_lib"
+name = "nexor_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

@@ -7,9 +7,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/enterprise/license"
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/enterprise/license"
+	"github.com/klyzar/hub-api/util"
 )
 
 // StorageHandler manages the S3/GCS long-term storage configuration.
@@ -102,7 +102,7 @@ func (h *StorageHandler) UpsertConfig(c *fiber.Ctx) error {
 		body.Provider = "s3"
 	}
 	if body.Prefix == "" {
-		body.Prefix = "netscope/flows"
+		body.Prefix = "nexor/flows"
 	}
 	if body.Schedule == "" {
 		body.Schedule = "hourly"
@@ -156,7 +156,7 @@ func (h *StorageHandler) DeleteConfig(c *fiber.Ctx) error {
 		`INSERT INTO storage_config
 		 (provider, enabled, bucket, region, endpoint, access_key, secret_key,
 		  prefix, schedule, last_export, updated_at, version)
-		 VALUES ('s3', 0, '', '', '', '', '', 'netscope/flows', 'hourly', toDateTime64(0,3), ?, ?)`,
+		 VALUES ('s3', 0, '', '', '', '', '', 'nexor/flows', 'hourly', toDateTime64(0,3), ?, ?)`,
 		now, now.UnixMilli()+1,
 	)
 	return c.JSON(fiber.Map{"ok": true})

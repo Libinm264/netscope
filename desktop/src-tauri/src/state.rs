@@ -26,7 +26,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn new() -> Self {
-        // Try to auto-load GeoIP DBs from ~/.netscope/
+        // Try to auto-load GeoIP DBs from ~/.nexor/
         let geoip = GeoIpReader::try_default().map(Arc::new);
 
         AppState {

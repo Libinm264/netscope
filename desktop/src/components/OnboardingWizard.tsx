@@ -6,7 +6,7 @@ import {
 import type { InterfaceDto } from "@/types/flow";
 import { useCaptureStore } from "@/store/captureStore";
 
-export const ONBOARDING_KEY = "netscope.onboarded";
+export const ONBOARDING_KEY = "nexor.onboarded";
 
 interface Props {
   onDone: () => void;
@@ -84,7 +84,7 @@ export function OnboardingWizard({ onDone }: Props) {
               <Radio size={20} className="text-blue-400" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">Welcome to NetScope</p>
+              <p className="text-sm font-bold text-white">Welcome to Nexor</p>
               <p className="text-[11px] text-slate-500">Quick setup — takes about 30 seconds</p>
             </div>
           </div>
@@ -118,7 +118,7 @@ export function OnboardingWizard({ onDone }: Props) {
           {step === 0 && (
             <div className="space-y-5">
               <p className="text-xs text-slate-400 leading-relaxed">
-                NetScope captures raw network packets. It needs permission to read from your
+                Nexor captures raw network packets. It needs permission to read from your
                 network interfaces.
               </p>
 
@@ -231,7 +231,7 @@ export function OnboardingWizard({ onDone }: Props) {
           {step === 2 && (
             <div className="space-y-4">
               <p className="text-xs text-slate-400 leading-relaxed">
-                Optionally connect to a NetScope Hub to sync flows, run compliance checks,
+                Optionally connect to a Nexor Hub to sync flows, run compliance checks,
                 and receive alerts. You can set this up later in the toolbar.
               </p>
 

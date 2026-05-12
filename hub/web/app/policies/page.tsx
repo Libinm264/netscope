@@ -186,7 +186,7 @@ export default function PoliciesPage() {
           What are process policies?
         </p>
         <p>
-          When running in <span className="text-emerald-400 font-medium">eBPF mode</span>, NetScope knows
+          When running in <span className="text-emerald-400 font-medium">eBPF mode</span>, Nexor knows
           exactly which process made each connection. Policies let you define rules like
           &quot;<span className="text-slate-300 font-mono">curl</span> must never connect outside your network&quot;
           or &quot;<span className="text-slate-300 font-mono">python3</span> should not reach port 22&quot;.

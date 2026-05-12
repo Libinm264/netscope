@@ -1,4 +1,4 @@
-"""NetScope SDK — resource modules."""
+"""Klyzar SDK — resource modules."""
 
 from .flows import FlowsResource
 from .alerts import AlertsResource

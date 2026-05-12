@@ -1,4 +1,4 @@
-/// Shared data types used across all NetScope components.
+/// Shared data types used across all Nexor components.
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 

@@ -10,9 +10,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/enterprise/license"
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/enterprise/license"
+	"github.com/klyzar/hub-api/util"
 )
 
 // AuditHandler serves audit log query endpoints.
@@ -191,7 +191,7 @@ func (h *AuditHandler) Export(c *fiber.Ctx) error {
 		for _, e := range events {
 			sev := cefSeverity(e.Status)
 			line := fmt.Sprintf(
-				"CEF:0|NetScope|HubAPI|1.0|%s|%s %s|%d|"+
+				"CEF:0|Nexor|HubAPI|1.0|%s|%s %s|%d|"+
 					"rt=%d src=%s requestMethod=%s request=%s outcome=%d "+
 					"act=%s dproc=%s deviceCustomNumber1=%d deviceCustomNumber1Label=latency_ms\n",
 				e.ID, e.Method, e.Path, sev,
@@ -206,7 +206,7 @@ func (h *AuditHandler) Export(c *fiber.Ctx) error {
 		ext = "leef"
 		for _, e := range events {
 			line := fmt.Sprintf(
-				"LEEF:2.0|NetScope|HubAPI|1.0|%s %s\t"+
+				"LEEF:2.0|Nexor|HubAPI|1.0|%s %s\t"+
 					"devTime=%s\tdevTimeFormat=yyyy-MM-dd'T'HH:mm:ss.SSS'Z'\t"+
 					"src=%s\trequestMethod=%s\trequest=%s\tstatusCode=%d\t"+
 					"role=%s\ttokenId=%s\tlatencyMs=%d\n",
@@ -245,7 +245,7 @@ func (h *AuditHandler) Export(c *fiber.Ctx) error {
 		buf.Write(b)
 	}
 
-	filename := fmt.Sprintf("netscope-audit-%s.%s",
+	filename := fmt.Sprintf("nexor-audit-%s.%s",
 		now.Format("20060102-150405"), ext)
 
 	c.Set("Content-Type", contentType)

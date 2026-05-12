@@ -1,10 +1,10 @@
-"""NetScope SDK — exception hierarchy."""
+"""Klyzar SDK — exception hierarchy."""
 
 from __future__ import annotations
 
 
-class NetScopeError(Exception):
-    """Base exception for all NetScope SDK errors."""
+class NexorError(Exception):
+    """Base exception for all Klyzar SDK errors."""
 
     def __init__(self, message: str, status_code: int | None = None, response_body: str | None = None) -> None:
         super().__init__(message)
@@ -12,37 +12,37 @@ class NetScopeError(Exception):
         self.response_body = response_body
 
     def __repr__(self) -> str:
-        parts = [f"NetScopeError({self.args[0]!r}"]
+        parts = [f"NexorError({self.args[0]!r}"]
         if self.status_code is not None:
             parts.append(f", status_code={self.status_code}")
         return "".join(parts) + ")"
 
 
-class AuthError(NetScopeError):
+class AuthError(NexorError):
     """Raised when the API returns 401 Unauthorized."""
 
 
-class ForbiddenError(NetScopeError):
+class ForbiddenError(NexorError):
     """Raised when the API returns 403 Forbidden (insufficient role/license)."""
 
 
-class NotFoundError(NetScopeError):
+class NotFoundError(NexorError):
     """Raised when the API returns 404 Not Found."""
 
 
-class ValidationError(NetScopeError):
+class ValidationError(NexorError):
     """Raised when the API returns 400 Bad Request (invalid parameters)."""
 
 
-class RateLimitError(NetScopeError):
+class RateLimitError(NexorError):
     """Raised when the API returns 429 Too Many Requests."""
 
 
-class ServerError(NetScopeError):
+class ServerError(NexorError):
     """Raised when the API returns 5xx."""
 
 
-class ConnectionError(NetScopeError):  # noqa: A001
+class ConnectionError(NexorError):  # noqa: A001
     """Raised when the SDK cannot reach the Hub (network error)."""
 
 
@@ -61,4 +61,4 @@ def _raise_for_status(status_code: int, body: str) -> None:
     if status_code >= 500:
         raise ServerError(f"Hub server error ({status_code}): {body}", status_code, body)
     if status_code >= 400:
-        raise NetScopeError(f"HTTP {status_code}: {body}", status_code, body)
+        raise NexorError(f"HTTP {status_code}: {body}", status_code, body)

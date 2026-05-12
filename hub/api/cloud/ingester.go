@@ -11,8 +11,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/enterprise/license"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/enterprise/license"
 )
 
 // Ingester polls all enabled cloud flow sources on a configurable interval

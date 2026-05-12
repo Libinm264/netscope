@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/netscope/hub-api/models"
+	"github.com/klyzar/hub-api/models"
 )
 
 // SMTPConfig holds the SMTP connection details.
@@ -117,7 +117,7 @@ func buildEmailBody(cfg SMTPConfig, p models.WebhookPayload) string {
     <div style="margin-top:24px">
       <a href="%s/alerts" style="background:#6366f1;color:#fff;text-decoration:none;
          padding:10px 20px;border-radius:6px;font-size:13px;font-weight:600">
-        View in NetScope Hub →
+        View in Nexor Hub →
       </a>
     </div>
     <p style="margin-top:24px;font-size:11px;color:#475569">

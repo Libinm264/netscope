@@ -10,9 +10,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/netscope/hub-api/alerting"
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/sessions"
+	"github.com/klyzar/hub-api/alerting"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/sessions"
 )
 
 // InviteHandler handles invite acceptance and password reset flows.

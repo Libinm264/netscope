@@ -16,8 +16,8 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/sessions"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/sessions"
 )
 
 // AuthHandler provides the /me, /logout, /login, /password, /demo,
@@ -381,7 +381,7 @@ func (h *AuthHandler) DemoLogin(c *fiber.Ctx) error {
 	sessionToken := h.Sessions.Create(sessions.Session{
 		UserID:      "demo-user",
 		OrgID:       "default",
-		Email:       "demo@netscope.local",
+		Email:       "demo@nexor.local",
 		DisplayName: "Demo User",
 		Role:        "viewer",
 		SSOProvider: "demo",

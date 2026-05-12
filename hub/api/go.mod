@@ -1,4 +1,4 @@
-module github.com/netscope/hub-api
+module github.com/klyzar/hub-api
 
 go 1.25.0
 

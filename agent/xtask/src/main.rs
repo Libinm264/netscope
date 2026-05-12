@@ -1,11 +1,11 @@
-//! NetScope xtask — build helper for BPF programs.
+//! Nexor xtask — build helper for BPF programs.
 //!
 //! Usage (from the `agent/` directory):
 //!   cargo xtask build-ebpf            # debug build
 //!   cargo xtask build-ebpf --release  # release build
 //!
 //! The compiled BPF ELF is written to:
-//!   agent/target/bpfel-unknown-none/{debug|release}/netscope-ebpf
+//!   agent/target/bpfel-unknown-none/{debug|release}/nexor-ebpf
 //!
 //! The ebpf-loader crate then embeds it with include_bytes!.
 
@@ -46,7 +46,7 @@ fn build_ebpf(release: bool) -> Result<()> {
     // -Z build-std=core (in ebpf/.cargo/config.toml) compiles core from rust-src.
     // Route the BPF build output into the main agent workspace target dir so
     // that ebpf-loader can embed it with a stable include_bytes! path:
-    //   agent/target/bpfel-unknown-none/{debug|release}/netscope-ebpf
+    //   agent/target/bpfel-unknown-none/{debug|release}/nexor-ebpf
     let target_dir = workspace_root.join("target");
 
     let mut cmd = Command::new("cargo");
@@ -66,7 +66,7 @@ fn build_ebpf(release: bool) -> Result<()> {
         .join("target")
         .join("bpfel-unknown-none")
         .join(profile)
-        .join("netscope-ebpf");
+        .join("nexor-ebpf");
 
     println!("BPF artifact: {}", artifact.display());
     Ok(())

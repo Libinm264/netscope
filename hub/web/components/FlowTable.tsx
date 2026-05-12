@@ -54,7 +54,7 @@ const COLS: Array<{ label: string; cls: string; tooltip?: string }> = [
     tooltip:
       "Process name and PID captured by eBPF kernel probes (Linux only). " +
       "Shows the exact process making each TLS/TCP connection — curl, node, python, etc. " +
-      "Use the eBPF-enabled agent binary (netscope-agent-ebpf-…) to populate this column. " +
+      "Use the eBPF-enabled agent binary (nexor-agent-ebpf-…) to populate this column. " +
       "In pcap-only mode the column shows '—'.",
   },
   { label: "Source",      cls: "w-44 shrink-0" },

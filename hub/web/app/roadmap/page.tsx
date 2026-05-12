@@ -403,7 +403,7 @@ export default function RoadmapPage() {
           <div>
             <h1 className="text-lg font-semibold text-white">Product Roadmap</h1>
             <p className="text-xs text-slate-400 mt-0.5">
-              NetScope — from passive network visibility to a full-stack security observability platform
+              Nexor — from passive network visibility to a full-stack security observability platform
             </p>
           </div>
         </div>

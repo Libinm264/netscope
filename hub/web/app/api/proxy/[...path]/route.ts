@@ -1,5 +1,5 @@
 /**
- * Catch-all server-side proxy for all NetScope Hub API calls.
+ * Catch-all server-side proxy for all Nexor Hub API calls.
  *
  * Responsibilities:
  *  1. Keeps HUB_API_KEY server-side (never exposed to the browser bundle).

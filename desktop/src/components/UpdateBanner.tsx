@@ -1,5 +1,5 @@
 /**
- * UpdateBanner — slim notification bar shown when a new NetScope version is available.
+ * UpdateBanner — slim notification bar shown when a new Nexor version is available.
  *
  * Flow:
  *   1. On mount (3 s delay) calls tauri-plugin-updater `check()`.
@@ -137,7 +137,7 @@ export function UpdateBanner() {
         ) : (
           <>
             <span className="shrink-0 font-medium text-blue-300">
-              NetScope v{info.version} is available
+              Nexor v{info.version} is available
             </span>
             {shortNotes && (
               <>

@@ -1,4 +1,4 @@
-"""NetScope SDK — data models (plain dataclasses, no third-party deps)."""
+"""Klyzar SDK — data models (plain dataclasses, no third-party deps)."""
 
 from __future__ import annotations
 

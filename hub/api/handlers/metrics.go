@@ -5,8 +5,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/util"
 )
 
 // MetricsHandler serves time-series data for dashboard charts.

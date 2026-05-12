@@ -33,7 +33,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/netscope/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/clickhouse"
 )
 
 // Rule represents one detection rule stored in sigma_rules.

@@ -10,8 +10,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/netscope/hub-api/middleware"
-	"github.com/netscope/hub-api/models"
+	"github.com/klyzar/hub-api/middleware"
+	"github.com/klyzar/hub-api/models"
 )
 
 // ── test helpers ──────────────────────────────────────────────────────────────

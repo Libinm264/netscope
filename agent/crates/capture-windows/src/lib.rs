@@ -1,4 +1,4 @@
-//! Npcap-based packet capture backend for the NetScope Windows agent.
+//! Npcap-based packet capture backend for the Nexor Windows agent.
 //!
 //! This crate is compiled **only on Windows** (`cfg(target_os = "windows")`).
 //! On Linux/macOS the main agent uses the `capture` crate (libpcap path).

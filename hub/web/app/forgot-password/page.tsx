@@ -44,7 +44,7 @@ export default function ForgotPasswordPage() {
             <Network size={28} className="text-indigo-400" />
           </div>
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white">NetScope Hub</h1>
+            <h1 className="text-2xl font-bold text-white">Nexor Hub</h1>
             <p className="text-sm text-slate-500 mt-1">Reset your password</p>
           </div>
         </div>

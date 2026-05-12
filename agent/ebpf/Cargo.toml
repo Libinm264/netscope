@@ -5,13 +5,13 @@
 [workspace]
 
 [package]
-name = "netscope-ebpf"
+name = "nexor-ebpf"
 version = "0.7.0"
 edition = "2021"
 publish = false
 
 [[bin]]
-name = "netscope-ebpf"
+name = "nexor-ebpf"
 path = "src/main.rs"
 
 [dependencies]

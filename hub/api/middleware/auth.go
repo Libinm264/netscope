@@ -6,8 +6,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	chclient "github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/sessions"
+	chclient "github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/sessions"
 )
 
 // TokenAuth returns a Fiber middleware that validates API keys against:

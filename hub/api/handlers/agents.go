@@ -6,9 +6,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/models"
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/models"
+	"github.com/klyzar/hub-api/util"
 )
 
 type AgentHandler struct {

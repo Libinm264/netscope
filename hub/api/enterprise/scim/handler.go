@@ -2,7 +2,7 @@
 //
 // Package scim implements the SCIM 2.0 Users endpoint used by identity
 // providers (Okta, Azure AD, OneLogin) to automatically provision and
-// deprovision members in the NetScope Hub org_members table.
+// deprovision members in the Nexor Hub org_members table.
 //
 // Supported operations:
 //   GET    /scim/v2/Users          — list users (supports filter=userName eq "x")
@@ -27,11 +27,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
-	chclient "github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/enterprise/license"
+	chclient "github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/enterprise/license"
 )
 
-// Handler implements SCIM 2.0 for the NetScope Hub enterprise edition.
+// Handler implements SCIM 2.0 for the Nexor Hub enterprise edition.
 type Handler struct {
 	CH          *chclient.Client
 	License     *license.License

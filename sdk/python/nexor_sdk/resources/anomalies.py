@@ -1,13 +1,13 @@
-"""NetScope SDK — Anomalies resource."""
+"""Klyzar SDK — Anomalies resource."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from netscope_sdk.models import Anomaly
+from nexor_sdk.models import Anomaly
 
 if TYPE_CHECKING:
-    from netscope_sdk.client import _BaseClient
+    from nexor_sdk.client import _BaseClient
 
 
 class AnomaliesResource:

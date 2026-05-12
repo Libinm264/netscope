@@ -27,8 +27,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/enterprise/license"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/enterprise/license"
 )
 
 // SigmaMatchEvent is passed from the Sigma engine when a rule fires.
@@ -85,7 +85,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, ev SigmaMatchEvent) {
 	}
 
 	description := fmt.Sprintf(
-		"NetScope Sigma rule fired at %s.\n\nRule: %s\nSeverity: %s\nSource IP: %s\nDest IP: %s",
+		"Nexor Sigma rule fired at %s.\n\nRule: %s\nSeverity: %s\nSource IP: %s\nDest IP: %s",
 		ev.FiredAt.Format(time.RFC3339), ev.RuleTitle, ev.Severity, ev.SrcIP, ev.DstIP,
 	)
 
@@ -183,7 +183,7 @@ func (d *Dispatcher) firePagerDuty(rawCfg, title, description, severity string) 
 		"event_action": "trigger",
 		"payload": map[string]any{
 			"summary":   title,
-			"source":    "netscope-hub",
+			"source":    "nexor-hub",
 			"severity":  pdSeverity,
 			"custom_details": map[string]string{
 				"description": description,
@@ -245,8 +245,8 @@ func (d *Dispatcher) fireOpsGenie(rawCfg, title, description, severity string) (
 		"message":     title,
 		"description": description,
 		"priority":    ogPriority,
-		"tags":        []string{"netscope", "security"},
-		"source":      "netscope-hub",
+		"tags":        []string{"nexor", "security"},
+		"source":      "nexor-hub",
 	}
 
 	body, _ := json.Marshal(payload)

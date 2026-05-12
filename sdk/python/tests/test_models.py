@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import timezone
-from netscope_sdk.models import (
+from nexor_sdk.models import (
     Flow, HttpFlow, DnsFlow, TlsFlow,
     AlertRule, AlertEvent, Anomaly, Agent,
     Dashboard, Widget, Incident, SigmaRule,
@@ -129,7 +129,7 @@ class TestIncident:
 
 class TestExceptions:
     def test_raise_400(self):
-        from netscope_sdk.exceptions import ValidationError, _raise_for_status
+        from nexor_sdk.exceptions import ValidationError, _raise_for_status
         try:
             _raise_for_status(400, "bad request")
             assert False, "should have raised"
@@ -137,34 +137,34 @@ class TestExceptions:
             assert e.status_code == 400
 
     def test_raise_401(self):
-        from netscope_sdk.exceptions import AuthError, _raise_for_status
+        from nexor_sdk.exceptions import AuthError, _raise_for_status
         try:
             _raise_for_status(401, "unauthorized")
         except AuthError as e:
             assert e.status_code == 401
 
     def test_raise_403(self):
-        from netscope_sdk.exceptions import ForbiddenError, _raise_for_status
+        from nexor_sdk.exceptions import ForbiddenError, _raise_for_status
         try:
             _raise_for_status(403, "forbidden")
         except ForbiddenError:
             pass
 
     def test_raise_404(self):
-        from netscope_sdk.exceptions import NotFoundError, _raise_for_status
+        from nexor_sdk.exceptions import NotFoundError, _raise_for_status
         try:
             _raise_for_status(404, "not found")
         except NotFoundError:
             pass
 
     def test_raise_500(self):
-        from netscope_sdk.exceptions import ServerError, _raise_for_status
+        from nexor_sdk.exceptions import ServerError, _raise_for_status
         try:
             _raise_for_status(500, "internal error")
         except ServerError as e:
             assert e.status_code == 500
 
     def test_200_no_raise(self):
-        from netscope_sdk.exceptions import _raise_for_status
+        from nexor_sdk.exceptions import _raise_for_status
         # Should not raise for 2xx
         _raise_for_status(200, "ok")  # no exception

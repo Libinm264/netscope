@@ -9,10 +9,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/util"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/models"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/models"
 )
 
 // ComplianceHandler provides security and compliance audit endpoints.

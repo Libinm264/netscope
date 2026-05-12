@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/netscope/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/clickhouse"
 )
 
 const (

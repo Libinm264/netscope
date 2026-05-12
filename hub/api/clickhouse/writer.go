@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/netscope/hub-api/models"
+	"github.com/klyzar/hub-api/models"
 )
 
 const (

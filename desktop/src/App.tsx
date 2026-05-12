@@ -134,7 +134,7 @@ export default function App() {
   const handleSave = useCallback(async () => {
     const path = await saveDialog({
       defaultPath: `${sessionName}.nscope`,
-      filters: [{ name: "NetScope Session", extensions: ["nscope"] }],
+      filters: [{ name: "Nexor Session", extensions: ["nscope"] }],
     });
     if (!path) return;
     await invoke("save_session", { path, name: sessionName });
@@ -143,7 +143,7 @@ export default function App() {
 
   const handleOpen = useCallback(async () => {
     const path = await openDialog({
-      filters: [{ name: "NetScope Session", extensions: ["nscope"] }],
+      filters: [{ name: "Nexor Session", extensions: ["nscope"] }],
     });
     if (!path || Array.isArray(path)) return;
     const flows = await invoke<FlowDto[]>("load_session", { path });
@@ -204,7 +204,7 @@ export default function App() {
         {/* Logo */}
         <div className="flex items-center gap-1.5 mr-2">
           <Radio className="h-4 w-4 text-blue-400" />
-          <span className="text-sm font-bold text-white tracking-tight">NetScope</span>
+          <span className="text-sm font-bold text-white tracking-tight">Nexor</span>
         </div>
 
         <InterfaceSelector />

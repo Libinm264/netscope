@@ -7,9 +7,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/models"
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/models"
+	"github.com/klyzar/hub-api/util"
 )
 
 // OtelHandler exports flows in OpenTelemetry JSON format.
@@ -97,8 +97,8 @@ func (h *OtelHandler) ExportTraces(c *fiber.Ctx) error {
 				{Key: "net.peer.ip", Value: models.OtelValue{StringValue: dstIP}},
 				{Key: "net.peer.port", Value: models.OtelValue{IntValue: fmt.Sprintf("%d", dstPort)}},
 				{Key: "net.host.ip", Value: models.OtelValue{StringValue: srcIP}},
-				{Key: "netscope.agent_id", Value: models.OtelValue{StringValue: agentID}},
-				{Key: "netscope.hostname", Value: models.OtelValue{StringValue: hostname}},
+				{Key: "nexor.agent_id", Value: models.OtelValue{StringValue: agentID}},
+				{Key: "nexor.hostname", Value: models.OtelValue{StringValue: hostname}},
 			},
 			Status: models.OtelStatus{Code: statusCode},
 		})
@@ -110,14 +110,14 @@ func (h *OtelHandler) ExportTraces(c *fiber.Ctx) error {
 			{
 				"resource": fiber.Map{
 					"attributes": []fiber.Map{
-						{"key": "service.name", "value": fiber.Map{"stringValue": "netscope"}},
-						{"key": "telemetry.sdk.name", "value": fiber.Map{"stringValue": "netscope-hub"}},
+						{"key": "service.name", "value": fiber.Map{"stringValue": "nexor"}},
+						{"key": "telemetry.sdk.name", "value": fiber.Map{"stringValue": "nexor-hub"}},
 					},
 				},
 				"scopeSpans": []fiber.Map{
 					{
 						"scope": fiber.Map{
-							"name":    "netscope-hub",
+							"name":    "nexor-hub",
 							"version": "0.1.0",
 						},
 						"spans": spans,

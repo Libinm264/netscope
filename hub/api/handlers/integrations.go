@@ -7,9 +7,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/enterprise/license"
-	"github.com/netscope/hub-api/enterprise/sinks"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/enterprise/license"
+	"github.com/klyzar/hub-api/enterprise/sinks"
 )
 
 // IntegrationsHandler manages SIEM sink configurations.

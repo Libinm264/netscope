@@ -28,7 +28,7 @@ type SearchResult struct {
 	Explanation string        `json:"explanation"`
 }
 
-const searchSystemPromptTpl = `You are a network-observability assistant for NetScope.
+const searchSystemPromptTpl = `You are a network-observability assistant for Nexor.
 
 The user describes flows they want to find in plain English.
 Extract structured filter parameters and return them as JSON.

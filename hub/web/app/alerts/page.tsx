@@ -569,7 +569,7 @@ export default function AlertsPage() {
             </button>
           </div>
           <p className="text-[10px] text-slate-500">
-            Use this as X-NetScope-Signature verification secret in your webhook receiver.
+            Use this as X-Nexor-Signature verification secret in your webhook receiver.
           </p>
           <button onClick={() => setNewRuleSecret(null)}
                   className="text-[10px] text-slate-500 hover:text-slate-300 underline">

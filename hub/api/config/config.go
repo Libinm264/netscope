@@ -12,7 +12,7 @@ import (
 // knownDefaultDSN is the well-known insecure ClickHouse DSN shipped in the
 // repository.  We detect it at startup to warn operators (and refuse to start
 // in PRODUCTION mode).
-const knownDefaultDSN = "clickhouse://netscope:netscope_pass@clickhouse:9000/netscope"
+const knownDefaultDSN = "clickhouse://nexor:nexor_pass@clickhouse:9000/nexor"
 
 // Config holds all runtime configuration loaded from environment variables.
 type Config struct {
@@ -20,7 +20,7 @@ type Config struct {
 	ClickHouseDSN  string
 	KafkaBrokers   []string
 	KafkaTopic     string
-	// KafkaGroupID is the Kafka consumer group name.  Defaults to "netscope-ch-writer".
+	// KafkaGroupID is the Kafka consumer group name.  Defaults to "nexor-ch-writer".
 	// Set KAFKA_GROUP_ID to run multiple hub instances without duplicate processing
 	// (Enterprise horizontal scaling).
 	KafkaGroupID   string
@@ -132,8 +132,8 @@ func Load() *Config {
 	cfg := &Config{
 		APIKey:          getEnv("API_KEY", ""),
 		ClickHouseDSN:   getEnv("CLICKHOUSE_DSN", knownDefaultDSN),
-		KafkaTopic:      getEnv("KAFKA_TOPIC", "netscope.flows"),
-		KafkaGroupID:    getEnv("KAFKA_GROUP_ID", "netscope-ch-writer"),
+		KafkaTopic:      getEnv("KAFKA_TOPIC", "nexor.flows"),
+		KafkaGroupID:    getEnv("KAFKA_GROUP_ID", "nexor-ch-writer"),
 		Port:            getEnv("PORT", "8080"),
 		AllowedOrigins:  getEnv("ALLOWED_ORIGINS", "*"),
 		GeoIPCityDB:     getEnv("GEOIP_CITY_DB", ""),
@@ -145,9 +145,9 @@ func Load() *Config {
 		SMTPPort:        getEnvInt("SMTP_PORT", 587),
 		SMTPUser:        getEnv("SMTP_USER", ""),
 		SMTPPassword:    getEnv("SMTP_PASSWORD", ""),
-		SMTPFrom:        getEnv("SMTP_FROM", "noreply@netscope.local"),
+		SMTPFrom:        getEnv("SMTP_FROM", "noreply@nexor.local"),
 		AppURL:          getEnv("APP_URL", "http://localhost:8080"),
-		OrgName:         getEnv("ORG_NAME", "NetScope"),
+		OrgName:         getEnv("ORG_NAME", "Nexor"),
 		ReportEmail:     getEnv("REPORT_EMAIL", ""),
 		ReportSchedule:  getEnv("REPORT_SCHEDULE", "daily"),
 

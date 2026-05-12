@@ -1,6 +1,6 @@
 /**
  * This route previously handled Auth0 callbacks.
- * Auth0 has been replaced by the native NetScope session-based auth
+ * Auth0 has been replaced by the native Nexor session-based auth
  * (ns_session cookie, OIDC/SAML SSO, local email+password).
  *
  * The Go backend handles all auth flows directly:

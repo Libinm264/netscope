@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { CopilotPanel } from "@/components/CopilotPanel";
 
 export const metadata: Metadata = {
-  title: "NetScope Hub",
+  title: "Nexor Hub",
   description: "Network observability dashboard",
   icons: {
     icon:    "/icon.svg",

@@ -15,9 +15,9 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/enterprise/license"
-	"github.com/netscope/hub-api/sessions"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/enterprise/license"
+	"github.com/klyzar/hub-api/sessions"
 )
 
 const (

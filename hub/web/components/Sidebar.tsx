@@ -68,7 +68,7 @@ export function Sidebar({ user }: SidebarProps) {
           <Network size={18} className="text-indigo-400" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white leading-none">NetScope</p>
+          <p className="text-sm font-semibold text-white leading-none">Nexor</p>
           <p className="text-[10px] text-slate-500 mt-0.5">Hub</p>
         </div>
       </div>
@@ -176,7 +176,7 @@ export function Sidebar({ user }: SidebarProps) {
             picture={user.picture}
           />
         ) : (
-          <p className="text-[11px] text-slate-600 px-2">NetScope v0.6.0</p>
+          <p className="text-[11px] text-slate-600 px-2">Nexor v0.6.0</p>
         )}
       </div>
     </aside>

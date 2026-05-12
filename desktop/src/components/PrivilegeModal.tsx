@@ -19,18 +19,18 @@ export function PrivilegeModal({ interface_, onDismiss }: PrivilegeModalProps) {
               Capture Permission Required
             </h2>
             <p className="mt-1.5 text-sm text-gray-400">
-              Packet capture requires elevated privileges. NetScope cannot read
+              Packet capture requires elevated privileges. Nexor cannot read
               network traffic without them.
             </p>
 
             <div className="mt-4 rounded-lg bg-black/40 p-3 font-mono text-xs text-gray-300">
               <p className="mb-1 text-gray-500"># macOS / Linux — run with sudo:</p>
               <p className="text-emerald-400">
-                sudo netscope-agent capture --interface {interface_}
+                sudo nexor-agent capture --interface {interface_}
               </p>
               <p className="mt-2 text-gray-500"># Linux — grant capability (no sudo required after):</p>
               <p className="text-emerald-400">
-                sudo setcap cap_net_raw+eip $(which netscope-agent)
+                sudo setcap cap_net_raw+eip $(which nexor-agent)
               </p>
             </div>
 

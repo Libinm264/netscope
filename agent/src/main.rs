@@ -26,9 +26,9 @@ use ebpf_loader::{start as ebpf_start, EbpfConfig, EbpfEvent, SslDirection};
 
 #[derive(Parser)]
 #[command(
-    name = "netscope-agent",
+    name = "nexor-agent",
     version = "0.1.0",
-    about = "NetScope network observability agent — captures and decodes network traffic"
+    about = "Nexor network observability agent — captures and decodes network traffic"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -69,7 +69,7 @@ enum Command {
     /// before encryption and provides per-process attribution for every flow.
     ///
     /// Build first: `cargo xtask build-ebpf --release`
-    /// Run with:    `sudo netscope-agent ebpf --hub-url … --api-key …`
+    /// Run with:    `sudo nexor-agent ebpf --hub-url … --api-key …`
     #[cfg(target_os = "linux")]
     Ebpf {
         /// Hub API base URL (e.g. https://hub.example.com)
@@ -147,7 +147,7 @@ fn run(cli: Cli) -> Result<()> {
                 ..Default::default()
             };
 
-            info!("Starting NetScope Agent on interface '{}'", interface);
+            info!("Starting Nexor Agent on interface '{}'", interface);
             info!("Press Ctrl+C to stop.");
 
             run_capture(cfg)?;
@@ -243,15 +243,15 @@ fn run_capture(cfg: AgentConfig) -> Result<()> {
                     eprintln!();
                     eprintln!("ERROR: Packet capture requires elevated privileges.");
                     eprintln!();
-                    eprintln!("  macOS / Linux:  sudo netscope-agent capture --interface {}", cfg_clone.interface);
-                    eprintln!("  Linux (no sudo): sudo setcap cap_net_raw+eip $(which netscope-agent)");
+                    eprintln!("  macOS / Linux:  sudo nexor-agent capture --interface {}", cfg_clone.interface);
+                    eprintln!("  Linux (no sudo): sudo setcap cap_net_raw+eip $(which nexor-agent)");
                     eprintln!();
                     std::process::exit(1);
                 }
                 CaptureError::InterfaceNotFound(ref iface) => {
                     eprintln!();
                     eprintln!("ERROR: Interface '{}' not found.", iface);
-                    eprintln!("Run 'netscope-agent list-interfaces' to see available interfaces.");
+                    eprintln!("Run 'nexor-agent list-interfaces' to see available interfaces.");
                     eprintln!();
                     std::process::exit(1);
                 }
@@ -805,7 +805,7 @@ fn print_flow(flow: &proto::Flow, n: u64) {
             );
 
             if let Some(req) = req {
-                if std::env::var("NETSCOPE_VERBOSE").is_ok() {
+                if std::env::var("NEXOR_VERBOSE").is_ok() {
                     for (k, v) in &req.headers {
                         println!("      > {}: {}", k, v);
                     }
@@ -905,7 +905,7 @@ fn print_flow(flow: &proto::Flow, n: u64) {
 
         None => {
             // Raw TCP/UDP flow — show in verbose mode or when process-attributed (eBPF)
-            if std::env::var("NETSCOPE_VERBOSE").is_ok() || flow.process.is_some() {
+            if std::env::var("NEXOR_VERBOSE").is_ok() || flow.process.is_some() {
                 println!(
                     "[{}] {}{} #{} {}:{} → {}:{}",
                     ts, proc_prefix, flow.protocol, n,

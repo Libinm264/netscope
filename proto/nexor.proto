@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package netscope;
+package nexor;
 
 // A complete network flow event, emitted by the agent.
 message Flow {

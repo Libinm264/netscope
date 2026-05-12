@@ -18,7 +18,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/netscope/hub-api/models"
+	"github.com/klyzar/hub-api/models"
 )
 
 // ParsedFlow is an intermediate representation used internally before writing

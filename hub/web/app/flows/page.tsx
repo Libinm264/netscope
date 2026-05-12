@@ -111,7 +111,7 @@ function exportCSV(flows: Flow[]) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `netscope-flows-${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `nexor-flows-${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -507,7 +507,7 @@ export default function FlowsPage() {
             <div className="px-4 pb-4 pt-1 space-y-3 text-xs text-slate-400 border-t border-indigo-500/10">
               <p>
                 <span className="text-white font-medium">What is eBPF mode?</span>{" "}
-                NetScope can attach kernel-level probes to intercept TLS/SSL plaintext
+                Nexor can attach kernel-level probes to intercept TLS/SSL plaintext
                 <em> before</em> it is encrypted and <em>after</em> it is decrypted — with zero
                 code changes to your applications. Each captured flow is tagged with the
                 originating <span className="text-emerald-400">process name</span> and{" "}
@@ -531,14 +531,14 @@ export default function FlowsPage() {
               <ol className="list-decimal list-inside space-y-1 text-slate-500">
                 <li>
                   Download the{" "}
-                  <span className="text-indigo-400 font-mono">netscope-agent-ebpf-…-linux</span>{" "}
+                  <span className="text-indigo-400 font-mono">nexor-agent-ebpf-…-linux</span>{" "}
                   binary from the GitHub Releases page (Linux x86_64 or aarch64).
                 </li>
                 <li>
                   Run it with root or{" "}
                   <span className="font-mono text-slate-300">CAP_BPF</span> capability:{" "}
                   <span className="font-mono text-slate-300">
-                    sudo ./netscope-agent --hub http://&lt;hub&gt;:8080
+                    sudo ./nexor-agent --hub http://&lt;hub&gt;:8080
                   </span>
                 </li>
                 <li>

@@ -1,5 +1,5 @@
 // Package sessions provides a lightweight in-memory session store for the
-// NetScope Hub enterprise authentication layer.
+// Nexor Hub enterprise authentication layer.
 //
 // Sessions are keyed by a random UUID token issued after a successful
 // OIDC or SAML callback. The token is stored as an httpOnly cookie on the

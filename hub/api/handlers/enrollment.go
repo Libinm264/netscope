@@ -10,10 +10,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/config"
-	"github.com/netscope/hub-api/models"
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/config"
+	"github.com/klyzar/hub-api/models"
+	"github.com/klyzar/hub-api/util"
 )
 
 // tokenRE accepts only the characters that appear in UUIDs and hex tokens.
@@ -241,7 +241,7 @@ func (h *EnrollmentHandler) InstallScript(c *fiber.Ctx) error {
 	}
 
 	script := fmt.Sprintf(`#!/bin/sh
-# NetScope Agent — one-line install
+# Nexor Agent — one-line install
 # Usage: curl -sSL '%s/install?token=<enrollment_token>' | sh
 set -e
 
@@ -249,7 +249,7 @@ ENROLLMENT_TOKEN="%s"
 HUB_URL="%s"
 INTERFACE="${INTERFACE:-en0}"
 
-echo "==> NetScope Agent installer"
+echo "==> Nexor Agent installer"
 echo "    Hub: $HUB_URL"
 echo "    Interface: $INTERFACE"
 
@@ -277,19 +277,19 @@ case "$ARCH" in
   aarch64|arm64) ARCH="arm64" ;;
 esac
 
-echo "==> Downloading netscope-agent ($OS/$ARCH)..."
-DOWNLOAD_URL="https://github.com/Libinm264/netscope/releases/latest/download/netscope-agent-$OS-$ARCH"
-if ! curl -sSfL "$DOWNLOAD_URL" -o /usr/local/bin/netscope-agent 2>/dev/null; then
+echo "==> Downloading nexor-agent ($OS/$ARCH)..."
+DOWNLOAD_URL="https://github.com/Libinm264/nexor/releases/latest/download/nexor-agent-$OS-$ARCH"
+if ! curl -sSfL "$DOWNLOAD_URL" -o /usr/local/bin/nexor-agent 2>/dev/null; then
   echo "ERROR: Could not download agent binary from:"
   echo "       $DOWNLOAD_URL"
-  echo "       Please download manually from https://github.com/Libinm264/netscope/releases"
-  echo "       and place it at /usr/local/bin/netscope-agent"
+  echo "       Please download manually from https://github.com/Libinm264/nexor/releases"
+  echo "       and place it at /usr/local/bin/nexor-agent"
   exit 1
 fi
-chmod +x /usr/local/bin/netscope-agent
+chmod +x /usr/local/bin/nexor-agent
 
 echo "==> Starting capture on $INTERFACE..."
-exec netscope-agent capture \
+exec nexor-agent capture \
   --interface "$INTERFACE" \
   --output hub \
   --hub-url "$HUB_URL" \

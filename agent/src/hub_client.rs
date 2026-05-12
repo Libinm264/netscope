@@ -1,4 +1,4 @@
-/// HubClient sends decoded flows to a remote NetScope Hub API over HTTP.
+/// HubClient sends decoded flows to a remote Nexor Hub API over HTTP.
 ///
 /// Flows are buffered locally and flushed in batches of up to 20, or whenever
 /// the caller explicitly calls `flush()`. This keeps the ingest latency low

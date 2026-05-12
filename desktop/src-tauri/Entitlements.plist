@@ -4,7 +4,7 @@
 <dict>
     <!-- Hardened Runtime — required for Apple notarization (macOS 10.15+) -->
 
-    <!-- Allow outbound network connections to the NetScope hub -->
+    <!-- Allow outbound network connections to the Nexor hub -->
     <key>com.apple.security.network.client</key>
     <true/>
 

@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/netscope/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/clickhouse"
 )
 
 const (
@@ -124,9 +124,9 @@ type toolRunInput struct {
 
 // ── System prompt ─────────────────────────────────────────────────────────────
 
-const systemPrompt = `You are NetScope's AI Security Copilot — an expert network security analyst assistant embedded in the NetScope network observability platform.
+const systemPrompt = `You are Nexor's AI Security Copilot — an expert network security analyst assistant embedded in the Nexor network observability platform.
 
-You help security engineers and network operators understand their network traffic, investigate anomalies, identify threats, and answer questions about the data captured by NetScope agents.
+You help security engineers and network operators understand their network traffic, investigate anomalies, identify threats, and answer questions about the data captured by Nexor agents.
 
 ## ClickHouse Schema
 
@@ -179,7 +179,7 @@ You help security engineers and network operators understand their network traff
 var copilotTools = []aTool{
 	{
 		Name:        "run_query",
-		Description: "Execute a SELECT query against the NetScope ClickHouse database and return the results. Use this to answer any question that requires real data.",
+		Description: "Execute a SELECT query against the Nexor ClickHouse database and return the results. Use this to answer any question that requires real data.",
 		InputSchema: aToolSchema{
 			Type: "object",
 			Properties: map[string]aProp{

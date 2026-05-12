@@ -16,7 +16,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("[NetScope] Render error:", error, info.componentStack);
+    console.error("[Nexor] Render error:", error, info.componentStack);
   }
 
   render() {
@@ -24,7 +24,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex h-screen flex-col items-center justify-center gap-4 bg-[#0d0d1a] p-8 text-center">
           <div className="text-4xl">⚠️</div>
-          <h1 className="text-xl font-bold text-red-400">NetScope crashed</h1>
+          <h1 className="text-xl font-bold text-red-400">Nexor crashed</h1>
           <p className="max-w-md text-sm text-gray-400">
             A rendering error occurred. Open DevTools (right-click → Inspect) to
             see the full stack trace.

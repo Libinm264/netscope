@@ -59,7 +59,7 @@ export function GeoIpBanner() {
         GeoIP databases not found. Place{" "}
         <code className="rounded bg-white/10 px-1">GeoLite2-City.mmdb</code> and{" "}
         <code className="rounded bg-white/10 px-1">GeoLite2-ASN.mmdb</code> in{" "}
-        <code className="rounded bg-white/10 px-1">~/.netscope/</code> to see
+        <code className="rounded bg-white/10 px-1">~/.nexor/</code> to see
         country flags &amp; ASN info.{" "}
         <a
           href="https://dev.maxmind.com/geoip/geolite2-free-geolocation-data"

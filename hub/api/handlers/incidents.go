@@ -9,10 +9,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/enterprise/license"
-	"github.com/netscope/hub-api/models"
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/enterprise/license"
+	"github.com/klyzar/hub-api/models"
+	"github.com/klyzar/hub-api/util"
 )
 
 // IncidentHandler manages the in-hub incident timeline and workflow config.

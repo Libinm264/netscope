@@ -227,7 +227,7 @@ function EmptyState({ window }: { window: string }) {
       </div>
       <p className="text-sm text-slate-400">No flows observed in the last {window}</p>
       <p className="text-xs text-slate-600">
-        Start the NetScope agent to capture network traffic
+        Start the Nexor agent to capture network traffic
       </p>
     </div>
   );

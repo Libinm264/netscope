@@ -11,7 +11,7 @@ import (
 // DefaultDevKey is used when ENTERPRISE_LICENSE_SIGNING_KEY is not set.
 // This allows local development without a real license key.
 // MUST be overridden in production deployments.
-const DefaultDevKey = "netscope-dev-license-signing-key-change-in-production"
+const DefaultDevKey = "nexor-dev-license-signing-key-change-in-production"
 
 // Plan constants.
 const (
@@ -39,7 +39,7 @@ const (
 	FeatureWindowsAgent      = "windows_agent"      // Npcap-based Windows capture agent
 )
 
-// LicenseClaims is the JWT payload embedded in a NetScope license key.
+// LicenseClaims is the JWT payload embedded in a Nexor license key.
 type LicenseClaims struct {
 	jwt.RegisteredClaims
 	OrgID      string   `json:"org_id"`

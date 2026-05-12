@@ -1,4 +1,4 @@
-/// NetScope Hub API client.
+/// Nexor Hub API client.
 ///
 /// Connects to a running hub instance so the desktop can query historical
 /// flows, push local captures, and stream live events from remote agents.

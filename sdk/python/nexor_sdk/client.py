@@ -1,4 +1,4 @@
-"""NetScope SDK — HTTP client base and public NetScope entry point."""
+"""Klyzar SDK — HTTP client base and public Nexor entry point."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import urllib.request
 from collections.abc import Generator
 from typing import Any
 
-from netscope_sdk.exceptions import ConnectionError, _raise_for_status  # noqa: A004
-from netscope_sdk.models import Stats, TimeseriesPoint
-from netscope_sdk.resources import (
+from nexor_sdk.exceptions import ConnectionError, _raise_for_status  # noqa: A004
+from nexor_sdk.models import Stats, TimeseriesPoint
+from nexor_sdk.resources import (
     AgentsResource,
     AlertsResource,
     AnomaliesResource,
@@ -22,14 +22,14 @@ from netscope_sdk.resources import (
     SigmaResource,
 )
 
-__all__ = ["NetScope"]
+__all__ = ["Nexor"]
 
 _DEFAULT_TIMEOUT = 30  # seconds
 
 
 class _BaseClient:
     """
-    Thin HTTP wrapper around the NetScope Hub REST API.
+    Thin HTTP wrapper around the Nexor Hub REST API.
 
     Uses the stdlib ``urllib`` so there are **zero required dependencies**.
     Install ``requests`` or ``httpx`` only if you prefer them — but the
@@ -62,7 +62,7 @@ class _BaseClient:
             "Authorization": f"Bearer {self._token}",
             "Content-Type": "application/json",
             "Accept": "application/json",
-            "User-Agent": "netscope-sdk-python/0.6.0",
+            "User-Agent": "nexor-sdk-python/0.6.0",
         }
 
     def _url(self, path: str, params: dict[str, Any] | None = None) -> str:
@@ -168,17 +168,17 @@ class _BaseClient:
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
-class NetScope(_BaseClient):
+class Nexor(_BaseClient):
     """
-    The main entry point for the NetScope Python SDK.
+    The main entry point for the Nexor Python SDK.
 
     Instantiate once and reuse across your application.
 
     **Quick start**::
 
-        from netscope_sdk import NetScope
+        from nexor_sdk import Nexor
 
-        ns = NetScope(
+        ns = Nexor(
             url="https://hub.example.com",
             token="nst_xxxxxxxxxxxxxxxxxxxx",
         )
@@ -217,7 +217,7 @@ class NetScope(_BaseClient):
         verify_ssl: bool = True,
     ) -> None:
         """
-        Create a NetScope client.
+        Create a Nexor client.
 
         :param url:        Full URL of your Hub, e.g. ``https://hub.example.com``
         :param token:      API token generated in Hub → Settings → Tokens

@@ -295,10 +295,10 @@ function AddAgentModal({ onClose }: { onClose: () => void }) {
 
   const installCmd  = token ? `curl -sSL "${hubURL}/install?token=${token.token}" | INTERFACE=${iface} sh` : "";
   const manualCmd   = token
-    ? `netscope-agent capture \\\n  --interface ${iface} \\\n  --output hub \\\n  --hub-url ${hubURL} \\\n  --api-key <your-api-key>`
+    ? `nexor-agent capture \\\n  --interface ${iface} \\\n  --output hub \\\n  --hub-url ${hubURL} \\\n  --api-key <your-api-key>`
     : "";
   const ebpfCmd     = token
-    ? `# Linux eBPF mode — process attribution + TLS plaintext\nsudo netscope-agent-ebpf \\\n  --hub-url ${hubURL} \\\n  --api-key <your-api-key>`
+    ? `# Linux eBPF mode — process attribution + TLS plaintext\nsudo nexor-agent-ebpf \\\n  --hub-url ${hubURL} \\\n  --api-key <your-api-key>`
     : "";
 
   return (

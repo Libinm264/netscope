@@ -1,5 +1,5 @@
 // Package compliance implements SOC 2, PCI-DSS, and HIPAA compliance report
-// generation for NetScope Enterprise.
+// generation for Nexor Enterprise.
 //
 // Each framework is defined as a bundle of named ClickHouse queries that
 // produce the evidence rows included in the report. The renderer in renderer.go
@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/netscope/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/clickhouse"
 )
 
 // Framework names.

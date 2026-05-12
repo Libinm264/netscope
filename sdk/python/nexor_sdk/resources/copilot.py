@@ -1,4 +1,4 @@
-"""NetScope SDK — AI Copilot resource."""
+"""Klyzar SDK — AI Copilot resource."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from netscope_sdk.client import _BaseClient
+    from nexor_sdk.client import _BaseClient
 
 
 @dataclass
@@ -107,8 +107,8 @@ class CopilotResource:
             elif ev_type == "result":
                 yield CopilotToken(text="", results=ev.get("rows", []))
             elif ev_type == "error":
-                from netscope_sdk.exceptions import NetScopeError
-                raise NetScopeError(f"Copilot error: {ev.get('message', '')}")
+                from nexor_sdk.exceptions import NexorError
+                raise NexorError(f"Copilot error: {ev.get('message', '')}")
 
     def chat(self) -> "_ConversationSession":
         """

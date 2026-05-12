@@ -2,7 +2,7 @@
 name    = "capture-windows"
 version = "0.7.0"
 edition = "2021"
-description = "Npcap/WinPcap packet capture backend for the NetScope Windows agent (Enterprise)"
+description = "Npcap/WinPcap packet capture backend for the Nexor Windows agent (Enterprise)"
 
 # Only compiled on Windows.
 [target.'cfg(target_os = "windows")'.dependencies]

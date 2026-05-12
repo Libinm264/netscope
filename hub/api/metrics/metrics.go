@@ -24,25 +24,25 @@ var (
 // Text returns the current metric snapshot in Prometheus exposition format.
 func Text() string {
 	return fmt.Sprintf(
-		`# HELP netscope_ingest_flows_total Total network flows received from agents.
-# TYPE netscope_ingest_flows_total counter
-netscope_ingest_flows_total %d
+		`# HELP nexor_ingest_flows_total Total network flows received from agents.
+# TYPE nexor_ingest_flows_total counter
+nexor_ingest_flows_total %d
 
-# HELP netscope_api_requests_total Total authenticated API requests handled.
-# TYPE netscope_api_requests_total counter
-netscope_api_requests_total %d
+# HELP nexor_api_requests_total Total authenticated API requests handled.
+# TYPE nexor_api_requests_total counter
+nexor_api_requests_total %d
 
-# HELP netscope_active_sse_clients Current number of live SSE stream connections.
-# TYPE netscope_active_sse_clients gauge
-netscope_active_sse_clients %d
+# HELP nexor_active_sse_clients Current number of live SSE stream connections.
+# TYPE nexor_active_sse_clients gauge
+nexor_active_sse_clients %d
 
-# HELP netscope_alerts_fired_total Total alert webhooks dispatched.
-# TYPE netscope_alerts_fired_total counter
-netscope_alerts_fired_total %d
+# HELP nexor_alerts_fired_total Total alert webhooks dispatched.
+# TYPE nexor_alerts_fired_total counter
+nexor_alerts_fired_total %d
 
-# HELP netscope_uptime_seconds Seconds elapsed since the API process started.
-# TYPE netscope_uptime_seconds gauge
-netscope_uptime_seconds %.0f
+# HELP nexor_uptime_seconds Seconds elapsed since the API process started.
+# TYPE nexor_uptime_seconds gauge
+nexor_uptime_seconds %.0f
 `,
 		IngestFlowsTotal.Load(),
 		APIRequestsTotal.Load(),

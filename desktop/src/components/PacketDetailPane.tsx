@@ -25,7 +25,7 @@ function buildTree(flow: FlowDto): TreeNode[] {
     children: [
       { label: "Arrival time", value: flow.timestamp },
       { label: "Length",       value: `${flow.length} bytes` },
-      { label: "Source",       value: flow.source === "hub" ? "NetScope Hub" : "Local capture" },
+      { label: "Source",       value: flow.source === "hub" ? "Nexor Hub" : "Local capture" },
     ],
   });
 

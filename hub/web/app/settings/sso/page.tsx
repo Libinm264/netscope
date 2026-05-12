@@ -125,16 +125,16 @@ export default function SSOPage() {
         <>
           {/* Architecture note */}
           <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.04] p-4 space-y-2">
-            <p className="text-xs font-semibold text-indigo-300">How SSO works in NetScope</p>
+            <p className="text-xs font-semibold text-indigo-300">How SSO works in Nexor</p>
             <p className="text-xs text-slate-400 leading-relaxed">
-              NetScope uses{" "}
+              Nexor uses{" "}
               <a href="https://dexidp.io" target="_blank" rel="noopener noreferrer"
                 className="text-indigo-400 hover:underline inline-flex items-center gap-0.5">
                 Dex <ExternalLink size={10} />
               </a>{" "}
               as an open-source identity broker. Dex speaks SAML 2.0, OIDC, LDAP, and
               social logins. Configure your IdP below; Dex handles the protocol, and
-              NetScope Hub receives a standard OIDC token.
+              Nexor Hub receives a standard OIDC token.
             </p>
             <p className="text-xs text-slate-500">
               Deploy Dex alongside the hub — the Helm chart includes a Dex sidecar.
@@ -190,7 +190,7 @@ export default function SSOPage() {
                   </Field>
                   <Field label="Client ID">
                     <input value={clientId} onChange={e => setClientId(e.target.value)}
-                      placeholder="netscope"
+                      placeholder="nexor"
                       className={inputCls} />
                   </Field>
                   <Field label="Client secret" help="Write-only. Stored as SSO_CLIENT_SECRET env var, never in the database.">
@@ -213,7 +213,7 @@ export default function SSOPage() {
               ) : (
                 <>
                   <p className="text-xs text-slate-500">
-                    Configure NetScope as a SAML 2.0 service provider. Paste your IdP
+                    Configure Nexor as a SAML 2.0 service provider. Paste your IdP
                     metadata below (from Okta, Azure AD, ADFS, etc.).
                   </p>
                   <Field label="IdP Entity ID / Issuer">

@@ -6,19 +6,19 @@ groups them by source host, and auto-creates an incident for each
 unique source that has more than 3 suspicious connections.
 
 Run:
-    pip install netscope-sdk
+    pip install nexor-sdk
     python hunt_threats.py
 """
 
 import os
 from collections import defaultdict
 
-from netscope_sdk import NetScope
+from nexor_sdk import Nexor
 
-HUB_URL = os.environ.get("NETSCOPE_HUB", "http://localhost:8080")
-TOKEN   = os.environ.get("NETSCOPE_TOKEN", "")
+HUB_URL = os.environ.get("NEXOR_HUB", "http://localhost:8080")
+TOKEN   = os.environ.get("NEXOR_TOKEN", "")
 
-ns = NetScope(url=HUB_URL, token=TOKEN)
+ns = Nexor(url=HUB_URL, token=TOKEN)
 
 print(f"Connected to {HUB_URL}  ✓" if ns.ping() else "ERROR: cannot reach hub")
 

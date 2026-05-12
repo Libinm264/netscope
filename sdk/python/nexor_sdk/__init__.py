@@ -1,11 +1,11 @@
 """
-netscope-sdk — Python SDK for the NetScope Hub API.
+nexor-sdk — Python SDK for the Nexor Hub API.
 
 Usage::
 
-    from netscope_sdk import NetScope
+    from nexor_sdk import Nexor
 
-    ns = NetScope(url="https://hub.example.com", token="nst_xxx")
+    ns = Nexor(url="https://hub.example.com", token="nst_xxx")
     print(ns.ping())
 
     flows = ns.flows.list(protocol="TLS", hours=1, limit=50)
@@ -13,18 +13,18 @@ Usage::
     answer = ns.copilot.ask("Which host had the most outbound bytes today?")
 """
 
-from netscope_sdk.client import NetScope
-from netscope_sdk.exceptions import (
+from nexor_sdk.client import Nexor
+from nexor_sdk.exceptions import (
     AuthError,
     ConnectionError,
     ForbiddenError,
-    NetScopeError,
+    NexorError,
     NotFoundError,
     RateLimitError,
     ServerError,
     ValidationError,
 )
-from netscope_sdk.models import (
+from nexor_sdk.models import (
     Agent,
     AlertEvent,
     AlertRule,
@@ -39,12 +39,12 @@ from netscope_sdk.models import (
 )
 
 __version__ = "0.6.0"
-__author__ = "NetScope"
+__author__ = "Nexor"
 __all__ = [
     # Main client
-    "NetScope",
+    "Nexor",
     # Exceptions
-    "NetScopeError",
+    "NexorError",
     "AuthError",
     "ForbiddenError",
     "NotFoundError",

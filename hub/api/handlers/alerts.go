@@ -7,10 +7,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
-	"github.com/netscope/hub-api/alerting"
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/models"
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/alerting"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/models"
+	"github.com/klyzar/hub-api/util"
 )
 
 // AlertHandler manages alert rule CRUD and recent event queries.
@@ -269,7 +269,7 @@ func (h *AlertHandler) TestDelivery(c *fiber.Ctx) error {
 		Threshold: r.Threshold,
 		Condition: r.Condition,
 		FiredAt:   time.Now().UTC(),
-		Message:   "[TEST] " + r.Name + ": this is a test delivery from NetScope",
+		Message:   "[TEST] " + r.Name + ": this is a test delivery from Nexor",
 	}
 
 	smtpCfg := alerting.SMTPConfig{} // TODO: wire from evaluator if set
@@ -295,7 +295,7 @@ func (h *AlertHandler) Resolve(c *fiber.Ctx) error {
 	}
 	_ = c.BodyParser(&req)
 	if req.Note == "" {
-		req.Note = "Resolved via NetScope"
+		req.Note = "Resolved via Nexor"
 	}
 
 	resolvedAt := time.Now().UTC()

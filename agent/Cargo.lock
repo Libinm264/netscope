@@ -232,7 +232,7 @@ checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 
 [[package]]
 name = "capture"
-version = "0.5.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -247,7 +247,7 @@ dependencies = [
 
 [[package]]
 name = "capture-windows"
-version = "0.5.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "chrono",
@@ -341,7 +341,7 @@ checksum = "1d07550c9036bf2ae0c684c4297d503f838287c83c53686d05370d0e139ae570"
 
 [[package]]
 name = "config"
-version = "0.5.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "serde",
@@ -438,14 +438,14 @@ dependencies = [
 
 [[package]]
 name = "ebpf-common"
-version = "0.5.0"
+version = "0.7.0"
 dependencies = [
  "aya",
 ]
 
 [[package]]
 name = "ebpf-loader"
-version = "0.5.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "aya",
@@ -1046,8 +1046,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "netscope-agent"
-version = "0.5.0"
+name = "nexor-agent"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "capture",
@@ -1210,7 +1210,7 @@ dependencies = [
 
 [[package]]
 name = "parser"
-version = "0.5.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "capture",
@@ -1305,7 +1305,7 @@ dependencies = [
 
 [[package]]
 name = "proto"
-version = "0.5.0"
+version = "0.7.0"
 dependencies = [
  "chrono",
  "serde",
@@ -2795,7 +2795,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.5.0"
+version = "0.7.0"
 dependencies = [
  "anyhow",
 ]

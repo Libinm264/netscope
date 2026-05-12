@@ -1,4 +1,4 @@
-// Package storage implements long-term cold storage export for NetScope flows.
+// Package storage implements long-term cold storage export for Nexor flows.
 //
 // On a configurable schedule (default: hourly) the exporter reads a one-hour
 // slice of flows from ClickHouse and writes it to S3-compatible object storage
@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/netscope/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/clickhouse"
 )
 
 // Config holds the storage destination settings loaded from the hub's
@@ -34,7 +34,7 @@ type Config struct {
 	Endpoint  string // custom endpoint override (MinIO / R2 / GCS)
 	AccessKey string
 	SecretKey string
-	Prefix    string // object key prefix, e.g. "netscope/flows"
+	Prefix    string // object key prefix, e.g. "nexor/flows"
 	Schedule  string // "hourly" | "daily"
 }
 

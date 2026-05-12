@@ -1,4 +1,4 @@
-//! Userspace eBPF loader for the NetScope agent.
+//! Userspace eBPF loader for the Nexor agent.
 //!
 //! Loads the pre-compiled BPF ELF (embedded at compile time), attaches all
 //! probes, and pumps events out through a channel for the main agent loop.
@@ -70,11 +70,11 @@ pub async fn start(
 
     // Load the BPF ELF compiled by `cargo xtask build-ebpf`.
     // The BPF ELF is built by `cargo xtask build-ebpf --release` which writes
-    // to agent/target/bpfel-unknown-none/release/netscope-ebpf.
+    // to agent/target/bpfel-unknown-none/release/nexor-ebpf.
     // CARGO_MANIFEST_DIR = agent/crates/ebpf-loader  → ../../ = agent/
     let mut ebpf = Ebpf::load(include_bytes!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/../../target/bpfel-unknown-none/release/netscope-ebpf"
+        "/../../target/bpfel-unknown-none/release/nexor-ebpf"
     )))
     .context("Failed to load BPF object — run `cargo xtask build-ebpf --release` first")?;
 

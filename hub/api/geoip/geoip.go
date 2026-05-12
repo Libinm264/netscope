@@ -5,13 +5,13 @@
 //
 // Download the free GeoLite2 databases from MaxMind:
 //
-//	curl -o /etc/netscope/GeoLite2-City.mmdb    https://… (requires free account)
-//	curl -o /etc/netscope/GeoLite2-ASN.mmdb     https://…
+//	curl -o /etc/nexor/GeoLite2-City.mmdb    https://… (requires free account)
+//	curl -o /etc/nexor/GeoLite2-ASN.mmdb     https://…
 //
 // Set the paths via environment variables:
 //
-//	GEOIP_CITY_DB=/etc/netscope/GeoLite2-City.mmdb
-//	GEOIP_ASN_DB=/etc/netscope/GeoLite2-ASN.mmdb
+//	GEOIP_CITY_DB=/etc/nexor/GeoLite2-City.mmdb
+//	GEOIP_ASN_DB=/etc/nexor/GeoLite2-ASN.mmdb
 //
 // If the files are absent the Reader degrades gracefully — all lookups return
 // empty GeoInfo structs, so ingest continues without enrichment.

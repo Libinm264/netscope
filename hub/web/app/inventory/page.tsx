@@ -209,7 +209,7 @@ export default function InventoryPage() {
             <Database size={28} className="text-slate-700" />
             <p className="text-sm text-slate-400">No endpoints discovered yet</p>
             <p className="text-xs text-slate-600">
-              NetScope will auto-populate this as HTTP traffic is observed.
+              Nexor will auto-populate this as HTTP traffic is observed.
             </p>
           </div>
         ) : (

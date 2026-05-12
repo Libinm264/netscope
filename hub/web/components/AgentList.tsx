@@ -92,7 +92,7 @@ export function AgentList() {
         <Server size={32} />
         <p className="text-sm">No agents registered yet</p>
         <p className="text-xs text-slate-700">
-          Run <code className="font-mono text-slate-500">netscope-agent capture --hub-url …</code> to register one
+          Run <code className="font-mono text-slate-500">nexor-agent capture --hub-url …</code> to register one
         </p>
       </div>
     );

@@ -1,13 +1,13 @@
-"""NetScope SDK — Sigma detection rules resource."""
+"""Klyzar SDK — Sigma detection rules resource."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from netscope_sdk.models import SigmaRule
+from nexor_sdk.models import SigmaRule
 
 if TYPE_CHECKING:
-    from netscope_sdk.client import _BaseClient
+    from nexor_sdk.client import _BaseClient
 
 
 class SigmaResource:

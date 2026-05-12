@@ -54,5 +54,5 @@ pub fn run() {
             export_pcap,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running NetScope desktop");
+        .expect("error while running Nexor desktop");
 }

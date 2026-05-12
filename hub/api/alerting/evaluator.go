@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	nsmetrics "github.com/netscope/hub-api/metrics"
-	"github.com/netscope/hub-api/models"
+	nsmetrics "github.com/klyzar/hub-api/metrics"
+	"github.com/klyzar/hub-api/models"
 
-	chclient "github.com/netscope/hub-api/clickhouse"
+	chclient "github.com/klyzar/hub-api/clickhouse"
 )
 
 // Evaluator runs all enabled alert rules on a fixed schedule and fires

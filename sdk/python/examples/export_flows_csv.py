@@ -14,21 +14,21 @@ import os
 import sys
 from datetime import datetime, timezone
 
-from netscope_sdk import NetScope
+from nexor_sdk import Nexor
 
-HUB_URL = os.environ.get("NETSCOPE_HUB", "http://localhost:8080")
-TOKEN   = os.environ.get("NETSCOPE_TOKEN", "")
+HUB_URL = os.environ.get("NEXOR_HUB", "http://localhost:8080")
+TOKEN   = os.environ.get("NEXOR_TOKEN", "")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Export NetScope flows to CSV")
+    parser = argparse.ArgumentParser(description="Export Nexor flows to CSV")
     parser.add_argument("--protocol", default="TLS", help="Protocol filter (default: TLS)")
     parser.add_argument("--hours",    type=int, default=24, help="Look-back window in hours")
     parser.add_argument("--out",      default="flows.csv", help="Output CSV filename")
     parser.add_argument("--limit",    type=int, default=50_000, help="Max flows to export")
     args = parser.parse_args()
 
-    ns = NetScope(url=HUB_URL, token=TOKEN)
+    ns = Nexor(url=HUB_URL, token=TOKEN)
     if not ns.ping():
         print("ERROR: cannot reach Hub at", HUB_URL, file=sys.stderr)
         sys.exit(1)

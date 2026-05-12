@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	chclient "github.com/netscope/hub-api/clickhouse"
+	chclient "github.com/klyzar/hub-api/clickhouse"
 )
 
 // ReportConfig holds the schedule and delivery settings for periodic reports.
@@ -148,7 +148,7 @@ func (r *Reporter) sendReport() {
 	if r.cfg.Schedule == "weekly" {
 		label = "Weekly"
 	}
-	subject := fmt.Sprintf("[%s Alert] NetScope %s Report — %s",
+	subject := fmt.Sprintf("[%s Alert] Nexor %s Report — %s",
 		r.cfg.SMTP.OrgName, label, time.Now().Format("Jan 2, 2006"))
 
 	body := r.buildHTML(data, label)
@@ -220,7 +220,7 @@ func (r *Reporter) buildHTML(d reportData, label string) string {
   <div style="border-bottom:1px solid #1e293b;padding-bottom:16px;margin-bottom:24px;display:flex;align-items:center;gap:12px">
     <div style="background:#6366f1;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px">&#128225;</div>
     <div>
-      <h1 style="margin:0;font-size:20px;color:#fff">NetScope %s Report</h1>
+      <h1 style="margin:0;font-size:20px;color:#fff">Nexor %s Report</h1>
       <p style="margin:2px 0 0;font-size:13px;color:#64748b">%s &middot; %s</p>
     </div>
   </div>

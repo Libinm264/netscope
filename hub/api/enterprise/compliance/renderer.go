@@ -17,7 +17,7 @@ func RenderCSV(data *ReportData) ([]byte, error) {
 	w := csv.NewWriter(&buf)
 
 	// Header metadata
-	_ = w.Write([]string{"NetScope Compliance Report"})
+	_ = w.Write([]string{"Nexor Compliance Report"})
 	_ = w.Write([]string{"Framework", frameworkLabel(data.Framework)})
 	_ = w.Write([]string{"Generated", data.GeneratedAt.Format(time.RFC3339)})
 	_ = w.Write([]string{"Period", data.Period})
@@ -41,15 +41,15 @@ func RenderCSV(data *ReportData) ([]byte, error) {
 // RenderPDF converts a ReportData into a PDF document using gofpdf.
 func RenderPDF(data *ReportData) ([]byte, error) {
 	pdf := gofpdf.New("P", "mm", "A4", "")
-	pdf.SetTitle(fmt.Sprintf("NetScope %s Report", frameworkLabel(data.Framework)), false)
-	pdf.SetAuthor("NetScope Hub", false)
+	pdf.SetTitle(fmt.Sprintf("Nexor %s Report", frameworkLabel(data.Framework)), false)
+	pdf.SetAuthor("Nexor Hub", false)
 	pdf.SetCreationDate(data.GeneratedAt)
 
 	// ── Cover page ─────────────────────────────────────────────────────────
 	pdf.AddPage()
 	pdf.SetFont("Helvetica", "B", 28)
 	pdf.SetTextColor(0, 0, 0)
-	pdf.CellFormat(0, 20, "NetScope", "", 1, "C", false, 0, "")
+	pdf.CellFormat(0, 20, "Nexor", "", 1, "C", false, 0, "")
 
 	pdf.SetFont("Helvetica", "", 16)
 	pdf.SetTextColor(80, 80, 80)

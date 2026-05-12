@@ -1,13 +1,13 @@
-"""NetScope SDK — Dashboards resource."""
+"""Klyzar SDK — Dashboards resource."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from netscope_sdk.models import Dashboard, Widget
+from nexor_sdk.models import Dashboard, Widget
 
 if TYPE_CHECKING:
-    from netscope_sdk.client import _BaseClient
+    from nexor_sdk.client import _BaseClient
 
 
 class DashboardsResource:

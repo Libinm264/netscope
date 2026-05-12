@@ -16,28 +16,28 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/netscope/hub-api/alerting"
-	"github.com/netscope/hub-api/baseline"
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/cloud"
-	"github.com/netscope/hub-api/config"
-	"github.com/netscope/hub-api/enterprise/compliance"
-	"github.com/netscope/hub-api/enterprise/incidents"
-	"github.com/netscope/hub-api/enterprise/license"
-	"github.com/netscope/hub-api/enterprise/scim"
-	"github.com/netscope/hub-api/enterprise/sigma"
-	"github.com/netscope/hub-api/enterprise/sinks"
-	"github.com/netscope/hub-api/enterprise/sso"
-	"github.com/netscope/hub-api/enterprise/storage"
-	"github.com/netscope/hub-api/geoip"
-	"github.com/netscope/hub-api/handlers"
-	"github.com/netscope/hub-api/kafka"
-	nsmetrics "github.com/netscope/hub-api/metrics"
-	"github.com/netscope/hub-api/middleware"
-	"github.com/netscope/hub-api/models"
-	"github.com/netscope/hub-api/pubsub"
-	"github.com/netscope/hub-api/sessions"
-	"github.com/netscope/hub-api/threat"
+	"github.com/klyzar/hub-api/alerting"
+	"github.com/klyzar/hub-api/baseline"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/cloud"
+	"github.com/klyzar/hub-api/config"
+	"github.com/klyzar/hub-api/enterprise/compliance"
+	"github.com/klyzar/hub-api/enterprise/incidents"
+	"github.com/klyzar/hub-api/enterprise/license"
+	"github.com/klyzar/hub-api/enterprise/scim"
+	"github.com/klyzar/hub-api/enterprise/sigma"
+	"github.com/klyzar/hub-api/enterprise/sinks"
+	"github.com/klyzar/hub-api/enterprise/sso"
+	"github.com/klyzar/hub-api/enterprise/storage"
+	"github.com/klyzar/hub-api/geoip"
+	"github.com/klyzar/hub-api/handlers"
+	"github.com/klyzar/hub-api/kafka"
+	nsmetrics "github.com/klyzar/hub-api/metrics"
+	"github.com/klyzar/hub-api/middleware"
+	"github.com/klyzar/hub-api/models"
+	"github.com/klyzar/hub-api/pubsub"
+	"github.com/klyzar/hub-api/sessions"
+	"github.com/klyzar/hub-api/threat"
 )
 
 // sigmaDispatcherAdapter adapts incidents.Dispatcher to the sigma.Dispatcher
@@ -617,7 +617,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		slog.Info("NetScope Hub API starting", "port", cfg.Port)
+		slog.Info("Nexor Hub API starting", "port", cfg.Port)
 		if err := app.Listen(":" + cfg.Port); err != nil {
 			slog.Error("server error", "err", err)
 		}
@@ -997,7 +997,7 @@ func runMigrations(ch *clickhouse.Client) error {
 			endpoint    String           DEFAULT '',
 			access_key  String           DEFAULT '',
 			secret_key  String           DEFAULT '',
-			prefix      String           DEFAULT 'netscope/flows',
+			prefix      String           DEFAULT 'nexor/flows',
 			schedule    LowCardinality(String) DEFAULT 'hourly',
 			last_export DateTime64(3, 'UTC') DEFAULT toDateTime64(0, 3),
 			updated_at  DateTime64(3, 'UTC') DEFAULT now64(),

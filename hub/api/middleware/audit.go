@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
-	chclient "github.com/netscope/hub-api/clickhouse"
+	chclient "github.com/klyzar/hub-api/clickhouse"
 )
 
 // AuditLog returns a Fiber middleware that records every authenticated API

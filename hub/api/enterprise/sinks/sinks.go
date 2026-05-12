@@ -1,6 +1,6 @@
 // Enterprise Edition — see hub/enterprise/LICENSE (BSL-1.1)
 //
-// Package sinks implements the SIEM/log-sink dispatcher for NetScope Hub.
+// Package sinks implements the SIEM/log-sink dispatcher for Nexor Hub.
 //
 // Supported sinks:
 //   - Splunk HEC   (HTTP Event Collector)
@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	chclient "github.com/netscope/hub-api/clickhouse"
+	chclient "github.com/klyzar/hub-api/clickhouse"
 )
 
 // ── Sink types ────────────────────────────────────────────────────────────────
@@ -259,8 +259,8 @@ func (d *Dispatcher) sendSplunk(ctx context.Context, cfg map[string]any, events 
 	for _, e := range events {
 		ev := map[string]any{
 			"time":       float64(e.Ts.UnixMilli()) / 1000.0,
-			"source":     "netscope",
-			"sourcetype": "netscope:audit",
+			"source":     "nexor",
+			"sourcetype": "nexor:audit",
 			"host":       "hub-api",
 			"event": map[string]any{
 				"id":         e.ID,
@@ -309,7 +309,7 @@ func (d *Dispatcher) sendElastic(ctx context.Context, cfg map[string]any, events
 		return fmt.Errorf("elastic: url is required")
 	}
 	if index == "" {
-		index = "netscope-audit"
+		index = "nexor-audit"
 	}
 
 	var buf bytes.Buffer
@@ -336,7 +336,7 @@ func (d *Dispatcher) sendElastic(ctx context.Context, cfg map[string]any, events
 				"request":  map[string]string{"method": e.Method, "target": e.Path},
 				"response": map[string]any{"status_code": e.Status},
 			},
-			"netscope": map[string]any{
+			"nexor": map[string]any{
 				"id": e.ID, "token_id": e.TokenID,
 				"role": e.Role, "latency_ms": e.LatencyMs,
 			},
@@ -381,7 +381,7 @@ func (d *Dispatcher) sendDatadog(ctx context.Context, cfg map[string]any, events
 	logs := make([]map[string]any, 0, len(events))
 	for _, e := range events {
 		logs = append(logs, map[string]any{
-			"ddsource":  "netscope",
+			"ddsource":  "nexor",
 			"ddtags":    fmt.Sprintf("role:%s,method:%s,status:%d", e.Role, e.Method, e.Status),
 			"service":   "hub-api",
 			"timestamp": e.Ts.UTC().Format(time.RFC3339),
@@ -436,7 +436,7 @@ func (d *Dispatcher) sendLoki(ctx context.Context, cfg map[string]any, events []
 
 	payload := map[string]any{
 		"streams": []map[string]any{{
-			"stream": map[string]string{"app": "netscope", "component": "hub-api"},
+			"stream": map[string]string{"app": "nexor", "component": "hub-api"},
 			"values": values,
 		}},
 	}

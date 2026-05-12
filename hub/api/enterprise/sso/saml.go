@@ -20,9 +20,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/enterprise/license"
-	"github.com/netscope/hub-api/sessions"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/enterprise/license"
+	"github.com/klyzar/hub-api/sessions"
 )
 
 // SAMLHandler manages the SAML 2.0 SP-initiated login flow.
@@ -56,7 +56,7 @@ func NewSAMLHandler(ch *clickhouse.Client, sess *sessions.Store, lic *license.Li
 
 	template := &x509.Certificate{
 		SerialNumber: big.NewInt(1),
-		Subject:      pkix.Name{CommonName: "NetScope SAML SP"},
+		Subject:      pkix.Name{CommonName: "Nexor SAML SP"},
 		NotBefore:    time.Now().Add(-time.Minute),
 		NotAfter:     time.Now().Add(10 * 365 * 24 * time.Hour),
 		KeyUsage:     x509.KeyUsageDigitalSignature,

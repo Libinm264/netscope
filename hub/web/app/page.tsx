@@ -45,7 +45,7 @@ function OnboardingGuide() {
             <Network size={36} className="text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Welcome to NetScope Hub</h1>
+            <h1 className="text-2xl font-bold text-white">Welcome to Nexor Hub</h1>
             <p className="text-sm text-slate-400 mt-1">
               No flows yet — follow these steps to start capturing network traffic
             </p>

@@ -9,8 +9,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/copilot"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/copilot"
 )
 
 // ── V2: Natural Language Flow Search ─────────────────────────────────────────

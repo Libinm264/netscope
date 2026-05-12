@@ -1,6 +1,6 @@
-# netscope-sdk
+# nexor-sdk
 
-Official Python SDK for the [NetScope](https://netscope.io) Hub API.
+Official Python SDK for the [Nexor](https://nexor.io) Hub API.
 
 **Zero required dependencies** — uses Python's stdlib `urllib` by default.
 Works out of the box on Python 3.9+.
@@ -10,7 +10,7 @@ Works out of the box on Python 3.9+.
 ## Installation
 
 ```bash
-pip install netscope-sdk
+pip install nexor-sdk
 ```
 
 ---
@@ -18,9 +18,9 @@ pip install netscope-sdk
 ## Quick start
 
 ```python
-from netscope_sdk import NetScope
+from nexor_sdk import Nexor
 
-ns = NetScope(
+ns = Nexor(
     url="https://hub.example.com",
     token="nst_xxxxxxxxxxxxxxxxxxxx",   # Hub → Settings → Tokens
 )
@@ -156,7 +156,7 @@ ns.agents.push_config(
 ## Dashboards
 
 ```python
-from netscope_sdk.resources.dashboards import DashboardsResource as D
+from nexor_sdk.resources.dashboards import DashboardsResource as D
 
 dash = ns.dashboards.create(
     name="Security Overview",
@@ -230,7 +230,7 @@ print(chat.send("What ports does it use?"))   # remembers context
 ## Error handling
 
 ```python
-from netscope_sdk import NetScopeError, AuthError, NotFoundError, RateLimitError
+from nexor_sdk import NexorError, AuthError, NotFoundError, RateLimitError
 
 try:
     flows = ns.flows.list(...)
@@ -238,7 +238,7 @@ except AuthError:
     print("Invalid or expired token")
 except RateLimitError:
     print("Back off and retry")
-except NetScopeError as e:
+except NexorError as e:
     print(f"HTTP {e.status_code}: {e}")
 ```
 
@@ -258,8 +258,8 @@ except NetScopeError as e:
 ## Development
 
 ```bash
-git clone https://github.com/Libinm264/netscope
-cd netscope/sdk/python
+git clone https://github.com/Libinm264/nexor
+cd nexor/sdk/python
 pip install -e ".[dev]"
 pytest
 ```
@@ -268,4 +268,4 @@ pytest
 
 ## License
 
-MIT © NetScope
+MIT © Nexor

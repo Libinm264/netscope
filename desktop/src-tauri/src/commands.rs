@@ -238,7 +238,7 @@ pub fn load_geoip_db(
     state: State<'_, SharedState>,
 ) -> Result<(), String> {
     let reader = if city_path.is_empty() && asn_path.is_empty() {
-        GeoIpReader::try_default().ok_or("No GeoIP databases found in ~/.netscope/")?
+        GeoIpReader::try_default().ok_or("No GeoIP databases found in ~/.nexor/")?
     } else {
         GeoIpReader::open(Path::new(&city_path), Path::new(&asn_path))?
     };

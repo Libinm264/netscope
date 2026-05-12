@@ -1,13 +1,13 @@
-"""NetScope SDK — Alerts resource."""
+"""Klyzar SDK — Alerts resource."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from netscope_sdk.models import AlertEvent, AlertRule
+from nexor_sdk.models import AlertEvent, AlertRule
 
 if TYPE_CHECKING:
-    from netscope_sdk.client import _BaseClient
+    from nexor_sdk.client import _BaseClient
 
 
 class AlertsResource:

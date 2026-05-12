@@ -1,6 +1,6 @@
 /// GeoIP enrichment using MaxMind GeoLite2 databases.
 ///
-/// Databases are looked up from `~/.netscope/` by default.
+/// Databases are looked up from `~/.nexor/` by default.
 /// Download free copies from https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
 use maxminddb::{geoip2, MaxMindDBError, Reader};
 use std::net::IpAddr;
@@ -62,7 +62,7 @@ impl GeoIpReader {
         Ok(GeoIpReader { city, asn })
     }
 
-    /// Attempt to load databases from the default location (`~/.netscope/`).
+    /// Attempt to load databases from the default location (`~/.nexor/`).
     pub fn try_default() -> Option<Self> {
         let base = default_db_dir()?;
         Self::open(
@@ -138,7 +138,7 @@ impl GeoIpReader {
     }
 }
 
-/// `~/.netscope/`
+/// `~/.nexor/`
 pub fn default_db_dir() -> Option<PathBuf> {
-    dirs::home_dir().map(|h| h.join(".netscope"))
+    dirs::home_dir().map(|h| h.join(".nexor"))
 }

@@ -17,7 +17,7 @@ pub enum CaptureError {
     #[error("Insufficient privileges for packet capture. Try running with sudo or grant CAP_NET_RAW.")]
     InsufficientPrivileges,
 
-    #[error("Interface '{0}' not found. Use 'netscope-agent list-interfaces' to see available interfaces.")]
+    #[error("Interface '{0}' not found. Use 'nexor-agent list-interfaces' to see available interfaces.")]
     InterfaceNotFound(String),
 
     #[error("pcap error: {0}")]

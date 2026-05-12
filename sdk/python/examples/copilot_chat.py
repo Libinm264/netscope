@@ -1,7 +1,7 @@
 """
 Example: Interactive AI Copilot session in the terminal.
 
-Start a multi-turn conversation with the NetScope AI Copilot.
+Start a multi-turn conversation with the Nexor AI Copilot.
 Ask questions about your network data in plain English.
 
 Run:
@@ -11,14 +11,14 @@ Run:
 import os
 import sys
 
-from netscope_sdk import NetScope
+from nexor_sdk import Nexor
 
-HUB_URL = os.environ.get("NETSCOPE_HUB", "http://localhost:8080")
-TOKEN   = os.environ.get("NETSCOPE_TOKEN", "")
+HUB_URL = os.environ.get("NEXOR_HUB", "http://localhost:8080")
+TOKEN   = os.environ.get("NEXOR_TOKEN", "")
 
 BANNER = """
 ╔═══════════════════════════════════════════════╗
-║      NetScope AI Copilot  (SDK example)       ║
+║      Nexor AI Copilot  (SDK example)       ║
 ║  Type your question, or 'exit' to quit.       ║
 ╚═══════════════════════════════════════════════╝
 """
@@ -33,7 +33,7 @@ SUGGESTIONS = [
 
 
 def main() -> None:
-    ns = NetScope(url=HUB_URL, token=TOKEN)
+    ns = Nexor(url=HUB_URL, token=TOKEN)
     if not ns.ping():
         print(f"ERROR: cannot reach Hub at {HUB_URL}", file=sys.stderr)
         sys.exit(1)

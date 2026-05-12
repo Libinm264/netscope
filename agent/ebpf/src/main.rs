@@ -1,4 +1,4 @@
-//! BPF kernel programs for NetScope eBPF agent.
+//! BPF kernel programs for Nexor eBPF agent.
 //!
 //! Compiled to bpfel-unknown-none by `cargo xtask build-ebpf`.
 //! The resulting ELF is embedded into the userspace loader via `include_bytes!`.

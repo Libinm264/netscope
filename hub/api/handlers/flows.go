@@ -9,13 +9,13 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 
-	"github.com/netscope/hub-api/clickhouse"
-	"github.com/netscope/hub-api/geoip"
-	"github.com/netscope/hub-api/kafka"
-	"github.com/netscope/hub-api/models"
-	"github.com/netscope/hub-api/pubsub"
-	"github.com/netscope/hub-api/threat"
-	"github.com/netscope/hub-api/util"
+	"github.com/klyzar/hub-api/clickhouse"
+	"github.com/klyzar/hub-api/geoip"
+	"github.com/klyzar/hub-api/kafka"
+	"github.com/klyzar/hub-api/models"
+	"github.com/klyzar/hub-api/pubsub"
+	"github.com/klyzar/hub-api/threat"
+	"github.com/klyzar/hub-api/util"
 )
 
 // FlowHandler groups the three flow-related HTTP handlers.

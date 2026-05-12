@@ -12,15 +12,15 @@ Run:
 import os
 import sys
 
-from netscope_sdk import NetScope
-from netscope_sdk.resources.dashboards import DashboardsResource
+from nexor_sdk import Nexor
+from nexor_sdk.resources.dashboards import DashboardsResource
 
-HUB_URL = os.environ.get("NETSCOPE_HUB", "http://localhost:8080")
-TOKEN   = os.environ.get("NETSCOPE_TOKEN", "")
+HUB_URL = os.environ.get("NEXOR_HUB", "http://localhost:8080")
+TOKEN   = os.environ.get("NEXOR_TOKEN", "")
 
 
 def main() -> None:
-    ns = NetScope(url=HUB_URL, token=TOKEN)
+    ns = Nexor(url=HUB_URL, token=TOKEN)
     if not ns.ping():
         print(f"ERROR: cannot reach Hub at {HUB_URL}", file=sys.stderr)
         sys.exit(1)

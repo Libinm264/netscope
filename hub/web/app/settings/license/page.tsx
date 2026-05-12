@@ -182,7 +182,7 @@ export default function LicensePage() {
           <div className="bg-[#0d0d1a] border border-white/[0.06] rounded-xl p-5 space-y-3">
             <p className="text-sm font-semibold text-white">Apply license key</p>
             <p className="text-xs text-slate-500">
-              Enter your NetScope license key below. You'll need to restart the hub
+              Enter your Nexor license key below. You'll need to restart the hub
               with the key set as <code className="text-slate-300 bg-white/[0.06] px-1 rounded">ENTERPRISE_LICENSE_KEY</code>.
             </p>
             <div className="flex gap-2">
@@ -222,7 +222,7 @@ export default function LicensePage() {
                 </p>
               </div>
               <a
-                href="https://netscope.ie/pricing"
+                href="https://nexor.ie/pricing"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1 px-4 py-2 rounded-lg bg-indigo-600
