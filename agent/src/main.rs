@@ -27,7 +27,7 @@ use ebpf_loader::{start as ebpf_start, EbpfConfig, EbpfEvent, SslDirection};
 #[derive(Parser)]
 #[command(
     name = "nexor-agent",
-    version = "0.1.0",
+    version = env!("CARGO_PKG_VERSION"),
     about = "Nexor network observability agent — captures and decodes network traffic"
 )]
 struct Cli {

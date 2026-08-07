@@ -2436,8 +2436,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "netscope-desktop"
-version = "0.1.0"
+name = "nexor-desktop"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "capture",

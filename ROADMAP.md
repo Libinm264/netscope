@@ -4,6 +4,13 @@ This document tracks what has shipped and what is planned for each release.
 The goal is to evolve Nexor from a passive network visibility tool into a
 full-stack security observability platform.
 
+> **Reconciled 2026-08-06** (post-hiatus resume): several rows below were
+> marked `🔄 in progress` / `🔲 todo` from the last active sprint in May 2026
+> but are confirmed shipped in code today. See
+> [REMAINING_WORK.md](./REMAINING_WORK.md) for the authoritative, code-verified
+> backlog and the actual remaining gaps (Windows agent, eBPF Go/Python TLS,
+> housekeeping).
+
 ---
 
 ## ✅ v0.1 — Foundation (shipped)
@@ -51,9 +58,9 @@ a proxy.
 | Hub | `process_name` + `pid` columns in ClickHouse `flows` table | ✅ done |
 | Hub | Ingest, Query, Compliance endpoints surface process fields | ✅ done |
 | UI | Process column in FlowTable (green name + PID, "—" for pcap) | ✅ done |
-| Docs | eBPF section in README | 🔲 todo |
-| Agent | eBPF kernel programs (BPF C): SSL uprobes + TCP kprobes | 🔲 kernel side |
-| Agent | eBPF binary build pipeline (CI) | 🔲 todo |
+| Docs | eBPF section in README | ✅ done |
+| Agent | eBPF kernel programs (BPF C): SSL uprobes + TCP kprobes | ✅ done |
+| Agent | eBPF binary build pipeline (CI) | ✅ done |
 
 ### Running the eBPF engine
 
@@ -198,63 +205,68 @@ Pass `--libssl-path /usr/lib/.../libssl.so.3` to override.
 > **Theme**: Own the fleet. Every OS, every cloud, one pane of glass.
 >
 > **Build order**: Hub (F1–F4) → Agent (F5–F6) → Desktop (F7–F8)
+>
+> **Status as of 2026-08-06**: F1–F4 (Hub) and F7–F8 (Desktop) are fully
+> shipped. F5 (Windows agent) is partially done — see the partial rows below.
+> F6 (eBPF Go/Python TLS) has not started; the BPF kernel programs the
+> loaders expect do not exist yet. Full detail: [REMAINING_WORK.md](./REMAINING_WORK.md).
 
 ### F1 — Cloud VPC Flow Log Ingestion
 
 | Area | Feature | Tier | Status |
 |------|---------|------|--------|
-| Hub | Cloud source config CRUD — `cloud_flow_sources` table (Phase 22) | Community | 🔄 in progress |
-| Hub | Pull audit log — `cloud_flow_pull_log` table (Phase 23) | Community | 🔄 in progress |
-| Hub | `flows.source` column — distinguishes agent-push vs cloud-pull (Phase 24) | Community | 🔄 in progress |
-| Hub | AWS VPC Flow Logs ingestion — S3 + CloudWatch Logs poll | Community | 🔄 in progress |
-| Hub | GCP VPC Flow Logs ingestion — Pub/Sub pull | Enterprise | 🔄 in progress |
-| Hub | Azure NSG Flow Logs ingestion — Blob Storage / Event Hub | Enterprise | 🔄 in progress |
-| Hub | Cloud source handler — CRUD + manual trigger + pull log API | Community | 🔄 in progress |
-| UI | Cloud Sources management page `/cloud` | Community | 🔲 todo |
+| Hub | Cloud source config CRUD — `cloud_flow_sources` table (Phase 22) | Community | ✅ done |
+| Hub | Pull audit log — `cloud_flow_pull_log` table (Phase 23) | Community | ✅ done |
+| Hub | `flows.source` column — distinguishes agent-push vs cloud-pull (Phase 24) | Community | ✅ done |
+| Hub | AWS VPC Flow Logs ingestion — S3 + CloudWatch Logs poll | Community | ✅ done |
+| Hub | GCP VPC Flow Logs ingestion — Pub/Sub pull | Enterprise | ✅ done |
+| Hub | Azure NSG Flow Logs ingestion — Blob Storage / Event Hub | Enterprise | ✅ done |
+| Hub | Cloud source handler — CRUD + manual trigger + pull log API | Community | ✅ done |
+| UI | Cloud Sources management page `/cloud` | Community | ✅ done |
 
 ### F2 — Multi-Cluster Fleet Overview
 
 | Area | Feature | Tier | Status |
 |------|---------|------|--------|
-| Hub | `agent_configs` table — remote config push (Phase 25) | Community | 🔄 in progress |
-| Hub | `agents.config_version` column (Phase 26) | Community | 🔄 in progress |
-| Hub | Fleet cluster grid API — aggregated per-cluster health | Community | 🔄 in progress |
-| Hub | Cross-cluster flow search API | Community | 🔄 in progress |
-| Hub | Remote config push + agent config poll + ack API | Community | 🔄 in progress |
-| Agent | `poll_config` + `ack_config` on heartbeat cycle | Community | 🔲 todo |
-| UI | Fleet health page `/fleet` — cluster cards + agent grid | Community | 🔲 todo |
+| Hub | `agent_configs` table — remote config push (Phase 25) | Community | ✅ done |
+| Hub | `agents.config_version` column (Phase 26) | Community | ✅ done |
+| Hub | Fleet cluster grid API — aggregated per-cluster health | Community | ✅ done |
+| Hub | Cross-cluster flow search API | Community | ✅ done |
+| Hub | Remote config push + agent config poll + ack API | Community | ✅ done |
+| Agent | `poll_config` + `ack_config` on heartbeat cycle | Community | ✅ done |
+| UI | Fleet health page `/fleet` — cluster cards + agent grid | Community | ✅ done |
 
 ### F3 — Compliance Dashboard & Scheduled Reports
 
 | Area | Feature | Tier | Status |
 |------|---------|------|--------|
-| Hub | `compliance_report_schedules` table (Phase 27) | Enterprise | 🔄 in progress |
-| Hub | `compliance_report_runs` audit log (Phase 28) | Enterprise | 🔄 in progress |
-| Hub | SOC 2 / PCI-DSS / HIPAA query bundles | Enterprise | 🔄 in progress |
-| Hub | PDF + CSV renderer (gofpdf) | Enterprise | 🔄 in progress |
-| Hub | Compliance scheduler — 5-min cron loop | Enterprise | 🔄 in progress |
-| Hub | Compliance report CRUD + manual run + preview API | Enterprise | 🔄 in progress |
-| UI | Compliance report schedules page `/compliance/reports` | Enterprise | 🔲 todo |
+| Hub | `compliance_report_schedules` table (Phase 27) | Enterprise | ✅ done |
+| Hub | `compliance_report_runs` audit log (Phase 28) | Enterprise | ✅ done |
+| Hub | SOC 2 / PCI-DSS / HIPAA query bundles | Enterprise | ✅ done |
+| Hub | PDF + CSV renderer (gofpdf) | Enterprise | ✅ done |
+| Hub | Compliance scheduler — 5-min cron loop | Enterprise | ✅ done |
+| Hub | Compliance report CRUD + manual run + preview API | Enterprise | ✅ done |
+| UI | Compliance report schedules page `/compliance/reports` | Enterprise | ✅ done |
 
 ### F4 — Incident Workflow Integration
 
 | Area | Feature | Tier | Status |
 |------|---------|------|--------|
-| Hub | `incidents` table — in-hub incident timeline (Phase 29) | Enterprise | 🔄 in progress |
-| Hub | `incident_workflow_config` table (Phase 30) | Enterprise | 🔄 in progress |
-| Hub | Incident dispatcher — hooks Sigma engine on match | Enterprise | 🔄 in progress |
-| Hub | Jira REST API v3 ticket creation | Enterprise | 🔄 in progress |
-| Hub | Linear GraphQL ticket creation | Enterprise | 🔄 in progress |
-| Hub | PagerDuty + OpsGenie routing from Sigma matches | Enterprise | 🔄 in progress |
-| Hub | Incident CRUD + ack/resolve/notes API | Enterprise | 🔄 in progress |
-| UI | Incidents timeline page `/incidents` | Enterprise | 🔲 todo |
+| Hub | `incidents` table — in-hub incident timeline (Phase 29) | Enterprise | ✅ done |
+| Hub | `incident_workflow_config` table (Phase 30) | Enterprise | ✅ done |
+| Hub | Incident dispatcher — hooks Sigma engine on match | Enterprise | ✅ done |
+| Hub | Jira REST API v3 ticket creation | Enterprise | ✅ done |
+| Hub | Linear GraphQL ticket creation | Enterprise | ✅ done |
+| Hub | PagerDuty + OpsGenie routing from Sigma matches | Enterprise | ✅ done |
+| Hub | Incident CRUD + ack/resolve/notes API | Enterprise | ✅ done |
+| UI | Incidents timeline page `/incidents` | Enterprise | ✅ done |
 
 ### F5 — Windows Agent (Npcap)
 
 | Area | Feature | Tier | Status |
 |------|---------|------|--------|
-| Agent | `capture-windows` crate — Npcap backend | Enterprise | 🔲 todo |
-| Agent | Windows process enrichment (Toolhelp32Snapshot) | Enterprise | 🔲 todo |
+| Agent | `capture-windows` crate — Npcap backend | Enterprise | � partial — crate compiles standalone, not yet called from `main.rs` |
+| Agent | Windows process enrichment (Toolhelp32Snapshot) | Enterprise | 🟡 partial — `ProcessCache` (pid→name) done; port→PID correlation via `GetExtendedTcpTable` still a stub |
 | Agent | `#[cfg(windows)]` capture dispatch in main agent | Enterprise | 🔲 todo |
 | Agent | MSI installer (WiX) bundling wpcap.dll | Enterprise | 🔲 todo |
 
@@ -271,17 +283,17 @@ Pass `--libssl-path /usr/lib/.../libssl.so.3` to override.
 
 | Area | Feature | Tier | Status |
 |------|---------|------|--------|
-| Desktop | `FleetPane` component — cluster grid (requires hub connection) | Community | 🔲 todo |
-| Desktop | `get_fleet_summary` + `get_agent_list` Tauri commands | Community | 🔲 todo |
-| Desktop | Fleet tab in bottom tab bar | Community | 🔲 todo |
+| Desktop | `FleetPane` component — cluster grid (requires hub connection) | Community | ✅ done |
+| Desktop | `get_fleet_clusters` + `get_fleet_agents` Tauri commands (shipped under these names, not `get_fleet_summary`/`get_agent_list`) | Community | ✅ done |
+| Desktop | Fleet tab in bottom tab bar | Community | ✅ done |
 
 ### F8 — OTel Trace Side Panel in Desktop
 
 | Area | Feature | Tier | Status |
 |------|---------|------|--------|
-| Desktop | `OtelTracePanel` — slide-in drawer with Jaeger/Tempo webview | Community | 🔲 todo |
-| Desktop | `trace_id` dot indicator on flow rows | Community | 🔲 todo |
-| Desktop | `get_otel_backend_url` Tauri command | Community | 🔲 todo |
+| Desktop | `OtelTracePanel` — slide-in drawer with Jaeger/Tempo webview | Community | ✅ done |
+| Desktop | `trace_id` dot indicator on flow rows | Community | 🔲 todo — panel toggle exists in `App.tsx`, but `PacketListPane` rows carry no per-row trace indicator yet |
+| Desktop | `get_otel_backend_url` Tauri command | Community | ✅ done |
 
 ---
 

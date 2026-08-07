@@ -2,9 +2,9 @@
 
 # Nexor
 
-**A unified, cross-platform network observability platform**
+**Self-hosted network observability for small teams**
 
-Real-time packet capture · Deep protocol inspection · GeoIP & threat intelligence · SaaS hub · eBPF agent
+Fleet-wide flow visibility · Alerting & compliance · GeoIP & threat intelligence · eBPF agent · Companion desktop inspector
 
 [![Build Nexor Desktop](https://github.com/Libinm264/nexor/actions/workflows/build-desktop.yml/badge.svg)](https://github.com/Libinm264/nexor/actions/workflows/build-desktop.yml)
 ![Rust](https://img.shields.io/badge/Rust-2021_edition-orange?logo=rust)
@@ -54,15 +54,17 @@ Real-time packet capture · Deep protocol inspection · GeoIP & threat intellige
 
 ## Overview
 
-Nexor is a full-stack network observability platform built for developers, security engineers, and network operators. It captures live traffic, decodes it into human-readable flows with deep protocol inspection, enriches every connection with geographic and threat data, and streams everything to a centralised hub for fleet-wide visibility.
+Nexor is a **self-hosted alternative to Datadog/New Relic-style network observability** for small teams who want fleet-wide flow visibility, alerting, and compliance reporting without per-GB billing or shipping data off-box. Point a lightweight agent at a self-hosted hub and get a live dashboard across every server, container, and cluster in minutes.
 
 It ships as three complementary pieces:
 
 | Component | What it does |
 |---|---|
-| **Desktop app** (macOS / Windows / Linux) | Wireshark-inspired 3-pane UI with live capture, GeoIP flags, threat badges, certificate audit, analytics, and service map |
-| **CLI agent** (`nexor-agent`) | Headless capture for servers, containers, and CI environments; streams flows to the hub |
-| **Hub** (Go API + Next.js dashboard) | Multi-tenant SaaS backend — Kafka ingestion, ClickHouse analytics, real-time SSE streaming, alerting, compliance, RBAC |
+| **Hub** (Go API + Next.js dashboard) | Self-hosted backend for your fleet — Kafka ingestion, ClickHouse analytics, real-time SSE streaming, alerting (6 channels), compliance reporting (PCI-DSS/HIPAA/CIS), incident dispatch (Jira/Linear), RBAC |
+| **CLI agent** (`nexor-agent`) | Headless capture for servers, containers, and CI environments; streams flows to the hub — the thing you roll out fleet-wide |
+| **Desktop app** (macOS / Windows / Linux) | Companion packet inspector — a Wireshark-inspired 3-pane UI (live capture, GeoIP flags, threat badges, certificate audit, service map) for deep-diving a single host, on top of the same flow data the hub already has |
+
+Security teams: the same fleet data doubles as an incident-replay and detection surface — Sigma rule matching, anomaly baselines, and audit-logged compliance exports are built on the identical `Flow` pipeline, not a bolt-on. See [REMAINING_WORK.md](REMAINING_WORK.md#57-positioning-strategy-one-front-door-three-audiences) for the current positioning and phased build-out plan.
 
 ---
 

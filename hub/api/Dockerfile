@@ -13,6 +13,7 @@ FROM --platform=$BUILDPLATFORM golang:1.25-alpine AS builder
 # Declare the target platform args injected by docker buildx.
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
+ARG VERSION=dev
 
 RUN apk add --no-cache git ca-certificates tzdata
 
@@ -28,7 +29,7 @@ COPY . .
 RUN --mount=type=cache,target=/root/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -ldflags="-s -w" -trimpath -o /hub-api .
+    go build -ldflags="-s -w -X main.version=${VERSION}" -trimpath -o /hub-api .
 
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 # Minimal target-platform image — just the static binary.
