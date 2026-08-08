@@ -56,6 +56,19 @@ type ArpFlow struct {
 	TargetMAC  string `json:"target_mac"`
 }
 
+// PostgresFlow contains PostgreSQL wire-protocol metadata for a flow: the
+// query text (simple query protocol only), the server's outcome, and
+// StartupMessage-derived user/database attribution. See N3 in
+// REMAINING_WORK.md for scope notes.
+type PostgresFlow struct {
+	Query        string `json:"query,omitempty"`
+	CommandTag   string `json:"command_tag,omitempty"`
+	RowsAffected uint64 `json:"rows_affected,omitempty"`
+	Error        string `json:"error,omitempty"`
+	Username     string `json:"username,omitempty"`
+	Database     string `json:"database,omitempty"`
+}
+
 // TcpStats contains TCP health counters for a flow.
 type TcpStats struct {
 	Retransmissions uint32 `json:"retransmissions"`
@@ -80,9 +93,10 @@ type Flow struct {
 	HTTP       *HttpFlow `json:"http,omitempty"`
 	DNS        *DnsFlow  `json:"dns,omitempty"`
 	TLS        *TlsFlow  `json:"tls,omitempty"`
-	ICMP       *IcmpFlow `json:"icmp,omitempty"`
-	ARP        *ArpFlow  `json:"arp,omitempty"`
-	TCPStats   *TcpStats `json:"tcp_stats,omitempty"`
+	ICMP       *IcmpFlow     `json:"icmp,omitempty"`
+	ARP        *ArpFlow      `json:"arp,omitempty"`
+	Postgres   *PostgresFlow `json:"postgres,omitempty"`
+	TCPStats   *TcpStats     `json:"tcp_stats,omitempty"`
 
 	// Process attribution — populated by the agent in eBPF mode only.
 	// ProcessName is the OS process name (up to 15 chars on Linux).

@@ -597,6 +597,14 @@ func Migrate(ctx context.Context, c *Client) error {
 		) ENGINE = MergeTree()
 		ORDER BY (agent_id, ts)
 		TTL ts + INTERVAL 30 DAY`,
+
+		// Phase 33: PostgreSQL wire-protocol decoding columns on flows (N3)
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS pg_query         String DEFAULT ''`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS pg_command_tag   LowCardinality(String) DEFAULT ''`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS pg_rows_affected UInt64 DEFAULT 0`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS pg_error         String DEFAULT ''`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS pg_username      LowCardinality(String) DEFAULT ''`,
+		`ALTER TABLE flows ADD COLUMN IF NOT EXISTS pg_database      LowCardinality(String) DEFAULT ''`,
 	}
 
 	for _, q := range ddl {

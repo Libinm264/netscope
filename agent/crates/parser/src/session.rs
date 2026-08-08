@@ -5,6 +5,7 @@ use crate::dns::parse_dns;
 use crate::http::{looks_like_http_request, looks_like_http_response, parse_request, parse_response};
 use crate::http2::{looks_like_h2, H2Session};
 use crate::masking::{mask_body, mask_headers};
+use crate::postgres::{is_postgres_port, PostgresSession};
 use crate::tls::{looks_like_tls, parse_tls};
 use capture::tcp_stream::{Direction, TcpReassembler};
 use chrono::{DateTime, Utc};
@@ -50,6 +51,8 @@ pub struct SessionManager {
     http_sessions: HashMap<String, HttpSession>,
     /// key = canonical TcpKey string, value = in-progress HTTP/2 session
     h2_sessions: HashMap<String, H2Session>,
+    /// key = canonical TcpKey string, value = in-progress PostgreSQL session
+    pg_sessions: HashMap<String, PostgresSession>,
     /// ICMP echo requests waiting for their reply: key → send timestamp
     echo_requests: HashMap<EchoKey, DateTime<Utc>>,
 }
@@ -60,6 +63,7 @@ impl SessionManager {
             reassembler: TcpReassembler::new(),
             http_sessions: HashMap::new(),
             h2_sessions: HashMap::new(),
+            pg_sessions: HashMap::new(),
             echo_requests: HashMap::new(),
         }
     }
@@ -235,6 +239,41 @@ impl SessionManager {
                 }
                 if tcp_data.fin {
                     self.http_sessions.remove(&key);
+                }
+                continue;
+            }
+
+            // ── PostgreSQL detection ──────────────────────────────────────────
+            let is_postgres = is_postgres_port(tcp_data.key.dst_port)
+                || is_postgres_port(tcp_data.key.src_port);
+
+            if is_postgres {
+                let session = self.pg_sessions.entry(key.clone()).or_default();
+                match tcp_data.direction {
+                    Direction::ClientToServer => session.push_client(&tcp_data.data),
+                    Direction::ServerToClient => {
+                        for pg in session.push_server(&tcp_data.data) {
+                            flows.push(Flow {
+                                id: new_id(),
+                                timestamp: event.timestamp,
+                                src_ip: tcp_data.key.src_ip.clone(),
+                                dst_ip: tcp_data.key.dst_ip.clone(),
+                                src_port: tcp_data.key.src_port,
+                                dst_port: tcp_data.key.dst_port,
+                                protocol: Protocol::Postgres,
+                                bytes_in: tcp_data.data.len() as u64,
+                                bytes_out: 0,
+                                payload: Some(FlowPayload::Postgres(pg)),
+                                tcp_stats: Some(stats.clone()),
+                                process: None,
+                                pod_name: None,
+                                k8s_namespace: None,
+                            });
+                        }
+                    }
+                }
+                if tcp_data.fin {
+                    self.pg_sessions.remove(&key);
                 }
                 continue;
             }

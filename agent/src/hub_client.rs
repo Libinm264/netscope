@@ -84,6 +84,22 @@ struct HubArpFlow {
 }
 
 #[derive(Serialize)]
+struct HubPostgresFlow {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    query:          Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    command_tag:    Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    rows_affected:  Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error:          Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    username:       Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    database:       Option<String>,
+}
+
+#[derive(Serialize)]
 struct HubTcpStats {
     retransmissions: u32,
     out_of_order:    u32,
@@ -114,6 +130,8 @@ struct HubFlow {
     icmp:        Option<HubIcmpFlow>,
     #[serde(skip_serializing_if = "Option::is_none")]
     arp:         Option<HubArpFlow>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    postgres:    Option<HubPostgresFlow>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tcp_stats:   Option<HubTcpStats>,
     /// Process name from eBPF attribution (empty string when unavailable).
@@ -372,6 +390,7 @@ fn flow_to_wire(flow: &Flow, agent_id: &str, hostname: &str) -> HubFlow {
     let mut tls:      Option<HubTlsFlow>  = None;
     let mut icmp_w:   Option<HubIcmpFlow> = None;
     let mut arp_w:    Option<HubArpFlow>  = None;
+    let mut postgres_w: Option<HubPostgresFlow> = None;
     let mut duration_ms: u32 = 0;
 
     let info = match &flow.payload {
@@ -484,6 +503,24 @@ fn flow_to_wire(flow: &Flow, agent_id: &str, hostname: &str) -> HubFlow {
             info
         }
 
+        Some(FlowPayload::Postgres(pg)) => {
+            let info = match (&pg.query, &pg.error) {
+                (Some(q), Some(e)) => format!("{} [{}]", q, e),
+                (Some(q), None)    => q.clone(),
+                (None, Some(e))    => e.clone(),
+                (None, None)       => String::new(),
+            };
+            postgres_w = Some(HubPostgresFlow {
+                query:         pg.query.clone(),
+                command_tag:   pg.command_tag.clone(),
+                rows_affected: pg.rows_affected,
+                error:         pg.error.clone(),
+                username:      pg.username.clone(),
+                database:      pg.database.clone(),
+            });
+            info
+        }
+
         None => String::new(),
     };
 
@@ -519,6 +556,7 @@ fn flow_to_wire(flow: &Flow, agent_id: &str, hostname: &str) -> HubFlow {
         tls,
         icmp: icmp_w,
         arp:  arp_w,
+        postgres: postgres_w,
         tcp_stats,
         process_name,
         pid,

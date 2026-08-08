@@ -16,6 +16,7 @@ pub enum Protocol {
     Tls,
     Icmp,
     Arp,
+    Postgres,
     Unknown,
 }
 
@@ -32,6 +33,7 @@ impl std::fmt::Display for Protocol {
             Protocol::Tls     => write!(f, "TLS"),
             Protocol::Icmp    => write!(f, "ICMP"),
             Protocol::Arp     => write!(f, "ARP"),
+            Protocol::Postgres => write!(f, "PostgreSQL"),
             Protocol::Unknown => write!(f, "UNKNOWN"),
         }
     }
@@ -69,6 +71,7 @@ pub enum FlowPayload {
     Tls(TlsHandshake),
     Icmp(IcmpFlow),
     Arp(ArpFlow),
+    Postgres(PostgresFlow),
 }
 
 // ── HTTP ──────────────────────────────────────────────────────────────────────
@@ -211,6 +214,38 @@ pub struct TlsHandshake {
     pub alert_level: Option<String>,
     /// Alert description: "handshake_failure", "certificate_expired", "unknown_ca", etc.
     pub alert_description: Option<String>,
+}
+
+// ── PostgreSQL wire protocol ──────────────────────────────────────────────────
+
+/// A decoded PostgreSQL simple-query exchange: the query text sent by the
+/// client plus the server's outcome (CommandComplete tag / row count, or an
+/// ErrorResponse). One `PostgresFlow` is emitted per query/response cycle.
+///
+/// # Scope (v1)
+/// - Only the simple query protocol (`Q` messages) is decoded; the extended
+///   query protocol (Parse/Bind/Execute) is not yet decoded — `query` will be
+///   `None` for connections that only use prepared statements.
+/// - The client's cleartext password (PasswordMessage, `p`) is intentionally
+///   never parsed or captured — credentials must not reach the Hub.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PostgresFlow {
+    /// The SQL text from a Simple Query ('Q') message, if seen.
+    pub query: Option<String>,
+    /// Raw CommandComplete tag, e.g. "SELECT 5", "INSERT 0 1", "UPDATE 3".
+    pub command_tag: Option<String>,
+    /// Row count parsed from the command tag's trailing integer.
+    pub rows_affected: Option<u64>,
+    /// Milliseconds between the query being sent and the server's response.
+    pub duration_ms: Option<u64>,
+    /// Set when the server responded with an ErrorResponse instead of
+    /// CommandComplete: "<severity>: <message>".
+    pub error: Option<String>,
+    /// Username from the StartupMessage, if seen on this connection.
+    pub username: Option<String>,
+    /// Database name from the StartupMessage (defaults to username per the
+    /// wire protocol when no explicit "database" parameter is sent).
+    pub database: Option<String>,
 }
 
 // ── ICMP ──────────────────────────────────────────────────────────────────────

@@ -903,6 +903,25 @@ fn print_flow(flow: &proto::Flow, n: u64) {
             }
         }
 
+        Some(FlowPayload::Postgres(pg)) => {
+            let addr = format!("{}:{} → {}:{}", flow.src_ip, flow.src_port, flow.dst_ip, flow.dst_port);
+            let query = pg.query.as_deref().unwrap_or("-");
+            match &pg.error {
+                Some(err) => println!(
+                    "[{}] {}\x1b[31mPGSQL\x1b[0m #{} {} [{}] {}",
+                    ts, proc_prefix, n, query, err, addr
+                ),
+                None => {
+                    let tag = pg.command_tag.as_deref().unwrap_or("-");
+                    let rows = pg.rows_affected.map(|r| format!(" ({} rows)", r)).unwrap_or_default();
+                    println!(
+                        "[{}] {}\x1b[32mPGSQL\x1b[0m #{} {} → {}{} {}",
+                        ts, proc_prefix, n, query, tag, rows, addr
+                    );
+                }
+            }
+        }
+
         None => {
             // Raw TCP/UDP flow — show in verbose mode or when process-attributed (eBPF)
             if std::env::var("NEXOR_VERBOSE").is_ok() || flow.process.is_some() {

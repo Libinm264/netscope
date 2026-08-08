@@ -220,7 +220,8 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 		        process_name, pid,
 		        pod_name, k8s_namespace,
 		        threat_score, threat_level,
-		        trace_id
+		        trace_id,
+		        pg_query, pg_command_tag, pg_rows_affected, pg_error, pg_username, pg_database
 		 FROM flows
 		 WHERE %s
 		 ORDER BY ts DESC
@@ -240,6 +241,13 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 			httpStatus uint16
 			dnsQuery   string
 			dnsType    string
+
+			pgQuery        string
+			pgCommandTag   string
+			pgRowsAffected uint64
+			pgError        string
+			pgUsername     string
+			pgDatabase     string
 		)
 		if err := rows.Scan(
 			&f.ID, &f.AgentID, &f.Hostname, &f.Timestamp, &f.Protocol,
@@ -251,6 +259,7 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 			&f.PodName, &f.K8sNamespace,
 			&f.ThreatScore, &f.ThreatLevel,
 			&f.TraceID,
+			&pgQuery, &pgCommandTag, &pgRowsAffected, &pgError, &pgUsername, &pgDatabase,
 		); err != nil {
 			slog.Warn("scan flow row", "err", err)
 			continue
@@ -266,6 +275,16 @@ func (h *FlowHandler) Query(c *fiber.Ctx) error {
 			f.DNS = &models.DnsFlow{
 				QueryName: dnsQuery,
 				QueryType: dnsType,
+			}
+		}
+		if pgQuery != "" || pgError != "" {
+			f.Postgres = &models.PostgresFlow{
+				Query:        pgQuery,
+				CommandTag:   pgCommandTag,
+				RowsAffected: pgRowsAffected,
+				Error:        pgError,
+				Username:     pgUsername,
+				Database:     pgDatabase,
 			}
 		}
 		flows = append(flows, f)

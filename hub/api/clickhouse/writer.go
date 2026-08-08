@@ -110,8 +110,9 @@ func (w *Writer) insertFlows(flows []models.Flow) error {
 		  dns_query, dns_type,
 		  process_name, pid,
 		  pod_name, k8s_namespace,
-		  country_code, country_name, as_org, threat_score, threat_level)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		  country_code, country_name, as_org, threat_score, threat_level,
+		  pg_query, pg_command_tag, pg_rows_affected, pg_error, pg_username, pg_database)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 	)
 	if err != nil {
 		return err
@@ -133,6 +134,17 @@ func (w *Writer) insertFlows(flows []models.Flow) error {
 		if f.DNS != nil {
 			dnsQuery = f.DNS.QueryName
 			dnsType = f.DNS.QueryType
+		}
+
+		pgQuery, pgCommandTag, pgError, pgUsername, pgDatabase := "", "", "", "", ""
+		var pgRowsAffected uint64
+		if f.Postgres != nil {
+			pgQuery = f.Postgres.Query
+			pgCommandTag = f.Postgres.CommandTag
+			pgRowsAffected = f.Postgres.RowsAffected
+			pgError = f.Postgres.Error
+			pgUsername = f.Postgres.Username
+			pgDatabase = f.Postgres.Database
 		}
 
 		if err := b.Append(
@@ -163,6 +175,12 @@ func (w *Writer) insertFlows(flows []models.Flow) error {
 			f.ASOrg,
 			f.ThreatScore,
 			f.ThreatLevel,
+			pgQuery,
+			pgCommandTag,
+			pgRowsAffected,
+			pgError,
+			pgUsername,
+			pgDatabase,
 		); err != nil {
 			slog.Warn("clickhouse: append row failed", "err", err, "id", f.ID)
 			continue
